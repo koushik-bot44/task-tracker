@@ -41,7 +41,7 @@ Every capture: zero console errors, zero page errors, no horizontal overflow at
 390 / 768 / 1440 (one exception, the admin's 403s on People, is defect #8 —
 fixed in this landing).
 
-Tap count for *Give a task* from Today: **3** (+ → what → who → by when → Send;
+Tap count for *Add a task*: **2** (+ → what → Add; who is optional and defaults to no one;
 "by when" defaults to the milestone's review date when opened from a box).
 
 ## Rules proven (rigs, verbatim output in records/evidence/restructure)

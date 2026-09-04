@@ -1,6 +1,6 @@
 /**
  * Every fixed overlay, measured against the viewport (restructure edition).
- * Opens the Give a task sheet, the task drawer, the profile menu, the search
+ * Opens the Add a task sheet, the task drawer, the profile menu, the search
  * palette and the help sheet at 390 and 1440, and fails if any lands outside.
  *
  *   npm run overlays        (dev server running; SHOT_* or the founder login)
@@ -50,7 +50,7 @@ async function probe(page: Page, vp: string, label: string, open: (p: Page) => P
     await page.waitForLoadState("networkidle").catch(() => {});
     await page.waitForTimeout(1200);
 
-    await probe(page, vp.n, "give a task sheet", async (p) => { await p.getByRole("button", { name: "Give a task" }).first().click({ timeout: 5000 }).catch(() => {}); }, '[role="dialog"]');
+    await probe(page, vp.n, "add a task sheet", async (p) => { await p.getByRole("button", { name: "Add a task" }).first().click({ timeout: 5000 }).catch(() => {}); }, '[role="dialog"]');
     await probe(page, vp.n, "profile menu", async (p) => { await p.getByRole("button", { name: "Your menu" }).first().click({ timeout: 5000 }).catch(() => {}); }, '[role="menu"]');
     await probe(page, vp.n, "help sheet", async (p) => {
       await p.getByRole("button", { name: "Your menu" }).first().click({ timeout: 5000 }).catch(() => {});

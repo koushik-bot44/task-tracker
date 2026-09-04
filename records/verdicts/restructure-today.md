@@ -67,3 +67,7 @@ One fix made from the screenshots: the shared `inputClass` is `w-full`, which be
 - The founder account (`founder@orbit.local`) is a DIRECTOR in this database and was an attendee of its own review meeting, so the founder's meeting card shows both the reply buttons and the reschedule row; an organiser who is not an attendee sees the reschedule row only.
 - The `Row` primitive was not used for task rows: it renders a `<button>` and the `Check` is also a `<button>`, which would nest buttons (a React DOM-nesting console error). The task row is the same 56 px shape built from `Check` + a title button instead.
 - Throwaway data (five `RS-` tasks and one `RS- Milestone` with its review meeting) was created and deleted by the script; `GET /api/tasks?view=all` shows no `RS-` rows afterwards.
+
+## Owner feedback, same day — tasks are lines in a box
+
+The owner: "don't keep personally assigning every task to a person; it's milestones with tasks inside" (the sketch). The sheet is now "Add a task": What needs doing? → Add (two taps). "Give it to someone? (optional)" defaults to No one; project faces follow; "Someone else…" reveals everyone in the company for leads and above (they join the project with the task). Unassigned rows show no face; task_given goes out only when someone is picked. Proven by a rig: a task added with no person lands in the box (`assigneeId` null, `milestoneId` set), zero console errors; captures project-add-task-390, project-add-task-after-390, today-add-task-390. "+ Give a task" in boxes and the Today + now read "Add a task".

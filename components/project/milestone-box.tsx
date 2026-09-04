@@ -131,7 +131,7 @@ export function MilestoneBox({
                   <span className="-ml-2 grid h-11 w-11 shrink-0 place-items-center">
                     <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
                   </span>
-                  Give a task
+                  Add a task
                 </button>
               ) : null}
             </motion.div>

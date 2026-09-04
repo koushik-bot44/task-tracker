@@ -1,13 +1,15 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { DepartmentList, type DepartmentSummary } from "@/components/projects/department-list";
 import { DepartmentSection } from "@/components/projects/department-section";
+import { DepartmentView, byRankThenOrder } from "@/components/projects/department-view";
 import { DepartmentSheet } from "@/components/sheets/department-sheet";
 import { NewProjectSheet } from "@/components/sheets/new-project-sheet";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
-import { Segmented } from "@/components/ui/segmented";
 import { inputClass } from "@/components/ui/sheet";
 import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
@@ -17,34 +19,24 @@ import { useMe } from "@/lib/hooks/use-users";
 import { isExecutiveRole, isHodRole } from "@/lib/roles";
 import type { DepartmentDTO, ProjectDTO } from "@/lib/types";
 
-type View = "all" | "mine" | "behind";
-
-/** Behind first, then the rest in their order, finished projects last. */
-function rank(p: ProjectDTO): number {
-  if (p.status === "DONE") return 2;
-  if (p.behind) return 0;
-  return 1;
-}
-
-function byRankThenOrder(a: ProjectDTO, b: ProjectDTO): number {
-  const r = rank(a) - rank(b);
-  if (r !== 0) return r;
-  return a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0;
-}
-
 /**
- * Projects: every project you can see, grouped by department. Find one, or
- * narrow to Mine / Behind; tap a card to open it; "+ New project" on a
- * department header starts one there.
+ * Projects, in two levels. First the departments — one row each, with how
+ * many projects live there and how many are behind. Tap one to see its
+ * projects (All / Mine / Behind, the cards, "+ New project" there). Typing in
+ * "Find a project" searches every project at once, grouped by department.
+ * The open department lives in the URL (?d=…) so Back returns to the list.
  */
 export function ProjectsPage() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const openId = params.get("d");
+
   const { data: me } = useMe();
   const projectsQuery = useProjects();
   const departmentsQuery = useDepartments();
 
   const [q, setQ] = useState("");
-  const [view, setView] = useState<View>("all");
-  /** Which department "+ New project" was tapped on; null id = pick one in the sheet. */
+  /** Which department "+ New project" was tapped in; null id = pick one in the sheet. */
   const [startIn, setStartIn] = useState<{ id: string | null; name?: string } | null>(null);
   const [editing, setEditing] = useState<DepartmentDTO | null>(null);
   const [departmentSheetOpen, setDepartmentSheetOpen] = useState(false);
@@ -61,21 +53,12 @@ export function ProjectsPage() {
 
   const isMine = (p: ProjectDTO) =>
     Boolean(me) && (p.people.some((x) => x.id === me?.id) || p.leadId === me?.id || p.ownerId === me?.id);
-  const mineCount = projects.filter(isMine).length;
-  const behindCount = projects.filter((p) => p.behind).length;
 
-  const needle = q.trim().toLowerCase();
-  const filtering = needle.length > 0 || view !== "all";
-  const shown = projects.filter((p) => {
-    if (view === "mine" && !isMine(p)) return false;
-    if (view === "behind" && !p.behind) return false;
-    return needle.length === 0 || p.name.toLowerCase().includes(needle);
-  });
-
+  // Every visible project filed under its department; the rest are "not in a department yet".
   const known = new Set(departments.map((d) => d.id));
   const byDepartment = new Map<string, ProjectDTO[]>();
   const unfiled: ProjectDTO[] = [];
-  for (const p of shown) {
+  for (const p of projects) {
     if (p.departmentId && known.has(p.departmentId)) {
       const list = byDepartment.get(p.departmentId) ?? [];
       list.push(p);
@@ -87,6 +70,30 @@ export function ProjectsPage() {
   for (const list of byDepartment.values()) list.sort(byRankThenOrder);
   unfiled.sort(byRankThenOrder);
 
+  // Departments with projects first (in their order), then the empty ones.
+  const summaries: DepartmentSummary[] = departments
+    .map((d) => {
+      const list = byDepartment.get(d.id) ?? [];
+      return { department: d, count: list.length, behind: list.filter((p) => p.behind && p.status !== "DONE").length };
+    })
+    .sort((a, b) => Number(b.count > 0) - Number(a.count > 0));
+
+  const needle = q.trim().toLowerCase();
+  const found = needle.length === 0 ? [] : projects.filter((p) => p.name.toLowerCase().includes(needle)).sort(byRankThenOrder);
+  const foundByDepartment = new Map<string, ProjectDTO[]>();
+  const foundUnfiled: ProjectDTO[] = [];
+  for (const p of found) {
+    if (p.departmentId && known.has(p.departmentId)) {
+      const list = foundByDepartment.get(p.departmentId) ?? [];
+      list.push(p);
+      foundByDepartment.set(p.departmentId, list);
+    } else {
+      foundUnfiled.push(p);
+    }
+  }
+
+  const openDepartment = (d: DepartmentDTO) => router.push(`/projects?d=${encodeURIComponent(d.id)}`, { scroll: false });
+  const closeDepartment = () => router.push("/projects", { scroll: false });
   const openNewDepartment = () => {
     setEditing(null);
     setDepartmentSheetOpen(true);
@@ -132,7 +139,7 @@ export function ProjectsPage() {
     );
   }
 
-  if (projects.length === 0) {
+  if (projects.length === 0 && departments.length === 0) {
     return (
       <Shell>
         <EmptyState
@@ -143,7 +150,7 @@ export function ProjectsPage() {
               <Button variant="primary" onClick={() => setStartIn({ id: null })}>
                 New project
               </Button>
-            ) : executive && departments.length === 0 ? (
+            ) : executive ? (
               <Button variant="primary" onClick={openNewDepartment}>
                 New department
               </Button>
@@ -155,71 +162,94 @@ export function ProjectsPage() {
     );
   }
 
+  // Level 2: one department, its projects.
+  const open = openId ? departments.find((d) => d.id === openId) ?? null : null;
+  if (open) {
+    return (
+      <Shell>
+        <DepartmentView
+          department={open}
+          projects={byDepartment.get(open.id) ?? []}
+          isMine={isMine}
+          canEdit={canEditDepartment(open)}
+          canStart={canStartIn(open)}
+          onBack={closeDepartment}
+          onEdit={() => {
+            setEditing(open);
+            setDepartmentSheetOpen(true);
+          }}
+          onStart={() => setStartIn({ id: open.id, name: open.name })}
+        />
+        {sheets}
+      </Shell>
+    );
+  }
+
+  // Level 1: the departments (or, while searching, the matching projects).
   return (
     <Shell>
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" strokeWidth={1.75} aria-hidden />
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Find a project"
-              aria-label="Find a project"
-              autoComplete="off"
-              className={cn(inputClass, "pl-10")}
-            />
-          </div>
-          <Segmented<View>
-            label="Which projects"
-            value={view}
-            onChange={setView}
-            className="md:max-w-sm"
-            options={[
-              { value: "all", label: "All" },
-              { value: "mine", label: "Mine", count: mineCount },
-              { value: "behind", label: "Behind", count: behindCount },
-            ]}
+      <div className="space-y-5">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" strokeWidth={1.75} aria-hidden />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Find a project"
+            aria-label="Find a project"
+            autoComplete="off"
+            className={cn(inputClass, "pl-10")}
           />
         </div>
 
-        {shown.length === 0 ? (
-          <EmptyState
-            title={needle ? "No project called that." : view === "mine" ? "You're not on a project yet." : "Nothing is behind."}
-            body={needle ? "Check the spelling, or clear the search." : undefined}
-          />
+        {needle.length > 0 ? (
+          found.length === 0 ? (
+            <EmptyState title="No project called that." body="Check the spelling, or clear the search." />
+          ) : (
+            <div className="space-y-8">
+              {departments.map((d) => {
+                const list = foundByDepartment.get(d.id) ?? [];
+                if (list.length === 0) return null;
+                return <DepartmentSection key={d.id} title={d.name} projects={list} />;
+              })}
+              {foundUnfiled.length > 0 ? <DepartmentSection title="Not in a department yet" projects={foundUnfiled} /> : null}
+            </div>
+          )
         ) : (
-          <div className="space-y-8">
-            {departments.map((d) => {
-              const list = byDepartment.get(d.id) ?? [];
-              if (filtering && list.length === 0) return null;
-              return (
-                <DepartmentSection
-                  key={d.id}
-                  title={d.name}
-                  projects={list}
-                  canEdit={canEditDepartment(d)}
-                  canStart={canStartIn(d)}
-                  onEdit={() => {
-                    setEditing(d);
-                    setDepartmentSheetOpen(true);
-                  }}
-                  onStart={() => setStartIn({ id: d.id, name: d.name })}
-                />
-              );
-            })}
-            {unfiled.length > 0 ? <DepartmentSection title="Not in a department yet" projects={unfiled} /> : null}
-          </div>
-        )}
+          <>
+            <section aria-labelledby="departments-heading" className="space-y-2">
+              <div className="flex min-h-11 items-center gap-2">
+                <h2 id="departments-heading" className="min-w-0 flex-1 text-micro font-semibold uppercase tracking-[0.08em] text-muted">
+                  Departments
+                </h2>
+                {canStartSomewhere ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => setStartIn({ id: null })}
+                    icon={<Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
+                  >
+                    New project
+                  </Button>
+                ) : null}
+              </div>
+              {summaries.length === 0 ? (
+                <EmptyState title="No departments yet." body="Projects live inside departments." />
+              ) : (
+                <DepartmentList items={summaries} onOpen={openDepartment} />
+              )}
+            </section>
 
-        {executive && !filtering ? (
-          <div className="flex justify-center pt-2">
-            <Button variant="quiet" onClick={openNewDepartment}>
-              New department
-            </Button>
-          </div>
-        ) : null}
+            {unfiled.length > 0 ? <DepartmentSection title="Not in a department yet" projects={unfiled} /> : null}
+
+            {executive ? (
+              <div className="flex justify-center pt-2">
+                <Button variant="quiet" onClick={openNewDepartment}>
+                  New department
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
       {sheets}
     </Shell>

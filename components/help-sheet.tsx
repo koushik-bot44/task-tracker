@@ -20,8 +20,9 @@ export function HelpSheet({ open, onClose }: { open: boolean; onClose: () => voi
           A project is a line of boxes. Each box is a milestone with a review date. Tasks live inside a box; the
           box whose review is next is the one with the blue edge.
         </Concept>
-        <Concept title="Give a task in three taps">
-          Press the + button, say what needs doing, tap who, and tap when. They get a message straight away.
+        <Concept title="Add a task in two taps">
+          Press the + button, say what needs doing, and it lands in the box with the review date. Tap a face
+          only if someone should hold it — they get a message straight away.
         </Concept>
         <Concept title="Reviews are meetings">
           Every review date is a meeting on the Calendar. The evening before, everyone invited gets one message

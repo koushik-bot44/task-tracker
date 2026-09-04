@@ -48,8 +48,8 @@ export function TodayPage() {
           <button
             type="button"
             onClick={() => setGiving(true)}
-            aria-label="Give a task"
-            title="Give a task"
+            aria-label="Add a task"
+            title="Add a task"
             className="press fixed bottom-[calc(80px+env(safe-area-inset-bottom))] right-4 z-sticky grid h-14 w-14 place-items-center rounded-full bg-primary text-on-primary shadow-e2 md:bottom-6 md:right-6"
           >
             <Plus className="h-7 w-7" strokeWidth={2.25} aria-hidden />

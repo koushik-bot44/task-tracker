@@ -113,14 +113,23 @@ by `records/evidence/restructure/perm-matrix.txt` (113/113).
   meeting" with three days as words → toast "Moved · everyone will get a new
   message"; "Needs your OK" ("<Milestone> review · <Project>", "You set N%. x of
   y tasks done.", "How far along?", [On track] [Needs work] → "Sent to the
-  project"); empty "Nothing waiting on you."; floating + = Give a task.
-- **Give a task** — What · Who (faces) · By when (Today / Tomorrow / pick a day;
-  defaults to the review date from a box) → "Send". Toast "Sent to <name>" with
-  "Add steps?". **Three taps.**
-- **Projects** — "Find a project", [All] [Mine] [Behind], department headers,
-  cards: lead Face +N, 12px bar + %, deadline chip, "Next: <milestone> ·
-  <date>"; behind projects first; [+ New project] (Name · Department · Lead ·
-  Start · Deadline).
+  project"); empty "Nothing waiting on you."; floating + = Add a task.
+- **Add a task** (owner's feedback the same day: tasks are lines inside a
+  milestone, not things handed to a person one by one) — "What needs doing?" →
+  "Add". **Two taps.** "Give it to someone? (optional)" defaults to "No one";
+  the faces on the project follow, and "Someone else…" opens everyone in the
+  company (they join the project with the task). "By when?" defaults to the
+  box's review date. Toast "Added", or "Sent to <name>" when someone was picked
+  (that is the only time the task_given message goes out). A face shows on the
+  row only when someone holds the task.
+- **Projects** — two levels (owner's feedback the same day: departments
+  first). Level 1: "Find a project" and one row per department — the head's
+  Face, name, "4 projects · 2 behind" / "No projects yet"; [+ New project].
+  Level 2 (tap a department; Back returns): the department name and count,
+  [All] [Mine] [Behind], the cards: lead Face +N, 12px bar + %, deadline chip,
+  "Next: <milestone> · <date>"; behind first; [+ New project] there (Name ·
+  Department · Lead · Start · Deadline). Searching shows matching projects
+  across every department at once.
 - **Project** — "PROJECT START · <date>", connectors, boxes "MILESTONE n" with
   name, "REVIEW <date>", rows check · title · Face, "+ Give a task", note
   bubble beside/under, current box accented, past boxes folded, "Not in a

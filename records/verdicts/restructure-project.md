@@ -72,3 +72,7 @@ After the rig: 0 `RS-` milestones left; all 6 moved tasks back to `milestoneId: 
 - Long-press drag on a real touch screen (TouchSensor, 200 ms delay, tolerance 6): wired, not exercised by the rig.
 - The HOD-of-department branch of `useCanManage`, `Add people` (the sibling `AddPeopleSheet`), the camera/paper-clip attachments in the note bubble, the "Reviewed … · On track" wording (needs a recorded outcome) — rendered from the same code paths but not driven by this rig.
 - Observation, not a failure: at 768 the box column is 480 px, so long titles truncate once a date word and a face share the row; the 240 px note column is per the brief.
+
+## Owner feedback, same day — tasks are lines in a box
+
+The owner: "don't keep personally assigning every task to a person; it's milestones with tasks inside" (the sketch). The sheet is now "Add a task": What needs doing? → Add (two taps). "Give it to someone? (optional)" defaults to No one; project faces follow; "Someone else…" reveals everyone in the company for leads and above (they join the project with the task). Unassigned rows show no face; task_given goes out only when someone is picked. Proven by a rig: a task added with no person lands in the box (`assigneeId` null, `milestoneId` set), zero console errors; captures project-add-task-390, project-add-task-after-390, today-add-task-390. "+ Give a task" in boxes and the Today + now read "Add a task".

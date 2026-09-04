@@ -97,3 +97,9 @@ Proven end to end by the rig: "RS- Sample project" created through the sheet int
 - **Error state**, **"Nothing is behind."**, **red deadline chip**, **"Next: <milestone> · <date>" line**, **progress > 0%**, **"Not in a department yet" group**: present in code, absent from the current data, so not captured.
 - **Faces initials clipping**: overlapped faces in the shared `Faces` component hide part of the second initial ("SU" reads "SL" at a glance). Shared UI, not changed here.
 - The sibling `today-page.tsx` had a syntax error mid-run that briefly returned 500 on every route; the rig was rerun after the coordinator confirmed the fix. Not this screen's code.
+
+## Owner feedback, same day — departments first
+
+The owner found the flat department-headed list confusing ("keep departments first; inside a department the projects should be there"). Projects is now two levels: `/projects` lists the departments (head's Face, name, "4 projects · 2 behind" or "No projects yet"; departments with projects first), and tapping one opens `/projects?d=<id>` — back link, the department name and count, All / Mine / Behind, the cards, "+ New project" there. "Find a project" still searches every project at once, grouped by department. Back returns to the list (URL state). Files: `components/projects/department-list.tsx`, `department-view.tsx`, `projects-page.tsx`.
+
+Re-shot: projects-founder-{390,768,1440} (level 1), projects-dept-founder-{390,768,1440} (level 2), projects-dev-390, projects-dept-dev-390, projects-search-390, projects-dept-empty-390 — zero console errors, no horizontal overflow; tsc 0, lint clean, jargon 0.

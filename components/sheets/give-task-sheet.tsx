@@ -11,8 +11,9 @@ import { useMilestones } from "@/lib/hooks/use-milestones";
 import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useProjectPeople, useProjects } from "@/lib/hooks/use-projects";
 import { newTaskId, useTaskMutations, useTasks } from "@/lib/hooks/use-tasks";
-import { useMe } from "@/lib/hooks/use-users";
+import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { keyAtEnd } from "@/lib/order";
+import { isLeadOrAboveRole } from "@/lib/roles";
 import type { TaskDTO } from "@/lib/types";
 
 type DateChoice = "today" | "tomorrow" | "review" | "pick";
@@ -50,8 +51,13 @@ export function GiveTaskSheet({
   const [who, setWho] = useState<string | null>(null);
   const [choice, setChoice] = useState<DateChoice>("review");
   const [picked, setPicked] = useState("");
+  const [showOthers, setShowOthers] = useState(false);
 
   const { data: people, isLoading: loadingPeople } = useProjectPeople(projectId, open);
+  // Leads and above may hand a task to anyone in the company; giving it puts
+  // them on the project. A team member picks from the people already on it.
+  const canPickAnyone = isLeadOrAboveRole(me?.role);
+  const { data: everyone } = useUsers(open && canPickAnyone);
   const { data: milestones } = useMilestones(open ? projectId : null);
   const { data: tasks } = useTasks(open ? projectId : null);
   const { createTask } = useTaskMutations({ kind: "project", projectId: projectId ?? "" });
@@ -65,6 +71,7 @@ export function GiveTaskSheet({
     setWho(null);
     setChoice(presetMilestoneId || reviewDate ? "review" : "tomorrow");
     setPicked("");
+    setShowOthers(false);
   }, [open, presetProjectId, presetMilestoneId, reviewDate]);
 
   const milestone = useMemo(() => (milestones ?? []).find((m) => m.id === milestoneId) ?? null, [milestones, milestoneId]);
@@ -79,9 +86,14 @@ export function GiveTaskSheet({
     return meFirst;
   }, [people, me]);
 
-  useEffect(() => {
-    if (open && who === null && me) setWho(me.id);
-  }, [open, who, me]);
+  /** Everyone else in the company who could hold a task, not yet on this project. */
+  const others = useMemo(() => {
+    if (!canPickAnyone) return [];
+    const onProject = new Set(faces.map((p) => p.id));
+    return (everyone ?? [])
+      .filter((u) => u.status === "ACTIVE" && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON" && !onProject.has(u.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [everyone, faces, canPickAnyone]);
 
   const dueIso = (): string | null => {
     if (choice === "today") return isoDaysFromNow(0);
@@ -91,12 +103,13 @@ export function GiveTaskSheet({
     return null;
   };
 
-  const ready = Boolean(projectId) && title.trim().length > 0 && Boolean(who) && (choice !== "pick" || Boolean(picked));
+  // A task is a line in a box; who holds it is optional.
+  const ready = Boolean(projectId) && title.trim().length > 0 && (choice !== "pick" || Boolean(picked));
 
   const submit = () => {
     if (!ready || !projectId) return;
     const id = newTaskId();
-    const whoName = faces.find((p) => p.id === who)?.name ?? "them";
+    const whoName = faces.find((p) => p.id === who)?.name ?? others.find((p) => p.id === who)?.name ?? "them";
     createTask.mutate(
       {
         id,
@@ -113,7 +126,7 @@ export function GiveTaskSheet({
           onClose();
           onCreated?.(task);
           toast({
-            message: who === me?.id ? "Added to your list" : `Sent to ${whoName}`,
+            message: who === null ? "Added" : who === me?.id ? "Added to your list" : `Sent to ${whoName}`,
             action: { label: "Add steps?", onAction: () => openTask(task.id) },
           });
         },
@@ -128,11 +141,11 @@ export function GiveTaskSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Give a task"
+      title="Add a task"
       subtitle={projectName ? `${projectName}${milestone ? ` · ${milestone.name}` : ""}` : undefined}
       footer={
         <Button variant="primary" full onClick={submit} loading={createTask.isPending} disabled={!ready}>
-          Save
+          {who && who !== me?.id ? "Send" : "Add"}
         </Button>
       }
     >
@@ -181,33 +194,24 @@ export function GiveTaskSheet({
         </Field>
 
         <div>
-          <span className="mb-1.5 block text-micro font-medium text-muted">Who?</span>
+          <span className="mb-1.5 block text-micro font-medium text-muted">Give it to someone? (optional)</span>
           {loadingPeople && faces.length === 0 ? (
             <div className="h-14 animate-pulse rounded-card bg-hover" aria-hidden />
           ) : (
-            <div role="radiogroup" aria-label="Who" className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {faces.map((p) => {
-                const active = who === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setWho(p.id)}
-                    className={cn(
-                      "press flex w-[72px] shrink-0 flex-col items-center gap-1 rounded-card px-1 py-2",
-                      active ? "bg-primary-soft ring-2 ring-primary" : "bg-hover",
-                    )}
-                  >
-                    <Face name={p.name} size="lg" />
-                    <span className="w-full truncate text-center text-micro font-medium text-ink">{p.id === me?.id ? "Me" : p.name.split(" ")[0]}</span>
-                  </button>
-                );
-              })}
-              {faces.length === 0 ? <p className="text-sm text-muted">Nobody is on this project yet.</p> : null}
-            </div>
+            <FaceRow label="Who" people={faces} who={who} meId={me?.id ?? null} onPick={setWho} nobody />
           )}
+          {others.length > 0 ? (
+            showOthers ? (
+              <>
+                <span className="mb-1.5 mt-3 block text-micro font-medium text-muted">Someone else — they join the project with the task</span>
+                <FaceRow label="Someone else" people={others} who={who} meId={me?.id ?? null} onPick={setWho} />
+              </>
+            ) : (
+              <button type="button" onClick={() => setShowOthers(true)} className="press mt-1 h-9 rounded-chip px-2 text-sm font-medium text-primary">
+                Someone else…
+              </button>
+            )
+          ) : null}
         </div>
 
         <div>
@@ -224,6 +228,65 @@ export function GiveTaskSheet({
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/** A horizontal row of faces to pick one person from; "Me" for the caller; "No one" first when `nobody`. */
+function FaceRow({
+  label,
+  people,
+  who,
+  meId,
+  onPick,
+  nobody = false,
+}: {
+  label: string;
+  people: { id: string; name: string }[];
+  who: string | null;
+  meId: string | null;
+  onPick: (id: string | null) => void;
+  nobody?: boolean;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {nobody ? (
+        <button
+          type="button"
+          role="radio"
+          aria-checked={who === null}
+          onClick={() => onPick(null)}
+          className={cn(
+            "press flex w-[72px] shrink-0 flex-col items-center gap-1 rounded-card px-1 py-2",
+            who === null ? "bg-primary-soft ring-2 ring-primary" : "bg-hover",
+          )}
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-dashed border-line text-sm text-muted" aria-hidden>
+            –
+          </span>
+          <span className="w-full truncate text-center text-micro font-medium text-ink">No one</span>
+        </button>
+      ) : null}
+      {people.map((p) => {
+        const active = who === p.id;
+        return (
+          <button
+            key={p.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onPick(p.id)}
+            className={cn(
+              "press flex w-[72px] shrink-0 flex-col items-center gap-1 rounded-card px-1 py-2",
+              active ? "bg-primary-soft ring-2 ring-primary" : "bg-hover",
+            )}
+          >
+            <Face name={p.name} size="lg" />
+            <span className="w-full truncate text-center text-micro font-medium text-ink">{p.id === meId ? "Me" : p.name.split(" ")[0]}</span>
+          </button>
+        );
+      })}
+      {people.length === 0 && !nobody ? <p className="text-sm text-muted">Nobody is on this project yet.</p> : null}
+    </div>
   );
 }
 
