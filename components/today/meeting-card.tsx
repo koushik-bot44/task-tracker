@@ -33,8 +33,10 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
   const [moving, setMoving] = useState(false);
 
   const when = [dateWord(meeting.date), meeting.startTime, meeting.projectName].filter(Boolean).join(" · ");
-  const anyCant = meeting.attendees.some((a) => a.response === "NO");
-  const showReplies = meeting.canReschedule && anyCant;
+  // Whoever can move the meeting (the organiser, the founder, a director) sees
+  // the replies and a Postpone button at all times — it is their call, not
+  // only a reaction to someone else's "Can't" (owner, 2026-09-04).
+  const showReplies = meeting.canReschedule;
   const replying = reply.isPending && reply.variables?.eventId === meeting.id;
 
   const send = (response: MeetingResponse) =>
@@ -69,7 +71,13 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
             <Button variant="primary" className="flex-1" onClick={() => send("YES")} loading={replying && reply.variables?.response === "YES"} disabled={replying}>
               {"I'll be there"}
             </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => send("NO")} loading={replying && reply.variables?.response === "NO"} disabled={replying}>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => (meeting.canReschedule ? setMoving(true) : send("NO"))}
+              loading={replying && reply.variables?.response === "NO"}
+              disabled={replying}
+            >
               {"Can't"}
             </Button>
           </div>
@@ -86,7 +94,7 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
             ))}
           </ul>
           <Button variant="secondary" onClick={() => setMoving(true)}>
-            Reschedule
+            Postpone
           </Button>
         </div>
       ) : null}

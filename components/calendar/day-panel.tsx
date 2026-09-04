@@ -232,7 +232,13 @@ function MeetingCard({ event, isManager, onEdit }: { event: CalendarEventDTO; is
           <Button variant="primary" className="flex-1" onClick={() => answer("YES")} loading={sending === "YES"} disabled={reply.isPending}>
             I&apos;ll be there
           </Button>
-          <Button variant="secondary" className="flex-1" onClick={() => answer("NO")} loading={sending === "NO"} disabled={reply.isPending}>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => (event.canReschedule ? setMoving(true) : answer("NO"))}
+            loading={sending === "NO"}
+            disabled={reply.isPending}
+          >
             Can&apos;t
           </Button>
         </div>
@@ -245,11 +251,11 @@ function MeetingCard({ event, isManager, onEdit }: { event: CalendarEventDTO; is
         </p>
       ) : null}
 
-      {(event.canReschedule && no > 0) || isManager ? (
+      {event.canReschedule || isManager ? (
         <div className="flex flex-wrap items-center gap-2">
-          {event.canReschedule && no > 0 ? (
+          {event.canReschedule ? (
             <Button variant="secondary" onClick={() => setMoving(true)}>
-              Reschedule
+              Postpone
             </Button>
           ) : null}
           {isManager ? (
