@@ -24,7 +24,7 @@ type Params = { params: { id: string } };
  */
 export const POST = route(async (req: Request, { params }: Params) => {
   const actor = await requireUser();
-  if (!isExecutiveRole(actor.role)) throw new HttpError(403, "Only the founder or a director records a review.");
+  if (!isExecutiveRole(actor.role)) throw new HttpError(403, "Only the CEO or a director records a review.");
 
   const parsed = await parseBody(req, milestoneOutcomeInput);
   if (!parsed.ok) return parsed.response;

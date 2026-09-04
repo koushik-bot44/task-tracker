@@ -30,8 +30,8 @@ export function HelpSheet({ open, onClose }: { open: boolean; onClose: () => voi
           one of the next three working days.
         </Concept>
         <Concept title="How far along is a project">
-          The founder or a director sets the percentage by hand after a review, and says On track or Needs
-          work. Everyone on the project hears the result.
+          The percentage is how many of the project&apos;s tasks are done — nobody types it. After a review the
+          CEO says On track or Needs work, and everyone on the project hears the result.
         </Concept>
         <Concept title="Notes go anywhere">
           Every project, milestone and task has a notes thread. Add a photo from your camera or attach a PDF.

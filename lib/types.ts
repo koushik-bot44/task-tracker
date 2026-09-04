@@ -311,7 +311,7 @@ void _rolesMatch;
 
 /** Role words appear ONLY on the People page. */
 export const ROLE_LABEL: Record<UserRole, string> = {
-  FOUNDER: "Founder",
+  FOUNDER: "CEO",
   DIRECTOR: "Director",
   HOD: "Head of department",
   MANAGER: "Manager",
@@ -322,7 +322,7 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 };
 
 export const ROLE_SHORT_LABEL: Record<UserRole, string> = {
-  FOUNDER: "Founder",
+  FOUNDER: "CEO",
   DIRECTOR: "Director",
   HOD: "Head",
   MANAGER: "Manager",

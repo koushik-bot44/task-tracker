@@ -51,7 +51,7 @@ export const GET = route(async () => {
 export const POST = route(async (req: Request) => {
   const actor = await requireUser();
   if (!isExecutiveRole(actor.role)) {
-    throw new HttpError(403, "Only the founder or a director can create a department.");
+    throw new HttpError(403, "Only the CEO or a director can create a department.");
   }
 
   const parsed = await parseBody(req, createDepartmentSchema);

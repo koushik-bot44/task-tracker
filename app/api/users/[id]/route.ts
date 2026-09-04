@@ -56,10 +56,10 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   }
 
   if (role === "FOUNDER" && target.role !== "FOUNDER") {
-    throw new HttpError(403, "The founder role can't be granted from here.");
+    throw new HttpError(403, "The CEO role can't be granted from here.");
   }
   if (target.role === "FOUNDER" && role !== undefined && role !== "FOUNDER") {
-    throw new HttpError(403, "The founder's role can't be changed from here.");
+    throw new HttpError(403, "The CEO's role can't be changed from here.");
   }
   if (role === "PERSON" && target.role !== "PERSON") {
     throw new HttpError(403, "A person account is created from the Family tab.");

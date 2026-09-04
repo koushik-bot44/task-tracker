@@ -38,7 +38,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   const executive = isExecutiveRole(actor.role);
   const headsIt = actor.role === "HOD" && existing.hodId === actor.id;
   if (!executive && !headsIt) {
-    throw new HttpError(403, "Only the founder or a director can edit a department.");
+    throw new HttpError(403, "Only the CEO or a director can edit a department.");
   }
 
   const data: Prisma.DepartmentUpdateInput = {};
