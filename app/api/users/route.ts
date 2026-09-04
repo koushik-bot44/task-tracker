@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeUser } from "@/lib/serialize";
 import { assertCanCreateUserWithRole, assertCanListUsers } from "@/lib/permissions";
 import { adminAlreadyExists } from "@/lib/account-guards";
+import { isAdminRole, isExecutiveRole } from "@/lib/roles";
 import { requireUser, route } from "@/lib/session";
 import { parseBody, roleSchema } from "@/lib/validation";
 
@@ -25,8 +26,23 @@ export const GET = route(async () => {
   const actor = await requireUser();
   assertCanListUsers(actor);
 
+  // Owner, 2026-09-04: only the CEO (and a director, and the admin who runs
+  // accounts) sees everyone. Everyone else sees their own department, any
+  // department they head, the CEO, and themselves.
+  const wide = isExecutiveRole(actor.role) || isAdminRole(actor.role);
+  const headed = wide ? [] : await prisma.department.findMany({ where: { hodId: actor.id }, select: { id: true } });
+  const departmentIds = [...(actor.departmentId ? [actor.departmentId] : []), ...headed.map((d) => d.id)];
   const users = await prisma.user.findMany({
-    where: { role: { not: "PERSON" } },
+    where: wide
+      ? { role: { not: "PERSON" } }
+      : {
+          role: { not: "PERSON" },
+          OR: [
+            ...(departmentIds.length ? [{ departmentId: { in: departmentIds } }] : []),
+            { id: actor.id },
+            { role: "FOUNDER" as const },
+          ],
+        },
     orderBy: { createdAt: "asc" },
     include: { department: { select: { name: true } } },
   });

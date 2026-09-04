@@ -65,6 +65,14 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   tracker and weekly summary at 390 and 1440 with zero console errors; Arjun's
   own screen works and stays walled from work; "Monitoring managers" is hidden.
 
+## Owner feedback, round 7 — only the CEO sees the whole company
+
+- Departments and people are scoped on the server: the CEO (and a director,
+  and the admin for accounts) see everything; everyone else sees their own
+  department, a department they head, a department holding a project they are
+  on, the CEO row and themselves. "Self" is the CEO's alone. The accounts line
+  on People shows only to the CEO and the admin.
+
 ## Where things stand
 
 | landing | what | state |

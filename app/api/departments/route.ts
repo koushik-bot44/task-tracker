@@ -14,12 +14,10 @@ export const dynamic = "force-dynamic";
  * Departments — the top-level grouping every tool lives in (phase 16), one
  * COMPANY-WIDE set since phase 48.
  *
- * READ, per role: every work role sees the whole department list — the
- * company's structure is public inside the company — EXCEPT a RESOURCE, who
- * only sees departments holding a tool they can see (they never learn an
- * empty department exists, unchanged from phase 16). projectCount always
- * counts only the tools the caller can see, so an HOD's sidebar shows their
- * department full and the others as structure.
+ * READ, per role (owner, 2026-09-04): the CEO and a director see the whole
+ * company; everyone else sees only their own department, a department they
+ * head, and any department holding a project they are on. projectCount
+ * always counts only the projects the caller can see.
  *
  * WRITE: creation is EXECUTIVE-only (FOUNDER/DIRECTOR). Editing/deleting is
  * gated per-department in [id]/route.ts.
@@ -39,10 +37,12 @@ export const GET = route(async () => {
     },
   });
 
+  // Owner, 2026-09-04: only the CEO (and a director) sees the whole company.
+  // Everyone else sees their own department, a department they head, and a
+  // department holding a project they are on — nothing more.
+  const executive = isExecutiveRole(user.role);
   const out = departments
-    // A RESOURCE only sees a department holding a visible tool; everyone else
-    // sees the whole company structure, empty departments included.
-    .filter((d) => user.role !== "RESOURCE" || d.projects.length > 0)
+    .filter((d) => executive || d.id === user.departmentId || d.hodId === user.id || d.projects.length > 0)
     .map((d) => serializeDepartment(d, d.projects.length));
 
   return NextResponse.json(out);

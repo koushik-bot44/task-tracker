@@ -7,13 +7,13 @@ PASS  F1 message (a) task_given reached the member's bell  (Flow director gave y
 PASS  F1 member sees it on Today
 PASS  F1 member checks it
 PASS  F1 % is tasks done over tasks (computed)  (1/1 → 100%, got 100)
-PASS  F1 a typed % is ignored  (status 200, progress 100 (computed 100))
+PASS  F1 a director cannot set the % by hand (403, count stands)  (status 403, progress 100 (computed 100))
 PASS  F1 manager who runs it can rename it  (status 200)
 PASS  F1 review meeting invites the task holder
 
 ── F2 18:00 the day before → (b) → Can't → Reschedule → (b) again ────
 PASS  F2 schedule a meeting for tomorrow  (status 201)
-PASS  F2 cron/tomorrow runs with the secret  (status 200, people 3)
+PASS  F2 cron/tomorrow runs with the secret  (status 200, people 5)
 PASS  F2 cron/tomorrow without the secret → 401
 PASS  F2 message (b) reached the member's bell  (Tomorrow: 1 meeting · 1 due)
 PASS  F2 (b) built for the member with a meeting + a task

@@ -17,7 +17,7 @@ import { apiGet } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { departmentsKey } from "@/lib/hooks/use-departments";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole } from "@/lib/roles";
+import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isExecutiveRole } from "@/lib/roles";
 import { DepartmentMark } from "@/components/ui/department-mark";
 import { ROLE_LABEL, type DepartmentDTO, type UserDTO } from "@/lib/types";
 
@@ -175,7 +175,7 @@ export function PeoplePage() {
 
           {shown === 0 ? <EmptyState title={q ? "Nobody matches that name" : "Nobody here yet"} body={q ? undefined : "Invite someone to get started."} /> : null}
 
-          {admins.length > 0 && !q ? (
+          {admins.length > 0 && !q && (isExecutiveRole(me.role) || isAdminActor) ? (
             <p className="px-1 text-micro text-muted">
               Accounts are looked after by{" "}
               {admins.map((a, i) => (

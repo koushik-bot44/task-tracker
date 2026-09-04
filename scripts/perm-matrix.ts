@@ -201,12 +201,15 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("hod (own department) sets the status -> 200", (await call(hod, "PATCH", `/api/projects/${projectId}`, { status: "ACTIVE" })).status, 200);
   record("another manager renames the project -> 404", (await call(manager2, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 404);
   // Progress is computed from tasks done (lib/projects.ts); a typed number is dropped, never stored.
+  // Owner, 2026-09-04: the percentage by hand is the CEO's alone — a director is refused
+  // like everyone else, and the counted number stands.
   const beforeTyped = await call(director, "GET", `/api/projects/${projectId}`);
   const typed = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 10 });
+  const afterTyped = await call(director, "GET", `/api/projects/${projectId}`);
   check(
-    "typed progress is ignored (director -> 200, value unchanged)",
-    typed.status === 200 && typeof beforeTyped.json?.progress === "number" && typed.json?.progress === beforeTyped.json?.progress,
-    `status ${typed.status}, progress ${beforeTyped.json?.progress} -> ${typed.json?.progress}`,
+    "a director cannot set the % by hand (403, value unchanged)",
+    typed.status === 403 && afterTyped.json?.progress === beforeTyped.json?.progress,
+    `status ${typed.status}, progress ${beforeTyped.json?.progress} -> ${afterTyped.json?.progress}`,
   );
 
   console.log("\n── give a task ───────────────────────────────────────────────");

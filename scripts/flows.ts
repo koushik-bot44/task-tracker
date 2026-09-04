@@ -115,8 +115,10 @@ async function main() {
   const c1 = await computedProgress();
   const p1 = await call(director, "GET", `/api/projects/${projectId}`);
   record("F1 % is tasks done over tasks (computed)", p1.status === 200 && c1.total >= 1 && p1.json?.progress === c1.pct, `${c1.done}/${c1.total} → ${c1.pct}%, got ${p1.json?.progress}`);
+  // Owner, 2026-09-04: only the CEO sets the % by hand; a director is refused and the count stands.
   const typed = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 50 });
-  record("F1 a typed % is ignored", typed.status === 200 && typed.json?.progress === c1.pct, `status ${typed.status}, progress ${typed.json?.progress} (computed ${c1.pct})`);
+  const afterTyped = await call(director, "GET", `/api/projects/${projectId}`);
+  record("F1 a director cannot set the % by hand (403, count stands)", typed.status === 403 && afterTyped.json?.progress === c1.pct, `status ${typed.status}, progress ${afterTyped.json?.progress} (computed ${c1.pct})`);
   // A manager who RUNS the project (member with canManage) can edit it.
   await call(director, "POST", `/api/projects/${projectId}/members`, { userId: manager.id, canManage: true });
   const nameByManager = await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "FLOW Project" });
