@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/snooze-wake",
-      "schedule": "0 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }

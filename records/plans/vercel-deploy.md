@@ -43,5 +43,12 @@ leave it unset), the `SHOT_*` logins (screenshot rig, dev only),
    Bearer secret answers `{ok}`.
 6. Tag the deploy (`prod-restructure-1`) — never move a pushed tag.
 
-The two crons in `vercel.json` (`30 12 * * *` = 18:00 IST, and hourly
-snooze-wake) start on their own once `CRON_SECRET` is set.
+The two crons in `vercel.json` start on their own once `CRON_SECRET` is set:
+`30 12 * * *` (the 18:00 IST "tomorrow" message) and `0 3 * * *` (snoozed
+bells wake at 08:30 IST). Vercel's Hobby plan allows two cron jobs, each once
+a day — the snooze wake used to be hourly and was lowered for that; snoozed
+notifications now reappear the next morning instead of within the hour.
+
+Skip the "Prisma Postgres" optional integration on the import screen — the
+database is the existing Neon one; adding another store would only confuse
+the variables.
