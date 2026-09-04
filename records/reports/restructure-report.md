@@ -32,6 +32,18 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   until credentials exist: **email and WhatsApp** — `.env` has no SMTP or Twilio
   variables (bell and push work; VAPID keys are present).
 
+## Owner feedback, round 4 — one CEO
+
+- The top role reads **CEO** (FOUNDER's label), and People shows a **Company**
+  section above the departments holding the CEO (and any director), so the
+  ladder reads CEO → heads of department → managers → leads → members.
+- The clone had two test directors and no CEO; founder@orbit.local is now
+  "Rahul", CEO, and the extra test accounts are gone. For production the real
+  CEO's email goes into `scripts/promote-founder.ts` at apply time.
+- Meetings: whoever can move a meeting sees **Postpone** at all times; their own
+  "Can't" opens the three dates straight away. Deleting a project now sweeps
+  its meetings (defect #12). A kept "Test project" sits in Development.
+
 ## Where things stand
 
 | landing | what | state |
