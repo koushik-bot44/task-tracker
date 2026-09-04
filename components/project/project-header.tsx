@@ -1,11 +1,13 @@
 "use client";
 
-import { ChevronLeft, UserPlus } from "lucide-react";
+import { ChevronLeft, Pencil, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { PriorityChip } from "@/components/projects/project-card";
 import { PrioritySheet } from "@/components/sheets/priority-sheet";
+import { ProjectDetailsSheet } from "@/components/sheets/project-details-sheet";
 import { ProjectLookSheet } from "@/components/sheets/project-look-sheet";
+import { IconButton } from "@/components/ui/button";
 import { DeadlineChip } from "@/components/ui/chip";
 import { Faces } from "@/components/ui/face";
 import { ProjectMark } from "@/components/ui/project-mark";
@@ -35,6 +37,7 @@ export function ProjectHeader({
 }) {
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [lookOpen, setLookOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const done = project.status === "DONE";
   const backHref = project.departmentId ? `/projects?d=${encodeURIComponent(project.departmentId)}` : "/projects";
   const mark = <ProjectMark name={project.name} color={project.color} icon={project.icon} logoUrl={project.logoUrl} size="lg" />;
@@ -81,7 +84,18 @@ export function ProjectHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <PriorityChip priority={project.priority} muted={done} onClick={canManage ? () => setPriorityOpen(true) : undefined} />
-        <DeadlineChip deadline={project.deadline} done={done} />
+        {canManage ? (
+          <button type="button" onClick={() => setDetailsOpen(true)} aria-label="Change the deadline and details" title="Change the deadline" className="press rounded-chip">
+            <DeadlineChip deadline={project.deadline} done={done} />
+          </button>
+        ) : (
+          <DeadlineChip deadline={project.deadline} done={done} />
+        )}
+        {canManage ? (
+          <IconButton label="Edit project" onClick={() => setDetailsOpen(true)} className="ml-auto">
+            <Pencil className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </IconButton>
+        ) : null}
       </div>
       {canSetProgress && onSetProgress ? (
         <button
@@ -100,6 +114,7 @@ export function ProjectHeader({
       {project.progressManual !== null ? <p className="-mt-1 text-right text-micro text-muted">Set by the CEO</p> : null}
       {canManage ? <PrioritySheet open={priorityOpen} onClose={() => setPriorityOpen(false)} project={project} /> : null}
       {canManage ? <ProjectLookSheet open={lookOpen} onClose={() => setLookOpen(false)} project={project} /> : null}
+      {canManage ? <ProjectDetailsSheet open={detailsOpen} onClose={() => setDetailsOpen(false)} project={project} people={people} /> : null}
     </header>
   );
 }
