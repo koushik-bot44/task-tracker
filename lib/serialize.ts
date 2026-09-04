@@ -141,6 +141,7 @@ export function serializeProject(project: ProjectRow, taskCount = 0): ProjectDTO
     startDate: project.startDate ? project.startDate.toISOString() : null,
     deadline: project.deadline ? project.deadline.toISOString() : null,
     progress: project.progress,
+    progressManual: project.progressManual ?? null,
     priority: project.priority,
     taskCount,
     openTasks: project.openTasks ?? 0,

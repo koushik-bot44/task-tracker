@@ -41,3 +41,12 @@ re-shot this round: the review card on Today (code path only; the API side
 is in flows F3), the new-project sheet with its P1/P2/P3 picker (tsc/lint
 only). Perm-matrix dropped from 113 to 112 cases because "manager sets
 progress → 403" no longer exists.
+
+## Round 5 (later the same day) — logins for every level, the CEO's own number, Well Being for the CEO alone, department logos
+
+| the owner said | what changed | proof |
+|---|---|---|
+| "give me ids and passwords from Rahul to team member" | Every level on the clone has the password `orbit123`: founder@orbit.local (Rahul, CEO) · hod-dev@ / hod-ops@ / hod-rnd@ (heads) · test-manager@ and manager@ (managers) · lead@ (team lead) · dev@ (team member) · admin@ (accounts) · arjun@gmail.com (the tracked person). | `clone-logins.ts` output |
+| "Rahul only can mark manually how much is done, percentage" | `Project.progressManual` (migration `20260904160000_progress_manual`). The bar keeps counting tasks; the CEO alone taps the bar → "How far along?" number + slider, "Counting the tasks says N%"; Save shows their number everywhere with the caption "Set by the CEO"; "Count the tasks instead" hands it back. HOD/manager get 403 (404 when not on the project). | `ceo-rules.ts`: 13/13; `project-set-progress-390.png`, `project-progress-by-hand-390.png` |
+| "Well Being is only for Rahul to track someone" | The routine guard admits FOUNDER only; the Family tab shows for the CEO always (it is where a Person is set up); managers and heads get 403; the tracked person's own login is untouched. On the clone Arjun (the tracked person) now belongs to Rahul. | `ceo-rules.ts`; manager `/api/routine` → 403 |
+| "cool logos for every department, regarding their names" | `components/ui/department-mark.tsx`: an icon picked from the department's name (Development → code, R&D → beaker, Accounts → coins, HR → people, Operations → cog, Network Admins → network, ERM → shield, Administration → briefcase, Self → person, else folder) on a pastel square tinted from the name; used on the Projects list, the department page and the People section headers. | `projects-founder-{390,1440}.png` |

@@ -27,6 +27,9 @@ import { AddMilestoneSheet } from "@/components/sheets/add-milestone-sheet";
 import { AddPeopleSheet } from "@/components/sheets/add-people-sheet";
 import { MoveReviewSheet } from "@/components/sheets/move-review-sheet";
 import { PlanMilestonesSheet } from "@/components/sheets/plan-milestones-sheet";
+import { SetProgressSheet } from "@/components/sheets/set-progress-sheet";
+import { useMe } from "@/lib/hooks/use-users";
+import { isFounderRole } from "@/lib/roles";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Connector } from "@/components/ui/connector";
@@ -78,6 +81,9 @@ export function ProjectPage({ slug }: { slug: string }) {
 
   // Sheets and drawers. Targets outlive `open` so a closing sheet keeps its words.
   const [planOpen, setPlanOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const { data: me } = useMe();
+  const canSetProgress = isFounderRole(me?.role);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState<MilestoneDTO | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -228,7 +234,9 @@ export function ProjectPage({ slug }: { slug: string }) {
         project={project}
         people={people ?? project.people}
         canManage={canManage}
+        canSetProgress={canSetProgress}
         onAddPeople={() => setPeopleOpen(true)}
+        onSetProgress={() => setProgressOpen(true)}
       />
 
       <div className="mt-6">
@@ -350,6 +358,15 @@ export function ProjectPage({ slug }: { slug: string }) {
       </div>
 
       <PlanMilestonesSheet open={planOpen} onClose={() => setPlanOpen(false)} project={project} looseCount={loose.length} lastReviewDate={lastReview} />
+      {canSetProgress ? (
+        <SetProgressSheet
+          open={progressOpen}
+          onClose={() => setProgressOpen(false)}
+          project={project}
+          done={roots.filter((t) => t.status === "DONE").length}
+          total={roots.length}
+        />
+      ) : null}
       <MoveReviewSheet open={moveOpen} onClose={() => setMoveOpen(false)} projectId={project.id} milestone={moveTarget} />
       <AddMilestoneSheet open={addOpen} onClose={() => setAddOpen(false)} projectId={project.id} previousReviewDate={lastReview} startDate={project.startDate} />
       <AddPeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} projectId={project.id} />

@@ -135,7 +135,10 @@ export type ProjectDTO = {
   startDate: string | null;
   deadline: string | null;
   /** 0-100, set by hand by the founder/director. Never computed. */
+  /** Shown number: the CEO's own when set by hand, else tasks done ÷ tasks. */
   progress: number;
+  /** The CEO's number, or null when the tasks are counted. */
+  progressManual: number | null;
   priority: ProjectPriorityValue;
   taskCount: number;
   openTasks: number;

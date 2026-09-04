@@ -276,7 +276,8 @@ function MonitoringManagers({ collaborators, week, personId }: { collaborators: 
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
   const taken = new Set(collaborators.map((c) => c.managerId));
-  const candidates = (users ?? []).filter((u) => u.role === "MANAGER" && u.id !== me?.id && !taken.has(u.id));
+  // Only the CEO has Well Being now, so there is nobody else to invite; kept for the day that changes.
+  const candidates = (users ?? []).filter((u) => u.role === "FOUNDER" && u.id !== me?.id && !taken.has(u.id));
 
   const invite = () => {
     if (!inviteeId) return;

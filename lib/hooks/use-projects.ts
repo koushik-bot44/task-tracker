@@ -89,14 +89,21 @@ export function useProjectMutations() {
         startDate: string | null;
         deadline: string | null;
         priority: ProjectPriorityValue;
+        /** CEO only: a number by hand, or null to count the tasks again. */
+        progress: number | null;
       }>;
     }) => apiPatch<ProjectDTO>(`/api/projects/${id}`, patch),
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: projectsKey });
       const previous = qc.getQueryData<ProjectDTO[]>(projectsKey) ?? [];
+      const { progress, ...rest } = patch;
       qc.setQueryData<ProjectDTO[]>(
         projectsKey,
-        previous.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        previous.map((p) =>
+          p.id === id
+            ? { ...p, ...rest, ...(progress !== undefined ? { progressManual: progress, progress: progress ?? p.progress } : {}) }
+            : p,
+        ),
       );
       return { previous };
     },

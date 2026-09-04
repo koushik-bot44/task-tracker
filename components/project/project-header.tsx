@@ -18,12 +18,17 @@ export function ProjectHeader({
   project,
   people,
   canManage,
+  canSetProgress = false,
   onAddPeople,
+  onSetProgress,
 }: {
   project: ProjectDTO;
   people: ProjectPersonDTO[];
   canManage: boolean;
+  /** The CEO alone: tap the bar to set the number by hand. */
+  canSetProgress?: boolean;
   onAddPeople: () => void;
+  onSetProgress?: () => void;
 }) {
   const [priorityOpen, setPriorityOpen] = useState(false);
   const done = project.status === "DONE";
@@ -60,9 +65,21 @@ export function ProjectHeader({
         />
         <DeadlineChip deadline={project.deadline} done={done} />
       </div>
-      <div className="flex items-center gap-3 py-1.5" role="img" aria-label={`${progress}% of tasks done`}>
-        {bar}
-      </div>
+      {canSetProgress && onSetProgress ? (
+        <button
+          type="button"
+          onClick={onSetProgress}
+          aria-label={`${progress}% done${project.progressManual !== null ? ", set by hand" : ""}. Change the number`}
+          className="press -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-input px-1 py-1.5"
+        >
+          {bar}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 py-1.5" role="img" aria-label={`${progress}% done`}>
+          {bar}
+        </div>
+      )}
+      {project.progressManual !== null ? <p className="-mt-1 text-right text-micro text-muted">Set by the CEO</p> : null}
       {canManage ? <PrioritySheet open={priorityOpen} onClose={() => setPriorityOpen(false)} project={project} /> : null}
     </header>
   );

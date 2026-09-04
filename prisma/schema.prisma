@@ -201,6 +201,8 @@ model Project {
   /// Restructure: how far along, 0-100, set BY HAND by the founder/director
   /// only. Never computed from tasks.
   progress      Int              @default(0)
+  /// The CEO's own number, when set by hand; null = count the tasks (owner, 2026-09-04).
+  progressManual Int?
   orderKey      String
   /// Phase 48: how urgent this project is to the company. Company/department
   /// dashboards sort by it (priority, then deadline, then name).

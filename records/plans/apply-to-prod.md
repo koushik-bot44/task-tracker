@@ -49,3 +49,9 @@ The migration drops columns and tables only after copying their rows into the
 new shapes; the JSON backup from step 1 is the way back. Restore = recreate the
 database from the backup with `scripts/backup-database.ts`'s output (manual),
 then redeploy the `baseline-phase49b` tag.
+
+## Added 2026-09-04 (rounds 4–5)
+
+- Migration `20260904160000_progress_manual` (one nullable column) runs with the rest.
+- After migrating: `npx tsx scripts/promote-founder.ts <the real CEO's email>` makes the one CEO; then every `Person.managerId` must point at the CEO (`UPDATE "Person" SET "managerId" = <ceo id>`), because Well Being is the CEO's alone now.
+- There must be exactly one FOUNDER and no DIRECTOR accounts left on the ladder.

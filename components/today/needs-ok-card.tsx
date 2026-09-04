@@ -39,7 +39,7 @@ export function NeedsOkCard({ item }: { item: NeedsOkDTO }) {
         {item.milestoneName} review · {item.projectName}
       </p>
       <p className="mt-0.5 text-sm text-muted">
-        {item.progress}% of tasks done · {tasks}
+        {item.progress}% done · {tasks}
       </p>
 
       <label className="mt-4 block">

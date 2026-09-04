@@ -18,6 +18,7 @@ import { cn } from "@/lib/cn";
 import { departmentsKey } from "@/lib/hooks/use-departments";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole } from "@/lib/roles";
+import { DepartmentMark } from "@/components/ui/department-mark";
 import { ROLE_LABEL, type DepartmentDTO, type UserDTO } from "@/lib/types";
 
 type Section = { id: string; name: string; hodId: string | null; people: UserDTO[] };
@@ -135,7 +136,10 @@ export function PeoplePage() {
         <div className="mt-5 space-y-6">
           {sections.map((s) => (
             <section key={s.id} aria-label={s.name}>
-              <h2 className="mb-2 px-1 text-micro font-semibold uppercase tracking-wider text-muted">{s.name}</h2>
+              <h2 className="mb-2 flex items-center gap-2 px-1 text-micro font-semibold uppercase tracking-wider text-muted">
+                {s.id !== "company" ? <DepartmentMark name={s.name} size="sm" /> : null}
+                {s.name}
+              </h2>
               <Card className="divide-y divide-line overflow-hidden">
                 {s.people.map((u) => (
                   <PersonRow

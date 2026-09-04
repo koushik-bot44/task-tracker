@@ -32,7 +32,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
 
   const m = await prisma.milestone.findUnique({
     where: { id: params.id },
-    select: { id: true, name: true, projectId: true, project: { select: { name: true, slug: true, status: true } } },
+    select: { id: true, name: true, projectId: true, project: { select: { name: true, slug: true, status: true, progressManual: true } } },
   });
   if (!m) throw new HttpError(404, "Milestone not found");
 
@@ -54,7 +54,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
     prisma.task.count({ where: { projectId: m.projectId, deletedAt: null, archived: false, parentId: null } }),
     prisma.task.count({ where: { projectId: m.projectId, deletedAt: null, archived: false, parentId: null, status: "DONE" } }),
   ]);
-  const progress = m.project.status === "DONE" ? 100 : total === 0 ? 0 : Math.round((done / total) * 100);
+  const counted = m.project.status === "DONE" ? 100 : total === 0 ? 0 : Math.round((done / total) * 100);
+  const progress = m.project.progressManual ?? counted;
   try {
     await sendMessage(
       people.map((p) => p.id).filter((id) => id !== actor.id),

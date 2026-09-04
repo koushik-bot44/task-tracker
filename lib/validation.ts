@@ -60,6 +60,8 @@ export const updateProjectSchema = z
     startDate: dateInput,
     deadline: dateInput,
     priority: projectPrioritySchema,
+    /** CEO only (checked at the route): a number by hand, or null to count the tasks again. */
+    progress: z.number().int().min(0).max(100).nullable(),
   })
   .partial();
 

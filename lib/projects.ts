@@ -38,9 +38,11 @@ export async function enrichProjects(rows: ProjectRow[]): Promise<ProjectRow[]> 
     const next = ms.find((m) => m.outcome === null && startOfDay(m.reviewDate) >= today) ?? ms.find((m) => m.outcome === null) ?? null;
     const missedReview = ms.some((m) => m.outcome === null && startOfDay(m.reviewDate) < today);
     const pastDeadline = Boolean(r.deadline && r.status !== "DONE" && startOfDay(r.deadline) < today);
-    // How far along = tasks done over tasks in the project. Nobody sets it by hand (owner, 2026-09-04).
+    // How far along = the CEO's own number when they set one by hand, else tasks
+    // done over tasks in the project (owner, 2026-09-04).
     const total = openTasks + doneTasks;
-    const progress = r.status === "DONE" ? 100 : total === 0 ? 0 : Math.round((doneTasks / total) * 100);
+    const counted = r.status === "DONE" ? 100 : total === 0 ? 0 : Math.round((doneTasks / total) * 100);
+    const progress = r.progressManual ?? counted;
     return {
       ...r,
       progress,

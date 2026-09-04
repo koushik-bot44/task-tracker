@@ -57,14 +57,14 @@ export async function requirePerson(): Promise<User> {
   return user;
 }
 
-/** LITERALLY a MANAGER — deliberately NOT the phase-48 chain. This gate guards
-    the Well Being (family routine) surface and other manager-personal features,
-    which do not open up the hierarchy. Project surfaces use
-    requireProjectAuthority / assertManager instead. */
+/** The Well Being (family routine) surface belongs to the CEO alone (owner,
+    2026-09-04: "Well Being is only for Rahul to track someone"). Deliberately
+    NOT the phase-48 chain. Project surfaces use requireProjectAuthority /
+    assertManager instead. The name is kept so nothing else has to move. */
 export async function requireManager(): Promise<User> {
   const user = await requireUser();
-  if (user.role !== "MANAGER") {
-    throw new HttpError(403, "Managers only");
+  if (user.role !== "FOUNDER") {
+    throw new HttpError(403, "Only the CEO has Well Being.");
   }
   return user;
 }

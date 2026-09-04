@@ -44,6 +44,19 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   "Can't" opens the three dates straight away. Deleting a project now sweeps
   its meetings (defect #12). A kept "Test project" sits in Development.
 
+## Owner feedback, round 5 — the CEO's own number, Well Being for the CEO, department logos
+
+- **Percentage:** Orbit counts the tasks; the CEO alone can tap the bar and set
+  a number by hand ("Set by the CEO" under the bar) or hand it back to the
+  count. Heads and managers cannot (403). Migration `20260904160000_progress_manual`.
+- **Well Being** belongs to the CEO alone: the Family tab shows for the CEO,
+  every other role is walled off (403); the tracked person's own login is untouched.
+- **Department logos:** an icon matched to each department's name on a pastel
+  tile — Projects list, department page, People headers.
+- **Logins for every level on the clone** (all `orbit123`): founder@orbit.local
+  (Rahul, CEO) · hod-dev@ / hod-ops@ / hod-rnd@ · test-manager@ / manager@ ·
+  lead@ · dev@ · admin@ · arjun@gmail.com (tracked person).
+
 ## Where things stand
 
 | landing | what | state |

@@ -63,7 +63,7 @@ export const GET = route(async () => {
     isExecutiveRole(user.role)
       ? prisma.milestone.findMany({
           where: { outcome: null, reviewDate: { lt: new Date(today.getTime() + 86_400_000) } },
-          include: { project: { select: { id: true, name: true, slug: true, progress: true } } },
+          include: { project: { select: { id: true, name: true, slug: true, status: true, progressManual: true } } },
           orderBy: { reviewDate: "asc" },
         })
       : Promise.resolve([]),
@@ -96,11 +96,27 @@ export const GET = route(async () => {
 
   let needsOk: NeedsOkDTO[] = [];
   if (reviews.length) {
-    const counts = await prisma.task.groupBy({
-      by: ["milestoneId", "status"],
-      where: { milestoneId: { in: reviews.map((r) => r.id) }, deletedAt: null, archived: false, parentId: null },
-      _count: { _all: true },
-    });
+    const [counts, projectCounts] = await Promise.all([
+      prisma.task.groupBy({
+        by: ["milestoneId", "status"],
+        where: { milestoneId: { in: reviews.map((r) => r.id) }, deletedAt: null, archived: false, parentId: null },
+        _count: { _all: true },
+      }),
+      prisma.task.groupBy({
+        by: ["projectId", "status"],
+        where: { projectId: { in: reviews.map((r) => r.project.id) }, deletedAt: null, archived: false, parentId: null },
+        _count: { _all: true },
+      }),
+    ]);
+    // The project's number: the CEO's own when set by hand, else tasks done ÷ tasks.
+    const projectProgress = (projectId: string, status: string, manual: number | null) => {
+      if (manual !== null) return manual;
+      if (status === "DONE") return 100;
+      const rows = projectCounts.filter((c) => c.projectId === projectId);
+      const total = rows.reduce((n, c) => n + c._count._all, 0);
+      const done = rows.filter((c) => c.status === "DONE").reduce((n, c) => n + c._count._all, 0);
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+    };
     needsOk = reviews.map((r) => {
       const mine = counts.filter((c) => c.milestoneId === r.id);
       return {
@@ -110,7 +126,7 @@ export const GET = route(async () => {
         projectName: r.project.name,
         projectSlug: r.project.slug,
         reviewDate: r.reviewDate.toISOString(),
-        progress: r.project.progress,
+        progress: projectProgress(r.project.id, r.project.status, r.project.progressManual),
         tasksDone: mine.filter((c) => c.status === "DONE").reduce((n, c) => n + c._count._all, 0),
         tasksTotal: mine.reduce((n, c) => n + c._count._all, 0),
       };

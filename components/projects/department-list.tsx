@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronRight, FolderClosed } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { DepartmentMark } from "@/components/ui/department-mark";
 import { cn } from "@/lib/cn";
 import type { DepartmentDTO } from "@/lib/types";
 
@@ -25,9 +26,7 @@ export function DepartmentList({ items, onOpen }: { items: DepartmentSummary[]; 
               className="press flex min-h-[64px] w-full items-center gap-3 px-4 py-2 text-left"
               aria-label={`${d.name}, ${count === 0 ? "no projects yet" : `${count} ${count === 1 ? "project" : "projects"}`}${behind > 0 ? `, ${behind} behind` : ""}`}
             >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-input bg-surface-2" aria-hidden>
-                <FolderClosed className="h-5 w-5 text-muted" strokeWidth={1.75} />
-              </span>
+              <DepartmentMark name={d.name} />
               <span className="min-w-0 flex-1">
                 <span className={cn("block truncate text-row", count === 0 ? "text-muted" : "text-ink")}>{d.name}</span>
                 <span className="block truncate text-sm text-muted">

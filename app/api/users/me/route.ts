@@ -10,15 +10,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Who the caller is, for the chrome and role-aware UI. `hasFamily` shows the
-    Family tab: a literal MANAGER who owns a Person or monitors one. */
+    Family tab: the CEO alone (owner, 2026-09-04), whether or not a Person is
+    set up yet — the tab is where they set one up. */
 export const GET = route(async () => {
   const user = await requireUser();
-  const [full, owns, monitors] = await Promise.all([
-    prisma.user.findUnique({ where: { id: user.id }, include: { department: { select: { name: true } } } }),
-    user.role === "MANAGER" ? prisma.person.count({ where: { managerId: user.id } }) : Promise.resolve(0),
-    user.role === "MANAGER" ? prisma.routineCollaborator.count({ where: { managerId: user.id, status: "ACCEPTED" } }) : Promise.resolve(0),
-  ]);
-  const me: MeDTO = { ...serializeUser(full ?? user), hasFamily: owns + monitors > 0 };
+  const full = await prisma.user.findUnique({ where: { id: user.id }, include: { department: { select: { name: true } } } });
+  const me: MeDTO = { ...serializeUser(full ?? user), hasFamily: user.role === "FOUNDER" };
   return NextResponse.json(me);
 });
 
