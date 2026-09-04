@@ -3,9 +3,10 @@
 import { useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, Plus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { TaskRow, boxDropId } from "@/components/project/task-row";
 import { Card } from "@/components/ui/card";
+import { inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { dateWord, shortDate } from "@/lib/dates";
 import { MILESTONE_OUTCOME_LABEL, type MilestoneDTO, type TaskDTO } from "@/lib/types";
@@ -26,7 +27,7 @@ export function MilestoneBox({
   state,
   tasks,
   canManage,
-  onGiveTask,
+  onQuickAdd,
   onMoveReview,
   onToggleDone,
   onOpenTask,
@@ -36,7 +37,8 @@ export function MilestoneBox({
   state: BoxState;
   tasks: TaskDTO[];
   canManage: boolean;
-  onGiveTask: () => void;
+  /** "Add a task": one line, Enter, next line. Resolves when the row is saved. */
+  onQuickAdd: (title: string) => Promise<unknown>;
   onMoveReview: () => void;
   onToggleDone: (task: TaskDTO, done: boolean) => void;
   onOpenTask: (id: string) => void;
@@ -122,22 +124,82 @@ export function MilestoneBox({
               ) : state === "current" || state === "loose" ? (
                 <p className="mt-2 px-1 text-sm text-muted">No tasks yet.</p>
               ) : null}
-              {state !== "past" ? (
-                <button
-                  type="button"
-                  onClick={onGiveTask}
-                  className="press flex min-h-[56px] w-full items-center gap-3 rounded-card text-left text-row font-medium text-primary-ink"
-                >
-                  <span className="-ml-2 grid h-11 w-11 shrink-0 place-items-center">
-                    <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
-                  </span>
-                  Add a task
-                </button>
-              ) : null}
+              {state !== "past" ? <QuickAdd onAdd={onQuickAdd} /> : null}
             </motion.div>
           ) : null}
         </AnimatePresence>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * "+ Add a task" as a line in the box: tap it, type what needs doing, press
+ * Enter, and the next line is ready — twenty tasks in twenty Enters. Escape,
+ * or leaving it empty, folds it back to the button. Who and when live on the
+ * row itself (tap it) — most tasks need neither.
+ */
+function QuickAdd({ onAdd }: { onAdd: (title: string) => Promise<unknown> }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const submit = async () => {
+    const text = title.trim();
+    if (!text || saving) return;
+    setSaving(true);
+    try {
+      await onAdd(text);
+      setTitle("");
+    } finally {
+      setSaving(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="press flex min-h-[56px] w-full items-center gap-3 rounded-card text-left text-row font-medium text-primary-ink"
+      >
+        <span className="-ml-2 grid h-11 w-11 shrink-0 place-items-center">
+          <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+        </span>
+        Add a task
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex min-h-[56px] items-center gap-3">
+      <span className="-ml-2 grid h-11 w-11 shrink-0 place-items-center text-primary-ink">
+        <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+      </span>
+      <input
+        ref={inputRef}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void submit();
+          } else if (e.key === "Escape") {
+            setTitle("");
+            setOpen(false);
+          }
+        }}
+        onBlur={() => {
+          if (!title.trim() && !saving) setOpen(false);
+        }}
+        placeholder="What needs doing? Enter to add"
+        aria-label="What needs doing"
+        autoFocus
+        disabled={saving}
+        className={cn(inputClass, "h-11")}
+      />
     </div>
   );
 }

@@ -25,7 +25,8 @@ const isImage = (type: string | null) => Boolean(type && type.startsWith("image/
 /**
  * ONE notes thread for projects, milestones and tasks (restructure). Plain
  * text, author-only delete, a camera and a paper-clip on the composer (both
- * hidden when attachments aren't switched on). Reads like a chat.
+ * hidden when attachments aren't switched on, and left out altogether with
+ * attachments={false} — a task's comments are plain text). Reads like a chat.
  */
 export function NotesThread({
   targetType,
@@ -33,17 +34,21 @@ export function NotesThread({
   autoFocus = false,
   placeholder = "Add a note…",
   compact = false,
+  attachments = true,
 }: {
   targetType: CommentTarget;
   targetId: string;
   autoFocus?: boolean;
   placeholder?: string;
   compact?: boolean;
+  /** Camera + paper-clip on the composer. Off = plain text only (task comments). */
+  attachments?: boolean;
 }) {
   const { data: me } = useMe();
   const { data: notes, isLoading, isError, refetch } = useComments(targetType, targetId);
   const { addComment, removeComment } = useCommentMutations(targetType, targetId);
   const { data: uploads } = useUploadsEnabled();
+  const canAttach = attachments && Boolean(uploads?.enabled);
   const { show: toast } = useToast();
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
@@ -96,7 +101,7 @@ export function NotesThread({
         </ul>
       )}
 
-      {pending ? (
+      {canAttach && pending ? (
         <div className="flex items-center gap-2 rounded-input bg-hover px-3 py-2 text-micro text-ink">
           {isImage(pending.type) ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -112,7 +117,7 @@ export function NotesThread({
       ) : null}
 
       <div className="flex items-end gap-1">
-        {uploads?.enabled ? (
+        {canAttach ? (
           <>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
             <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />

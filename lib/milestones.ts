@@ -3,7 +3,7 @@ import { COMMENT_INCLUDE, serializeComment, type MilestoneRow } from "@/lib/seri
 
 /** A project's milestone boxes with task counts and the latest note, in review-date order. */
 export async function milestoneRows(projectId: string): Promise<MilestoneRow[]> {
-  const ms = await prisma.milestone.findMany({ where: { projectId }, orderBy: [{ reviewDate: "asc" }, { orderKey: "asc" }] });
+  const ms = await prisma.milestone.findMany({ where: { projectId }, orderBy: { orderKey: "asc" } });
   if (ms.length === 0) return [];
   const ids = ms.map((m) => m.id);
   const [tasks, notes] = await Promise.all([

@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, ArrowRightLeft, ExternalLink, MessageSquare, Plus, Star, Trash2 } from "lucide-react";
+import { ArrowRightLeft, ExternalLink, MessageSquare, Plus, Star, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NotesThread } from "@/components/notes/notes-thread";
 import { useToast } from "@/components/toast";
@@ -22,8 +22,9 @@ import { TASK_STATUSES, type TaskDTO, type TaskStatus } from "@/lib/types";
 
 /**
  * The task drawer: title · Face (tap to hand it to someone else) · date chip ·
- * status pill · ★ · Steps (a checklist) · Result link · Notes. Every field
- * writes as you leave it. Opened with ?task=<id> from anywhere.
+ * status pill · ★ · Steps (a checklist) · Result link · Comments (plain text,
+ * no attachments). Every field writes as you leave it. Opened with ?task=<id>
+ * from anywhere.
  */
 export function TaskDrawer({ task }: { task: TaskDTO }) {
   const { data: me } = useMe();
@@ -170,7 +171,7 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
                 </div>
                 {openStepNotes === s.id ? (
                   <div className="border-t border-line bg-bg px-3 py-3">
-                    <NotesThread targetType="TASK" targetId={s.id} compact autoFocus placeholder="A note on this step…" />
+                    <NotesThread targetType="TASK" targetId={s.id} compact autoFocus attachments={false} placeholder="A note on this step…" />
                   </div>
                 ) : null}
               </li>
@@ -258,19 +259,14 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
         </section>
       ) : null}
 
-      {/* Notes */}
+      {/* Comments — plain text, no camera, no paper-clip */}
       <section>
-        <h3 className="mb-2 text-micro font-medium text-muted">Notes</h3>
-        <NotesThread targetType="TASK" targetId={task.id} />
+        <h3 className="mb-2 text-micro font-medium text-muted">Comments</h3>
+        <NotesThread targetType="TASK" targetId={task.id} attachments={false} placeholder="Add a comment…" />
       </section>
 
       {/* Quiet actions */}
       <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-        {!isStep ? (
-          <Button variant="quiet" onClick={() => patch({ archived: !task.archived })} icon={<Archive className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
-            {task.archived ? "Bring back" : "Put away"}
-          </Button>
-        ) : null}
         <Button variant="danger" onClick={remove} icon={<Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
           Delete
         </Button>

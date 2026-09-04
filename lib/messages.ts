@@ -113,18 +113,18 @@ export function reviewResultMessage(o: {
     refId: o.milestoneId,
     keyExtra: String(Date.now()),
     title: `${o.milestoneName}: ${o.outcomeLabel}`,
-    body: `${o.projectName} · ${o.byName} set ${o.progress}%${o.note ? ` · ${o.note}` : ""}`,
+    body: `${o.projectName} · ${o.progress}% of tasks done · ${o.byName}${o.note ? ` · ${o.note}` : ""}`,
     url,
     tag: `review-${o.milestoneId}`,
     email: reviewResultEmail({ ...o, url: abs }),
     whatsapp: [
       `${o.outcomeLabel === "On track" ? "🟢" : "🟠"} *${o.milestoneName} review: ${o.outcomeLabel}*`,
       "",
-      `${o.projectName} · ${o.byName} set ${o.progress}%`,
+      `${o.projectName} · ${o.progress}% of tasks done · ${o.byName}`,
       ...(o.note ? ["", o.note] : []),
       "",
       `Open: ${abs}`,
     ].join("\n"),
-    vars: { "1": `${o.projectName} · ${o.milestoneName}: ${o.outcomeLabel}`, "2": `${o.byName} set ${o.progress}%` },
+    vars: { "1": `${o.projectName} · ${o.milestoneName}: ${o.outcomeLabel}`, "2": `${o.progress}% of tasks done · ${o.byName}` },
   };
 }

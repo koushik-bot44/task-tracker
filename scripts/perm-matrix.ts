@@ -200,8 +200,14 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("manager (owner) renames the project -> 200", (await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "PT fixture project" })).status, 200);
   record("hod (own department) sets the status -> 200", (await call(hod, "PATCH", `/api/projects/${projectId}`, { status: "ACTIVE" })).status, 200);
   record("another manager renames the project -> 404", (await call(manager2, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 404);
-  record("manager sets progress -> 403", (await call(manager, "PATCH", `/api/projects/${projectId}`, { progress: 10 })).status, 403);
-  record("director sets progress -> 200", (await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 10 })).status, 200);
+  // Progress is computed from tasks done (lib/projects.ts); a typed number is dropped, never stored.
+  const beforeTyped = await call(director, "GET", `/api/projects/${projectId}`);
+  const typed = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 10 });
+  check(
+    "typed progress is ignored (director -> 200, value unchanged)",
+    typed.status === 200 && typeof beforeTyped.json?.progress === "number" && typed.json?.progress === beforeTyped.json?.progress,
+    `status ${typed.status}, progress ${beforeTyped.json?.progress} -> ${typed.json?.progress}`,
+  );
 
   console.log("\n── give a task ───────────────────────────────────────────────");
   const dueDate = new Date(today.getTime() + 5 * 86_400_000).toISOString();
@@ -301,7 +307,7 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   );
   record(
     "director records an outcome -> 200",
-    (await call(director, "POST", `/api/milestones/${milestoneId}/outcome`, { outcome: "ON_TRACK", note: "PT on track", progress: 40 })).status,
+    (await call(director, "POST", `/api/milestones/${milestoneId}/outcome`, { outcome: "ON_TRACK", note: "PT on track" })).status,
     200,
   );
   const outcomeNotes = await call(director, "GET", `/api/comments?targetType=MILESTONE&targetId=${milestoneId}`);
@@ -310,8 +316,18 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
     Array.isArray(outcomeNotes.json) && outcomeNotes.json.some((n: any) => String(n.body).startsWith("On track")),
     `notes: ${JSON.stringify(outcomeNotes.json)}`,
   );
+  // The project's % is tasks done over its tasks (root tasks, not archived, not
+  // deleted — the rows lib/projects.ts counts), never a number anyone typed.
+  const projectTasks = await call(director, "GET", `/api/tasks?projectId=${projectId}`);
+  const roots = (Array.isArray(projectTasks.json) ? projectTasks.json : []).filter((t: any) => t.parentId === null && !t.archived);
+  const doneRoots = roots.filter((t: any) => t.status === "DONE").length;
+  const computed = roots.length === 0 ? 0 : Math.round((doneRoots / roots.length) * 100);
   const afterOutcome = await call(director, "GET", `/api/projects/${projectId}`);
-  check("…and the project's progress was set with it", afterOutcome.json?.progress === 40, `progress ${afterOutcome.json?.progress}`);
+  check(
+    "…and the project's progress is tasks done over tasks (computed)",
+    roots.length > 0 && afterOutcome.json?.progress === computed,
+    `progress ${afterOutcome.json?.progress}, computed ${doneRoots}/${roots.length} = ${computed}`,
+  );
 
   record("dev deletes the milestone -> 403", (await call(dev, "DELETE", `/api/milestones/${milestoneId}`)).status, 403);
   record("manager deletes the milestone -> 200", (await call(manager, "DELETE", `/api/milestones/${milestoneId}`)).status, 200);

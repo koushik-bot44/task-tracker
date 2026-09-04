@@ -34,9 +34,28 @@ export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   DONE: "Done",
 };
 
-/** The column survives (phase 48); it is no longer shown anywhere. */
+/**
+ * Project priority (owner, 2026-09-04): shown as P1 / P2 / P3 and used to
+ * arrange projects — a higher priority floats to the top. The column keeps
+ * its four values; CRITICAL (legacy) reads and ranks as P1.
+ */
 export const PROJECT_PRIORITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 export type ProjectPriorityValue = (typeof PROJECT_PRIORITIES)[number];
+/** The three the picker offers. */
+export const PROJECT_PRIORITY_CHOICES = ["HIGH", "MEDIUM", "LOW"] as const;
+export const PROJECT_PRIORITY_LABEL: Record<ProjectPriorityValue, string> = {
+  CRITICAL: "P1",
+  HIGH: "P1",
+  MEDIUM: "P2",
+  LOW: "P3",
+};
+/** Lower ranks first. */
+export const PROJECT_PRIORITY_RANK: Record<ProjectPriorityValue, number> = {
+  CRITICAL: 1,
+  HIGH: 1,
+  MEDIUM: 2,
+  LOW: 3,
+};
 
 export const MILESTONE_OUTCOMES = ["ON_TRACK", "NEEDS_WORK"] as const;
 export type MilestoneOutcome = (typeof MILESTONE_OUTCOMES)[number];

@@ -39,8 +39,7 @@ PASS  lead renames the project -> 403                                got 403, wa
 PASS  manager (owner) renames the project -> 200                     got 200, want 200
 PASS  hod (own department) sets the status -> 200                    got 200, want 200
 PASS  another manager renames the project -> 404                     got 404, want 404
-PASS  manager sets progress -> 403                                   got 403, want 403
-PASS  director sets progress -> 200                                  got 200, want 200
+PASS  typed progress is ignored (director -> 200, value unchanged)
 
 ── give a task ───────────────────────────────────────────────
 PASS  dev (member) gives a task to dev2 (member) -> 201              got 201, want 201
@@ -80,7 +79,7 @@ PASS  manager records an outcome -> 403                              got 403, wa
 PASS  hod records an outcome -> 403                                  got 403, want 403
 PASS  director records an outcome -> 200                             got 200, want 200
 PASS  …the outcome became a note on the milestone
-PASS  …and the project's progress was set with it
+PASS  …and the project's progress is tasks done over tasks (computed)
 PASS  dev deletes the milestone -> 403                               got 403, want 403
 PASS  manager deletes the milestone -> 200                           got 200, want 200
 PASS  …its task moved to 'Not in a milestone yet'
@@ -150,4 +149,4 @@ PASS  director reads it -> 404 (no role override)                    got 404, wa
 removed 10 throwaway accounts (tasks 7, notes 1, events 1, projects 3, departments 1)
 remaining permtest-* accounts: 0
 
-113 passed, 0 failed
+112 passed, 0 failed

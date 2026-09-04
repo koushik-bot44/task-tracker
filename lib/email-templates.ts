@@ -214,14 +214,14 @@ export function reviewResultEmail(opts: {
   const html = layout({
     heading: `${escapeHtml(opts.milestoneName)} review: ${escapeHtml(opts.outcomeLabel)}`,
     bodyHtml:
-      `<p style="margin:0 0 12px">${escapeHtml(opts.byName)} reviewed <strong>${escapeHtml(opts.projectName)}</strong> and set it at <strong>${opts.progress}%</strong>.</p>` +
+      `<p style="margin:0 0 12px">${escapeHtml(opts.byName)} reviewed <strong>${escapeHtml(opts.projectName)}</strong> — <strong>${opts.progress}%</strong> of its tasks are done.</p>` +
       (opts.note ? `<p style="margin:0 0 12px;padding:10px 12px;background:${C.bg};border-radius:12px">${escapeHtml(opts.note)}</p>` : ""),
     ctas: [{ label: "Open the project", url: opts.url }],
   });
   const text = [
     subject,
     "",
-    `${opts.byName} reviewed ${opts.projectName} and set it at ${opts.progress}%.`,
+    `${opts.byName} reviewed ${opts.projectName} — ${opts.progress}% of its tasks are done.`,
     ...(opts.note ? ["", opts.note] : []),
     "",
     `Open: ${opts.url}`,

@@ -1,13 +1,13 @@
 
-── F1 founder → project → milestone → task → member → 25% ────────────
+── F1 founder → project → milestone → task → member → % computed ─────
 PASS  F1 new project  (status 201)
 PASS  F1 add milestone creates its review meeting  (status 201)
 PASS  F1 give a task (one request = 3 taps)  (status 201)
 PASS  F1 message (a) task_given reached the member's bell  (Flow director gave you a task)
 PASS  F1 member sees it on Today
 PASS  F1 member checks it
-PASS  F1 founder/director sets 25%
-PASS  F1 manager cannot set the %  (status 403)
+PASS  F1 % is tasks done over tasks (computed)  (1/1 → 100%, got 100)
+PASS  F1 a typed % is ignored  (status 200, progress 100 (computed 100))
 PASS  F1 manager who runs it can rename it  (status 200)
 PASS  F1 review meeting invites the task holder
 
@@ -31,8 +31,8 @@ PASS  F3 member does NOT get Needs your OK
 PASS  F3 manager cannot record an outcome  (status 403)
 PASS  F3 On track recorded
 PASS  F3 outcome note beside the box
-PASS  F3 % set with the outcome
 PASS  F3 message (c) reached the project people  (FLOW Milestone due: On track)
+PASS  F3 message (c) says how far along  (FLOW Project · 50% of tasks done · Flow director · Good pace · computed 1/2 = 50%)
 PASS  F3 next box is current (M1 has no outcome)
 
 ── F4 walls ───────────────────────────────────────────────────────────
@@ -49,5 +49,6 @@ PASS  F5 placed on People under the department  (ACTIVE · Development)
 
 ── teardown ──────────────────────────────────────────────────────────
 removed 6 throwaway accounts and their artefacts
+remaining flow-* accounts: 0, FLOW projects: 0
 
 37 passed, 0 failed

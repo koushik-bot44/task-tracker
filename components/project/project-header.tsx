@@ -1,30 +1,32 @@
 "use client";
 
 import { UserPlus } from "lucide-react";
+import { useState } from "react";
+import { PriorityChip } from "@/components/projects/project-card";
+import { PrioritySheet } from "@/components/sheets/priority-sheet";
 import { DeadlineChip } from "@/components/ui/chip";
 import { Faces } from "@/components/ui/face";
-import { cn } from "@/lib/cn";
 import type { ProjectDTO, ProjectPersonDTO } from "@/lib/types";
 
 /**
- * Name · faces (lead first) · deadline · a progress bar with its number.
- * Nothing else: no status words, no description.
+ * Name · faces (lead first) · priority (P1 / P2 / P3) · deadline · a progress
+ * bar with its number. The number is tasks done over tasks in the project —
+ * nobody sets it. People who manage the project tap the priority chip to
+ * change it. Nothing else: no status words, no description.
  */
 export function ProjectHeader({
   project,
   people,
   canManage,
-  canSetProgress,
   onAddPeople,
-  onSetProgress,
 }: {
   project: ProjectDTO;
   people: ProjectPersonDTO[];
   canManage: boolean;
-  canSetProgress: boolean;
   onAddPeople: () => void;
-  onSetProgress: () => void;
 }) {
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const done = project.status === "DONE";
   const progress = Math.max(0, Math.min(100, Math.round(project.progress)));
   const bar = (
     <>
@@ -50,22 +52,18 @@ export function ProjectHeader({
             Add people
           </button>
         ) : null}
-        <DeadlineChip deadline={project.deadline} done={project.status === "DONE"} className="ml-auto" />
+        <PriorityChip
+          priority={project.priority}
+          muted={done}
+          onClick={canManage ? () => setPriorityOpen(true) : undefined}
+          className="ml-auto"
+        />
+        <DeadlineChip deadline={project.deadline} done={done} />
       </div>
-      {canSetProgress ? (
-        <button
-          type="button"
-          onClick={onSetProgress}
-          aria-label={`Progress ${progress}%. Set progress`}
-          className={cn("press -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-input px-1 py-1.5")}
-        >
-          {bar}
-        </button>
-      ) : (
-        <div className="flex items-center gap-3 py-1.5" role="img" aria-label={`Progress ${progress}%`}>
-          {bar}
-        </div>
-      )}
+      <div className="flex items-center gap-3 py-1.5" role="img" aria-label={`${progress}% of tasks done`}>
+        {bar}
+      </div>
+      {canManage ? <PrioritySheet open={priorityOpen} onClose={() => setPriorityOpen(false)} project={project} /> : null}
     </header>
   );
 }

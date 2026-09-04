@@ -7,9 +7,19 @@ import { Field, Sheet, inputClass } from "@/components/ui/sheet";
 import { dayInputValue, dateWord, longDate, startOfDay } from "@/lib/dates";
 import { useMilestoneMutations } from "@/lib/hooks/use-milestones";
 
+/** A week after the last box's review, or a week from today when there is none (or it has passed). */
+function suggestedDay(previousReviewDate: string | null): string {
+  const today = startOfDay(new Date());
+  const last = previousReviewDate ? startOfDay(new Date(previousReviewDate)) : null;
+  const base = last && last.getTime() >= today.getTime() ? last : today;
+  base.setDate(base.getDate() + 7);
+  return dayInputValue(base);
+}
+
 /**
- * "+ Add milestone": Name · Review date. Saving it also creates the review
- * meeting, which the toast says out loud.
+ * "+ Add milestone": Name · Review date. The new box goes at the bottom, so
+ * the date starts a week after the last box's review. Saving it also creates
+ * the review meeting, which the toast says out loud.
  */
 export function AddMilestoneSheet({
   open,
@@ -21,7 +31,7 @@ export function AddMilestoneSheet({
   open: boolean;
   onClose: () => void;
   projectId: string;
-  /** The review date of the last box, so the new one starts after it. */
+  /** The review date of the last box added, so the new one starts after it. */
   previousReviewDate: string | null;
   startDate: string | null;
 }) {
@@ -33,8 +43,8 @@ export function AddMilestoneSheet({
   useEffect(() => {
     if (!open) return;
     setName("");
-    setDate("");
-  }, [open]);
+    setDate(suggestedDay(previousReviewDate));
+  }, [open, previousReviewDate]);
 
   const after = previousReviewDate ? new Date(previousReviewDate) : startDate ? new Date(startDate) : new Date();
   const minDay = startOfDay(after);

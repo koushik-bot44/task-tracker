@@ -4,6 +4,21 @@ Built and proven on the local clone of production. Production is untouched.
 Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restructure-l3`
 (local git in the project folder). Dev server left running on http://localhost:3000.
 
+## Owner feedback, round 2 (afternoon) — see records/verdicts/restructure-owner-round-2.md
+
+- Departments no longer look like people (one folder mark, no initials).
+- Projects carry **P1 / P2 / P3** and arrange themselves (P1 on top, behind first
+  within a level, finished last); picker in New project, chip on the project
+  header opens the Priority sheet. The red dots are gone.
+- Milestones run top to bottom in the order added; new ones land at the bottom.
+- The percentage is **computed** (tasks done ÷ tasks); nobody types it; the
+  Set-progress sheet is gone; the review card and message say "N% of tasks done".
+- Task notes are plain **Comments** (no attachments); milestone/project notes keep files.
+- "Put away" removed. Quick-add: tap "+ Add a task" in a box, type, Enter, next line.
+- **Plan into milestones**: N boxes, tasks split equally in order, review dates
+  spread to the deadline on working days, every review a meeting on the calendar
+  with the day-before message; each task dated with its box's review day.
+
 ## Where things stand
 
 | landing | what | state |

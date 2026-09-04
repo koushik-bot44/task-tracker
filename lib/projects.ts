@@ -4,9 +4,10 @@ import { projectPeople } from "@/lib/project-people";
 import type { ProjectRow } from "@/lib/serialize";
 
 /**
- * Enrich project rows with what the cards show: task counts, the next
- * milestone, whether it is behind, and the faces. A handful of grouped
- * queries, never one per project.
+ * Enrich project rows with what the cards show: task counts, the computed
+ * progress, the next milestone (first box in order without an outcome),
+ * whether it is behind, and the faces. A handful of grouped queries, never
+ * one per project.
  *
  * "Behind" = not done AND (past its deadline, OR an overdue task, OR a review
  * date passed with no outcome recorded).
@@ -22,7 +23,7 @@ export async function enrichProjects(rows: ProjectRow[]): Promise<ProjectRow[]> 
     }),
     prisma.milestone.findMany({
       where: { projectId: { in: ids } },
-      orderBy: [{ reviewDate: "asc" }, { orderKey: "asc" }],
+      orderBy: { orderKey: "asc" },
       select: { id: true, projectId: true, name: true, reviewDate: true, outcome: true },
     }),
     Promise.all(ids.map((id) => projectPeople(id))),
@@ -37,8 +38,12 @@ export async function enrichProjects(rows: ProjectRow[]): Promise<ProjectRow[]> 
     const next = ms.find((m) => m.outcome === null && startOfDay(m.reviewDate) >= today) ?? ms.find((m) => m.outcome === null) ?? null;
     const missedReview = ms.some((m) => m.outcome === null && startOfDay(m.reviewDate) < today);
     const pastDeadline = Boolean(r.deadline && r.status !== "DONE" && startOfDay(r.deadline) < today);
+    // How far along = tasks done over tasks in the project. Nobody sets it by hand (owner, 2026-09-04).
+    const total = openTasks + doneTasks;
+    const progress = r.status === "DONE" ? 100 : total === 0 ? 0 : Math.round((doneTasks / total) * 100);
     return {
       ...r,
+      progress,
       openTasks,
       doneTasks,
       overdueTasks,

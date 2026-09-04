@@ -4,7 +4,7 @@
  * owner's real accounts. Run: npx tsx --env-file=.env.local scripts/flows.ts
  *
  *   F1 founder: new project → add milestone → give a task → member sees it on
- *      Today → checks it → founder sets 25%.
+ *      Today → checks it → the % is tasks done over tasks (nobody types it).
  *   F2 clock 18:00 the day before → message (b) with working links → "Can't"
  *      → Reschedule → slot → (b) again.
  *   F3 review date → Needs your OK → On track → (c) → outcome beside the box.
@@ -87,7 +87,7 @@ async function main() {
   });
   const admin: Actor = { label: "admin", id: "", email: "admin@orbit.local", cookie: await signIn("admin@orbit.local", "orbit123") };
 
-  console.log("\n── F1 founder → project → milestone → task → member → 25% ────────────");
+  console.log("\n── F1 founder → project → milestone → task → member → % computed ─────");
   const proj = await call(director, "POST", "/api/projects", { name: "FLOW Project", departmentId: department.id, leadId: lead.id, deadline: day(30) });
   record("F1 new project", proj.status === 201, `status ${proj.status}`);
   const projectId: string = proj.json?.id;
@@ -104,12 +104,21 @@ async function main() {
   record("F1 member sees it on Today", today.status === 200 && (today.json?.tasks ?? []).some((x: any) => x.id === taskId));
   const done = await call(member, "PATCH", `/api/tasks/${taskId}`, { status: "DONE" });
   record("F1 member checks it", done.status === 200 && done.json?.status === "DONE");
-  const pct = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 25 });
-  record("F1 founder/director sets 25%", pct.status === 200 && pct.json?.progress === 25);
-  // A manager who RUNS the project (member with canManage) still cannot set the %.
+  // How far along = tasks done over the project's tasks (root tasks, not archived,
+  // not deleted — the same rows the server counts in lib/projects.ts). Nobody types it.
+  const computedProgress = async () => {
+    const list = await call(director, "GET", `/api/tasks?projectId=${projectId}`);
+    const roots = (Array.isArray(list.json) ? list.json : []).filter((x: any) => x.parentId === null && !x.archived);
+    const doneCount = roots.filter((x: any) => x.status === "DONE").length;
+    return { total: roots.length, done: doneCount, pct: roots.length === 0 ? 0 : Math.round((doneCount / roots.length) * 100) };
+  };
+  const c1 = await computedProgress();
+  const p1 = await call(director, "GET", `/api/projects/${projectId}`);
+  record("F1 % is tasks done over tasks (computed)", p1.status === 200 && c1.total >= 1 && p1.json?.progress === c1.pct, `${c1.done}/${c1.total} → ${c1.pct}%, got ${p1.json?.progress}`);
+  const typed = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 50 });
+  record("F1 a typed % is ignored", typed.status === 200 && typed.json?.progress === c1.pct, `status ${typed.status}, progress ${typed.json?.progress} (computed ${c1.pct})`);
+  // A manager who RUNS the project (member with canManage) can edit it.
   await call(director, "POST", `/api/projects/${projectId}/members`, { userId: manager.id, canManage: true });
-  const pctByManager = await call(manager, "PATCH", `/api/projects/${projectId}`, { progress: 50 });
-  record("F1 manager cannot set the %", pctByManager.status === 403, `status ${pctByManager.status}`);
   const nameByManager = await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "FLOW Project" });
   record("F1 manager who runs it can rename it", nameByManager.status === 200, `status ${nameByManager.status}`);
   const review = await call(director, "GET", `/api/calendar?from=${day(6)}T00:00:00.000Z&to=${day(8)}T00:00:00.000Z`);
@@ -163,14 +172,14 @@ async function main() {
   record("F3 member does NOT get Needs your OK", (today.json?.needsOk ?? []).length === 0);
   const okByManager = await call(manager, "POST", `/api/milestones/${m2Id}/outcome`, { outcome: "ON_TRACK" });
   record("F3 manager cannot record an outcome", okByManager.status === 403, `status ${okByManager.status}`);
-  const ok = await call(director, "POST", `/api/milestones/${m2Id}/outcome`, { outcome: "ON_TRACK", note: "Good pace", progress: 40 });
+  const ok = await call(director, "POST", `/api/milestones/${m2Id}/outcome`, { outcome: "ON_TRACK", note: "Good pace" });
   record("F3 On track recorded", ok.status === 200 && ok.json?.outcome === "ON_TRACK");
   const note = await prisma.comment.findFirst({ where: { targetType: "MILESTONE", targetId: m2Id } });
   record("F3 outcome note beside the box", Boolean(note) && note!.body.startsWith("On track"));
-  const p2 = await call(director, "GET", `/api/projects/${projectId}`);
-  record("F3 % set with the outcome", p2.json?.progress === 40);
   const bellC = await prisma.notification.findFirst({ where: { userId: member.id, type: "review_result" }, orderBy: { createdAt: "desc" } });
   record("F3 message (c) reached the project people", Boolean(bellC), bellC?.title ?? "");
+  const c3 = await computedProgress();
+  record("F3 message (c) says how far along", Boolean(bellC) && bellC!.body.includes("% of tasks done") && bellC!.body.includes(`${c3.pct}% of tasks done`), `${bellC?.body ?? "(no row)"} · computed ${c3.done}/${c3.total} = ${c3.pct}%`);
   const boxes = await call(director, "GET", `/api/milestones?projectId=${projectId}`);
   record("F3 next box is current (M1 has no outcome)", (boxes.json ?? []).some((b: any) => b.id === m1Id && b.outcome === null));
 
@@ -226,6 +235,9 @@ async function main() {
   await prisma.invite.deleteMany({ where: { OR: [{ createdById: { in: ids } }, { userId: { in: ids } }] } });
   await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
   console.log(`removed ${ids.length} throwaway accounts and their artefacts`);
+  const leftAccounts = await prisma.user.count({ where: { email: { startsWith: PREFIX } } });
+  const leftProjects = await prisma.project.count({ where: { name: { startsWith: "FLOW " } } });
+  console.log(`remaining ${PREFIX}* accounts: ${leftAccounts}, FLOW projects: ${leftProjects}`);
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail > 0) process.exitCode = 1;
 }

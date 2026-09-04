@@ -59,8 +59,6 @@ export const updateProjectSchema = z
     departmentId: z.string().min(1).nullable(),
     startDate: dateInput,
     deadline: dateInput,
-    /** FOUNDER/DIRECTOR only (checked at the route). */
-    progress: z.number().int().min(0).max(100),
     priority: projectPrioritySchema,
   })
   .partial();
@@ -102,8 +100,6 @@ export const updateMilestoneSchema = z
 export const milestoneOutcomeInput = z.object({
   outcome: milestoneOutcomeSchema,
   note: z.string().trim().max(2000).optional(),
-  /** The founder/director may set the project's % in the same breath. */
-  progress: z.number().int().min(0).max(100).optional(),
 });
 
 /** Restructure: one note shape for projects, milestones and tasks. */

@@ -6,20 +6,22 @@ import { ProjectCard } from "@/components/projects/project-card";
 import { Button, IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Segmented } from "@/components/ui/segmented";
-import type { DepartmentDTO, ProjectDTO } from "@/lib/types";
+import { PROJECT_PRIORITY_RANK, type DepartmentDTO, type ProjectDTO } from "@/lib/types";
 
 type View = "all" | "mine" | "behind";
 
-/** Behind first, then the rest in their order, finished projects last. */
-function rank(p: ProjectDTO): number {
-  if (p.status === "DONE") return 2;
-  if (p.behind) return 0;
-  return 1;
-}
-
+/**
+ * Projects arrange themselves (owner, 2026-09-04): P1 above P2 above P3,
+ * behind ones before the rest at the same priority, then the order they were
+ * added. Finished projects sit at the bottom whatever their priority.
+ */
 export function byRankThenOrder(a: ProjectDTO, b: ProjectDTO): number {
-  const r = rank(a) - rank(b);
+  const doneA = a.status === "DONE";
+  const doneB = b.status === "DONE";
+  if (doneA !== doneB) return doneA ? 1 : -1;
+  const r = PROJECT_PRIORITY_RANK[a.priority] - PROJECT_PRIORITY_RANK[b.priority];
   if (r !== 0) return r;
+  if (!doneA && a.behind !== b.behind) return a.behind ? -1 : 1;
   return a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0;
 }
 

@@ -42,12 +42,12 @@ export function useMeetingReply() {
   return { reply, slots, reschedule };
 }
 
-/** "Needs your OK": On track / Needs work (+ line, + %). */
+/** "Needs your OK": On track / Needs work (+ a line). The % is worked out from tasks done, never sent. */
 export function useReviewOutcome() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ milestoneId, outcome, note, progress }: { milestoneId: string; outcome: MilestoneOutcome; note?: string; progress?: number }) =>
-      apiPost<MilestoneDTO>(`/api/milestones/${milestoneId}/outcome`, { outcome, note, progress }),
+    mutationFn: ({ milestoneId, outcome, note }: { milestoneId: string; outcome: MilestoneOutcome; note?: string }) =>
+      apiPost<MilestoneDTO>(`/api/milestones/${milestoneId}/outcome`, { outcome, note }),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: todayKey });
       void qc.invalidateQueries({ queryKey: ["milestones"] });

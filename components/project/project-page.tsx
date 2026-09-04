@@ -25,9 +25,8 @@ import { ProjectHeader } from "@/components/project/project-header";
 import { TaskRowOverlay, boxIdFromDrop } from "@/components/project/task-row";
 import { AddMilestoneSheet } from "@/components/sheets/add-milestone-sheet";
 import { AddPeopleSheet } from "@/components/sheets/add-people-sheet";
-import { GiveTaskSheet } from "@/components/sheets/give-task-sheet";
 import { MoveReviewSheet } from "@/components/sheets/move-review-sheet";
-import { SetProgressSheet } from "@/components/sheets/set-progress-sheet";
+import { PlanMilestonesSheet } from "@/components/sheets/plan-milestones-sheet";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Connector } from "@/components/ui/connector";
@@ -38,14 +37,16 @@ import { longDate, startOfDay } from "@/lib/dates";
 import { useMilestones } from "@/lib/hooks/use-milestones";
 import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useProjectBySlug, useProjectPeople } from "@/lib/hooks/use-projects";
-import { useTaskMutations, useTasks } from "@/lib/hooks/use-tasks";
-import { useMe } from "@/lib/hooks/use-users";
-import { isExecutiveRole } from "@/lib/roles";
+import { newTaskId, useTaskMutations, useTasks } from "@/lib/hooks/use-tasks";
+import { keyAtEnd } from "@/lib/order";
 import { cn } from "@/lib/cn";
 import type { MilestoneDTO, TaskDTO } from "@/lib/types";
 
 /** Boxes on the left, the note beside each at ≥768px. */
 const COLS = "md:grid md:grid-cols-[minmax(0,1fr)_240px] md:gap-x-4";
+
+/** One stable empty list while the milestones are still loading. */
+const NO_MILESTONES: MilestoneDTO[] = [];
 
 /** Drop into the box under the pointer; fall back to the box the row overlaps most. */
 const collision: CollisionDetection = (args) => {
@@ -60,37 +61,33 @@ function Shell({ children }: { children: React.ReactNode }) {
 /**
  * /project/<slug> — the owner's sketch: PROJECT START, then one box per
  * milestone down the page with its note beside it, then "+ Add milestone".
+ * Boxes run top to bottom in the order they were added (the API's orderKey
+ * order); a new one lands at the bottom (owner, 2026-09-04).
  */
 export function ProjectPage({ slug }: { slug: string }) {
   const { project, isLoading, isError, refetch } = useProjectBySlug(slug);
   const projectId = project?.id ?? null;
-  const { data: me } = useMe();
   const { data: people } = useProjectPeople(projectId);
   const milestonesQ = useMilestones(projectId);
   const tasksQ = useTasks(projectId);
-  const { updateTask } = useTaskMutations({ kind: "project", projectId: projectId ?? "" });
+  const { updateTask, createTask } = useTaskMutations({ kind: "project", projectId: projectId ?? "" });
   const { openTask } = usePanelParams();
   const { show: toast } = useToast();
   const canManage = useCanManage(project);
-  const canSetProgress = isExecutiveRole(me?.role);
   const reduce = useReducedMotion();
 
   // Sheets and drawers. Targets outlive `open` so a closing sheet keeps its words.
-  const [giveOpen, setGiveOpen] = useState(false);
-  const [giveTarget, setGiveTarget] = useState<{ milestoneId: string | null; reviewDate: string | null }>({ milestoneId: null, reviewDate: null });
+  const [planOpen, setPlanOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState<MilestoneDTO | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [progressOpen, setProgressOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesTarget, setNotesTarget] = useState<MilestoneDTO | null>(null);
   const [projectNotesOpen, setProjectNotesOpen] = useState(false);
 
-  const milestones = useMemo(
-    () => [...(milestonesQ.data ?? [])].sort((a, b) => new Date(a.reviewDate).getTime() - new Date(b.reviewDate).getTime() || a.orderKey.localeCompare(b.orderKey)),
-    [milestonesQ.data],
-  );
+  // Creation order, as the API returns it — never re-sorted by date.
+  const milestones = milestonesQ.data ?? NO_MILESTONES;
   const roots = useMemo(() => (tasksQ.data ?? []).filter((t) => t.parentId === null && !t.archived && !t.deletedAt), [tasksQ.data]);
   const byBox = useMemo(() => {
     const map = new Map<string | null, TaskDTO[]>();
@@ -105,6 +102,9 @@ export function ProjectPage({ slug }: { slug: string }) {
     return map;
   }, [roots, milestones]);
 
+  // Walk the boxes in order: a box is PAST once its outcome is recorded or its
+  // review day has gone; the first box that is not past is CURRENT; the rest
+  // are FUTURE.
   const today = startOfDay(new Date()).getTime();
   const states = useMemo(() => {
     const out = new Map<string, BoxState>();
@@ -121,7 +121,7 @@ export function ProjectPage({ slug }: { slug: string }) {
   }, [milestones, today]);
 
   const loose = byBox.get(null) ?? [];
-  const doneCount = roots.filter((t) => t.status === "DONE").length;
+  /** The last box added, so the next one is suggested a week after it. */
   const lastReview = milestones.length > 0 ? milestones[milestones.length - 1].reviewDate : null;
 
   const toggleDone = useCallback(
@@ -134,10 +134,26 @@ export function ProjectPage({ slug }: { slug: string }) {
     [updateTask, toast],
   );
 
-  const giveTask = (milestoneId: string | null, reviewDate: string | null) => {
-    setGiveTarget({ milestoneId, reviewDate });
-    setGiveOpen(true);
-  };
+  /** A line typed into a box: no one holds it, its date is the box's review day. */
+  const quickAdd = (milestoneId: string | null, reviewDate: string | null, title: string) =>
+    new Promise<void>((resolve) => {
+      createTask.mutate(
+        {
+          id: newTaskId(),
+          parentId: null,
+          orderKey: keyAtEnd(byBox.get(milestoneId) ?? [], null),
+          title,
+          dueDate: reviewDate ? startOfDay(new Date(reviewDate)).toISOString() : null,
+          dueProvisional: Boolean(reviewDate),
+          assigneeId: null,
+          milestoneId,
+        },
+        {
+          onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+          onSettled: () => resolve(),
+        },
+      );
+    });
   const moveReview = (m: MilestoneDTO) => {
     setMoveTarget(m);
     setMoveOpen(true);
@@ -212,9 +228,7 @@ export function ProjectPage({ slug }: { slug: string }) {
         project={project}
         people={people ?? project.people}
         canManage={canManage}
-        canSetProgress={canSetProgress}
         onAddPeople={() => setPeopleOpen(true)}
-        onSetProgress={() => setProgressOpen(true)}
       />
 
       <div className="mt-6">
@@ -270,7 +284,7 @@ export function ProjectPage({ slug }: { slug: string }) {
                         state={state}
                         tasks={byBox.get(m.id) ?? []}
                         canManage={canManage}
-                        onGiveTask={() => giveTask(m.id, m.reviewDate)}
+                        onQuickAdd={(title) => quickAdd(m.id, m.reviewDate, title)}
                         onMoveReview={() => moveReview(m)}
                         onToggleDone={toggleDone}
                         onOpenTask={openTask}
@@ -282,21 +296,26 @@ export function ProjectPage({ slug }: { slug: string }) {
               })
             )}
 
-            {loose.length > 0 ? (
-              <div className={cn(COLS, "mt-6")}>
+            <div className={cn(COLS, milestones.length > 0 ? "mt-6" : "mt-4")}>
+              <div className="space-y-3">
                 <MilestoneBox
                   milestone={null}
                   index={0}
                   state="loose"
                   tasks={loose}
                   canManage={canManage}
-                  onGiveTask={() => giveTask(null, null)}
+                  onQuickAdd={(title) => quickAdd(null, null, title)}
                   onMoveReview={() => undefined}
                   onToggleDone={toggleDone}
                   onOpenTask={openTask}
                 />
+                {canManage && loose.length >= 2 ? (
+                  <Button variant="primary" full icon={<Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />} onClick={() => setPlanOpen(true)}>
+                    Plan into milestones
+                  </Button>
+                ) : null}
               </div>
-            ) : null}
+            </div>
 
             <DragOverlay dropAnimation={reduce ? null : undefined}>{active ? <TaskRowOverlay task={active} reviewDate={activeReview} /> : null}</DragOverlay>
           </DndContext>
@@ -330,10 +349,9 @@ export function ProjectPage({ slug }: { slug: string }) {
         ) : null}
       </div>
 
-      <GiveTaskSheet open={giveOpen} onClose={() => setGiveOpen(false)} projectId={project.id} milestoneId={giveTarget.milestoneId} reviewDate={giveTarget.reviewDate} />
+      <PlanMilestonesSheet open={planOpen} onClose={() => setPlanOpen(false)} project={project} looseCount={loose.length} lastReviewDate={lastReview} />
       <MoveReviewSheet open={moveOpen} onClose={() => setMoveOpen(false)} projectId={project.id} milestone={moveTarget} />
       <AddMilestoneSheet open={addOpen} onClose={() => setAddOpen(false)} projectId={project.id} previousReviewDate={lastReview} startDate={project.startDate} />
-      <SetProgressSheet open={progressOpen} onClose={() => setProgressOpen(false)} project={project} done={doneCount} total={roots.length} />
       <AddPeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} projectId={project.id} />
 
       <Drawer

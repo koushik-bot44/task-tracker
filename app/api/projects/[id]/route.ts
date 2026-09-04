@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { PROJECT_LEAD_SELECT, serializeProject } from "@/lib/serialize";
 import { canActAsProjectOwner, canSeeProject } from "@/lib/project-visibility";
 import { HttpError, requireUser, route } from "@/lib/session";
-import { isExecutiveRole } from "@/lib/roles";
 import { enrichProjects } from "@/lib/projects";
 import { badRequest, parseBody, updateProjectSchema } from "@/lib/validation";
 
@@ -28,10 +27,10 @@ export const GET = route(async (_req: Request, { params }: Params) => {
 });
 
 /**
- * Editing a project — name, lead, dates, status, department — is an OWNER
- * power: the literal owner, a member who may manage, the FOUNDER/DIRECTOR
- * anywhere, or the HOD of its department. `progress` is FOUNDER/DIRECTOR only,
- * set by hand, never computed.
+ * Editing a project — name, lead, dates, status, priority, department — is an
+ * OWNER power: the literal owner, a member who may manage, the FOUNDER/DIRECTOR
+ * anywhere, or the HOD of its department. Progress is never set here: it is
+ * computed from the tasks done (lib/projects.ts).
  */
 export const PATCH = route(async (req: Request, { params }: Params) => {
   const actor = await requireUser();
@@ -45,11 +44,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (!parsed.ok) return parsed.response;
   const patch = parsed.data;
 
-  const onlyProgress = Object.keys(patch).every((k) => k === "progress");
-  if (patch.progress !== undefined && !isExecutiveRole(actor.role)) {
-    throw new HttpError(403, "Only the founder or a director sets how far along a project is.");
-  }
-  if (!onlyProgress && !(await canActAsProjectOwner(actor, params.id))) {
+  if (!(await canActAsProjectOwner(actor, params.id))) {
     throw new HttpError(403, "Only the people running this project can change it");
   }
 
@@ -84,7 +79,6 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (patch.departmentId) data.department = { connect: { id: patch.departmentId } };
   if (patch.startDate !== undefined) data.startDate = patch.startDate ? new Date(patch.startDate) : null;
   if (patch.deadline !== undefined) data.deadline = patch.deadline ? new Date(patch.deadline) : null;
-  if (patch.progress !== undefined) data.progress = patch.progress;
   if (patch.priority !== undefined) data.priority = patch.priority;
 
   const project = await prisma.project.update({

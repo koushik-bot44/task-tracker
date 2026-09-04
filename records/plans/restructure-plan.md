@@ -279,3 +279,12 @@ to attendees immediately.
 7. STOP points are reported, not waited on (autonomous run at the owner's request).
 8. `components/tree/tree-view.tsx` (+ task-row, status-checkbox, status-menu, description-field, lib/tree, lib/projection, lib/order) are RETAINED as My notes' outline engine only (My Space is "keep, unchanged inside" and is built on them), trimmed of the dropped fields. No project screen uses them.
 9. The "drop" rows' code is deleted at L1 rather than L3: it referenced dropped columns and could not compile once the model changed. L3 verifies nothing is left (grep) instead of deleting.
+
+### Round 2 (owner, 2026-09-04 afternoon) — reversals of the brief, on the owner's word
+
+12. Progress % is COMPUTED (tasks done ÷ tasks), never typed; the brief's manual FOUNDER/DIRECTOR % is gone (Set-progress sheet deleted, PATCH ignores it).
+13. Project priority is SHOWN as P1 / P2 / P3 and drives the order; the jargon rig no longer bans P1–P3 (the owner asked for exactly those words).
+14. Milestones are ordered by creation (orderKey), not by review date.
+15. Task notes carry no attachments (plain comments); milestone/project notes keep them.
+16. "Put away" (archive) has no UI; the column stays.
+17. New: quick-add lines in a box, and "Plan into milestones" (`lib/plan.ts`, `POST /api/projects/:id/plan`).

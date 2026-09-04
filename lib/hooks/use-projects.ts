@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
-import type { ProjectDTO, ProjectPersonDTO, ProjectStatus } from "@/lib/types";
+import type { ProjectDTO, ProjectPersonDTO, ProjectPriorityValue, ProjectStatus } from "@/lib/types";
 import { isAdminRole } from "@/lib/roles";
 import { useMe } from "@/lib/hooks/use-users";
 
@@ -65,6 +65,8 @@ export function useProjectMutations() {
       leadId?: string | null;
       startDate?: string | null;
       deadline?: string | null;
+      /** P1 / P2 / P3 as HIGH / MEDIUM / LOW. The server defaults to MEDIUM. */
+      priority?: "HIGH" | "MEDIUM" | "LOW";
       description?: string;
       color?: string;
     }) => apiPost<ProjectDTO>("/api/projects", input),
@@ -86,7 +88,7 @@ export function useProjectMutations() {
         departmentId: string | null;
         startDate: string | null;
         deadline: string | null;
-        progress: number;
+        priority: ProjectPriorityValue;
       }>;
     }) => apiPatch<ProjectDTO>(`/api/projects/${id}`, patch),
     onMutate: async ({ id, patch }) => {

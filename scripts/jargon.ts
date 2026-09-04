@@ -13,7 +13,6 @@ const ROOT = process.cwd();
 const DIRS = ["app", "components"];
 const WORDS = [
   /\bbacklog\b/i,
-  /\bP[0-3]\b/,
   /\bgates?\b/i,
   /\bverified\b/i,
   /\bchangelog\b/i,
