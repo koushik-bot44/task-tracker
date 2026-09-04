@@ -1,18 +1,25 @@
 "use client";
 
-import { CalendarClock, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
-import type { CalendarEventDTO, CalendarTaskDTO } from "@/lib/types";
+import { DEADLINE_TONE_STYLE, dateWord, deadlineTone } from "@/lib/dates";
+import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDTO } from "@/lib/types";
 
 /**
- * Calendar marks. TASKS are OUTLINE chips whose border carries the date-state
- * (overdue/at-risk/normal — the value comes from the server via lib/dates, not
- * recomputed here) plus a tool-colour dot. EVENTS are FILLED chips, visually
- * distinct at a glance; a global event swaps the tool dot for an all-hands mark.
- * A MEETING (phase 22) is a filled chip too but carries a clock glyph and its
- * start time, so it reads differently from a plain event AND from a task date.
- * Provisional task dates get a dashed edge and a leading "~", as everywhere.
+ * Calendar marks — three kinds and a task date, nothing else:
+ *
+ *   DEADLINE  a project's deadline: green / amber inside a week / red once
+ *             passed (lib/dates decides), labelled with the project name.
+ *   REVIEW    a milestone's review meeting: the accent, filled — "11:00 Design review".
+ *   MEETING   any other meeting: the accent, soft — "15:00 Skyzen sync".
+ *   TASK      a task's date: an outline chip whose edge carries lateness,
+ *             plus the project's colour dot. Provisional dates are dashed
+ *             and lead with "~", as everywhere.
+ *
+ * Nothing here is under 13px; `compact` only trims the height for the grid.
  */
+
+const BASE = "flex min-w-0 items-center gap-1.5 rounded-chip text-micro font-medium";
+const size = (compact: boolean) => (compact ? "h-6 px-2" : "h-7 px-2.5");
 
 const OUTLINE: Record<CalendarTaskDTO["dateState"], string> = {
   overdue: "border-danger text-danger-ink",
@@ -21,24 +28,31 @@ const OUTLINE: Record<CalendarTaskDTO["dateState"], string> = {
   none: "border-line text-ink",
 };
 
+/** A review is a meeting that belongs to a milestone. */
+export const isReview = (event: CalendarEventDTO): boolean => Boolean(event.milestoneId);
+
+/** "11:00 Design review" / "15:00 Skyzen sync". */
+export function eventLabel(event: CalendarEventDTO): string {
+  const time = event.startTime ? `${event.startTime} ` : "";
+  const what = isReview(event) && event.milestoneName ? `${event.milestoneName} review` : event.title;
+  return `${time}${what}`;
+}
+
 export function TaskChip({ task, compact = false }: { task: CalendarTaskDTO; compact?: boolean }) {
-  const done = task.status === "DONE" || task.status === "CANCELLED";
+  const done = task.status === "DONE";
   return (
     <span
       className={cn(
-        "flex min-w-0 items-center gap-1 rounded-chip border bg-surface",
-        compact ? "h-5 px-1.5 text-[11px]" : "h-6 px-2 text-micro",
+        BASE,
+        size(compact),
+        "border bg-surface",
         OUTLINE[task.dateState],
         task.dueProvisional && "border-dashed",
         done && "opacity-60",
       )}
       title={task.title}
     >
-      <span
-        className="h-1.5 w-1.5 shrink-0 rounded-full"
-        style={{ background: task.projectColor }}
-        aria-hidden
-      />
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: task.projectColor }} aria-hidden />
       <span className="min-w-0 truncate">
         {task.dueProvisional ? "~" : ""}
         {task.title}
@@ -47,38 +61,32 @@ export function TaskChip({ task, compact = false }: { task: CalendarTaskDTO; com
   );
 }
 
+/** A review (filled) or a meeting (soft). */
 export function EventChip({ event, compact = false }: { event: CalendarEventDTO; compact?: boolean }) {
+  const review = isReview(event);
   return (
     <span
-      className={cn(
-        "flex min-w-0 items-center gap-1 rounded-chip bg-primary font-medium text-on-primary",
-        compact ? "h-5 px-1.5 text-[11px]" : "h-6 px-2 text-micro",
-      )}
-      title={
-        event.isMeeting
-          ? `Meeting${event.startTime ? ` ${event.startTime}` : ""}: ${event.title}`
-          : event.isGlobal
-            ? `All-hands: ${event.title}`
-            : event.title
-      }
+      className={cn(BASE, size(compact), review ? "bg-primary text-on-primary" : "bg-primary-soft text-primary-ink")}
+      title={`${review ? "Review" : "Meeting"} · ${eventLabel(event)}${event.projectName ? ` · ${event.projectName}` : ""}`}
     >
-      {event.isMeeting ? (
-        <CalendarClock className="h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />
-      ) : event.isGlobal ? (
-        <Users className="h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />
-      ) : (
-        <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-surface"
-          style={{ background: event.projectColor ?? "var(--on-primary)" }}
-          aria-hidden
-        />
-      )}
+      {event.startTime ? <span className="shrink-0 tabular-nums">{event.startTime}</span> : null}
       <span className="min-w-0 truncate">
-        {event.isMeeting && event.startTime ? (
-          <span className="font-semibold tabular-nums">{event.startTime} </span>
-        ) : null}
-        {event.title}
+        {review && event.milestoneName ? `${event.milestoneName} review` : event.title}
       </span>
+    </span>
+  );
+}
+
+/** A project's deadline, labelled with the project name. */
+export function DeadlineMark({ deadline, compact = false }: { deadline: CalendarDeadlineDTO; compact?: boolean }) {
+  const tone = deadlineTone(deadline.deadline) ?? "green";
+  return (
+    <span
+      className={cn(BASE, size(compact), DEADLINE_TONE_STYLE[tone])}
+      title={`${deadline.name} · due ${dateWord(deadline.deadline)}`}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: deadline.color }} aria-hidden />
+      <span className="min-w-0 truncate">{deadline.name}</span>
     </span>
   );
 }

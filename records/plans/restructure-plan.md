@@ -164,7 +164,9 @@ UPDATE "Task" SET "important" = true WHERE "priority" IN ('P0','P1');      -- pr
 ALTER TABLE "Task" DROP COLUMN "status"; ALTER TABLE "Task" RENAME COLUMN "status2" TO "status";
 DROP TYPE "Status";
 ALTER TABLE "Task" DROP COLUMN "priority", DROP COLUMN "gates", DROP COLUMN "tags", DROP COLUMN "links",
-  DROP COLUMN "color", DROP COLUMN "groupColor", DROP COLUMN "pinnedAt", DROP COLUMN "descriptionMd";
+  DROP COLUMN "color", DROP COLUMN "groupColor", DROP COLUMN "pinnedAt";
+-- descriptionMd is KEPT (My notes uses it); project tasks' descriptions become their first Comment and are blanked.
+-- The authoritative, applied SQL is prisma/migrations/20260904120000_restructure/migration.sql (54 statements).
 DROP TYPE "Priority";
 CREATE INDEX "Task_milestoneId_idx" ON "Task"("milestoneId");
 
@@ -236,11 +238,14 @@ integrity hashes before and after (both the 6-field and the full hash).
 
 ## 4. Screens (copy in quotes is the copy)
 
-See the brief; the only additions are (1) a paper-clip "Attach a file" beside
+See the brief; the additions are (1) a paper-clip "Attach a file" beside
 the camera in every note composer (PDF/images/docs up to 8 MB via Vercel Blob;
 hidden when `BLOB_READ_WRITE_TOKEN` is unset; a dev-only disk fallback under
-`.localdb/uploads` keeps the flow testable locally), and (2) the giver's Face
-on Today comes from `Task.givenById`.
+`.localdb/uploads` keeps the flow testable locally), (2) the giver's Face
+on Today comes from `Task.givenById`, and (3) — asked for mid-build — task rows
+on the project page DRAG AND DROP between milestone boxes (dnd-kit, long-press on
+touch), with a "Move to…" option in the task drawer for one-handed phones; both
+write `Task.milestoneId` and re-sync the review meetings' attendee lists.
 
 ## 5. Messages (exactly three)
 

@@ -106,8 +106,12 @@ async function main() {
   record("F1 member checks it", done.status === 200 && done.json?.status === "DONE");
   const pct = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 25 });
   record("F1 founder/director sets 25%", pct.status === 200 && pct.json?.progress === 25);
+  // A manager who RUNS the project (member with canManage) still cannot set the %.
+  await call(director, "POST", `/api/projects/${projectId}/members`, { userId: manager.id, canManage: true });
   const pctByManager = await call(manager, "PATCH", `/api/projects/${projectId}`, { progress: 50 });
   record("F1 manager cannot set the %", pctByManager.status === 403, `status ${pctByManager.status}`);
+  const nameByManager = await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "FLOW Project" });
+  record("F1 manager who runs it can rename it", nameByManager.status === 200, `status ${nameByManager.status}`);
   const review = await call(director, "GET", `/api/calendar?from=${day(6)}T00:00:00.000Z&to=${day(8)}T00:00:00.000Z`);
   const reviewEvent = (review.json?.events ?? []).find((e: any) => e.milestoneId === m1Id);
   record("F1 review meeting invites the task holder", Boolean(reviewEvent) && reviewEvent.attendees.some((a: any) => a.userId === member.id));
@@ -218,6 +222,8 @@ async function main() {
   if (projectId) await prisma.project.delete({ where: { id: projectId } }).catch(() => undefined);
   await prisma.comment.deleteMany({ where: { targetId: { in: [projectId, m1Id, m2Id].filter(Boolean) } } });
   await prisma.calendarEvent.deleteMany({ where: { createdById: { in: ids } } });
+  // Invite.createdById is Restrict: the invites this run issued go before their issuers.
+  await prisma.invite.deleteMany({ where: { OR: [{ createdById: { in: ids } }, { userId: { in: ids } }] } });
   await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
   console.log(`removed ${ids.length} throwaway accounts and their artefacts`);
   console.log(`\n${pass} passed, ${fail} failed`);

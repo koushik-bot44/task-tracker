@@ -1,0 +1,53 @@
+
+── F1 founder → project → milestone → task → member → 25% ────────────
+PASS  F1 new project  (status 201)
+PASS  F1 add milestone creates its review meeting  (status 201)
+PASS  F1 give a task (one request = 3 taps)  (status 201)
+PASS  F1 message (a) task_given reached the member's bell  (Flow director gave you a task)
+PASS  F1 member sees it on Today
+PASS  F1 member checks it
+PASS  F1 founder/director sets 25%
+PASS  F1 manager cannot set the %  (status 403)
+PASS  F1 manager who runs it can rename it  (status 200)
+PASS  F1 review meeting invites the task holder
+
+── F2 18:00 the day before → (b) → Can't → Reschedule → (b) again ────
+PASS  F2 schedule a meeting for tomorrow  (status 201)
+PASS  F2 cron/tomorrow runs with the secret  (status 200, people 3)
+PASS  F2 cron/tomorrow without the secret → 401
+PASS  F2 message (b) reached the member's bell  (Tomorrow: 1 meeting · 1 due)
+PASS  F2 (b) built for the member with a meeting + a task
+PASS  F2 (b) carries a signed Can't link
+PASS  F2 Can't link lands (public, no session)
+PASS  F2 Can't recorded on the attendee row
+PASS  F2 organiser told (bell)
+PASS  F2 three working-day slots  (["2026-09-07T00:00:00.000Z","2026-09-08T00:00:00.000Z","2026-09-09T00:00:00.000Z"])
+PASS  F2 reschedule moves it and re-sends (b)  (resent 2)
+PASS  F2 (b) re-sent after the move (bell)
+
+── F3 review date → Needs your OK → On track → (c) ────────────────────
+PASS  F3 Needs your OK lists the review
+PASS  F3 member does NOT get Needs your OK
+PASS  F3 manager cannot record an outcome  (status 403)
+PASS  F3 On track recorded
+PASS  F3 outcome note beside the box
+PASS  F3 % set with the outcome
+PASS  F3 message (c) reached the project people  (FLOW Milestone due: On track)
+PASS  F3 next box is current (M1 has no outcome)
+
+── F4 walls ───────────────────────────────────────────────────────────
+PASS  F4 PERSON walled on 20 work endpoints  (20/20)
+PASS  F4 ADMIN walled on project endpoints  (403,403,403,403,403)
+PASS  F4 member creates a private note
+PASS  F4 My notes 404 cross-user (lead, director)  (404/404/404)
+
+── F5 invite with department → set password → placed on People ─────────
+PASS  F5 invite with a department  (status 201)
+[email] SMTP env not set (SMTP_HOST/PORT/USER/PASS, EMAIL_FROM) — email disabled
+PASS  F5 set password via the invite link
+PASS  F5 placed on People under the department  (ACTIVE · Development)
+
+── teardown ──────────────────────────────────────────────────────────
+removed 6 throwaway accounts and their artefacts
+
+37 passed, 0 failed
