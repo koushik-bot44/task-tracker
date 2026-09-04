@@ -57,6 +57,14 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   (Rahul, CEO) · hod-dev@ / hod-ops@ / hod-rnd@ · test-manager@ / manager@ ·
   lead@ · dev@ · admin@ · arjun@gmail.com (tracked person).
 
+## Owner feedback, round 6 — Family did not open for Rahul
+
+- The edge guard in `middleware.ts` still sent everyone but a literal manager
+  away from `/routine`, and the page's own guard agreed, so the CEO landed on
+  Today. Both admit the CEO alone now (defect #13). Rahul's Family shows Arjun's
+  tracker and weekly summary at 390 and 1440 with zero console errors; Arjun's
+  own screen works and stays walled from work; "Monitoring managers" is hidden.
+
 ## Where things stand
 
 | landing | what | state |

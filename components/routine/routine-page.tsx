@@ -4,7 +4,7 @@ import { Bell, ChevronLeft, ChevronRight, Eye, Loader2, Maximize2, Minimize2, Pe
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { isManagerRole } from "@/lib/roles";
+import { isFounderRole } from "@/lib/roles";
 import { useMe } from "@/lib/hooks/use-users";
 import { useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
 import { useUsers } from "@/lib/hooks/use-users";
@@ -35,7 +35,8 @@ export function RoutinePage() {
   const [week, setWeek] = useState<string | null>(null);
   // null = the caller's default routine (own person, else first collaboration).
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
-  const { data, isLoading } = useRoutine(week, selectedPerson, isManagerRole(me?.role));
+  // Well Being is the CEO's alone (owner, 2026-09-04).
+  const { data, isLoading } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
   // Shared scene (same source as the person screen). The scene class (pk-day / pk-night)
   // on this page root supplies the glass CSS vars to every .pk-* descendant.
   const { mounted, night, overNight, floatText } = useTimeScene();
@@ -67,10 +68,10 @@ export function RoutinePage() {
 
   // Courtesy client guard; the API + middleware are the real authority.
   useEffect(() => {
-    if (me && !isManagerRole(me.role)) router.replace("/");
+    if (me && !isFounderRole(me.role)) router.replace("/");
   }, [me, router]);
 
-  if (!me || !isManagerRole(me.role)) return null;
+  if (!me || !isFounderRole(me.role)) return null;
 
   return (
     // The scene fills the Well Being page content region only (absolute within this
@@ -239,7 +240,8 @@ function RoutineDashboard({
         </div>
       )}
 
-      {isOwner ? <MonitoringManagers collaborators={collaborators} week={week} personId={routineId} /> : null}
+      {/* "Monitoring managers" is off: Well Being is the CEO's alone (owner, 2026-09-04); the code stays for the day that changes. */}
+      {isOwner && false ? <MonitoringManagers collaborators={collaborators} week={week} personId={routineId} /> : null}
     </div>
   );
 }

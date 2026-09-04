@@ -39,8 +39,8 @@ export async function middleware(req: NextRequest) {
       url.search = "";
       return NextResponse.redirect(url);
     }
-    // The family (Well Being) page is literally MANAGER-only; its APIs enforce the same.
-    if (pathname.startsWith("/routine") && claims.role !== "MANAGER") {
+    // The family (Well Being) page belongs to the CEO alone (owner, 2026-09-04); its APIs enforce the same.
+    if (pathname.startsWith("/routine") && claims.role !== "FOUNDER") {
       const url = req.nextUrl.clone();
       url.pathname = "/";
       url.search = "";
