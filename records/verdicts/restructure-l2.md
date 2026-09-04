@@ -44,3 +44,7 @@ The API side is proven by `npm run flows` (records/evidence/restructure/flows.tx
 ## Open
 
 None at the API level. Screen-level items are tracked in records/defects.md.
+
+## Added at L3 close-out
+
+- Calendar month grid with a review in the window: `records/evidence/restructure/calendar-review-1440.png` — the review chip is the accent-filled "11:00 <milestone> review" on its day (throwaway RS- milestone, created and deleted by the rig; zero console errors, no overflow).

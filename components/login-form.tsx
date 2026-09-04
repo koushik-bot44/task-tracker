@@ -49,7 +49,7 @@ export function LoginForm({ needsBootstrap }: { needsBootstrap: boolean }) {
 
       // Phase 35: a PERSON login lands on their own calm screen, never the work app.
       const body = (await res.json().catch(() => null)) as { user?: { role?: string } } | null;
-      router.replace(body?.user?.role === "PERSON" ? "/person" : "/");
+      router.replace(body?.user?.role === "PERSON" ? "/person" : body?.user?.role === "ADMIN" ? "/people" : "/");
       router.refresh();
     } catch {
       setError("Network error. Try again.");

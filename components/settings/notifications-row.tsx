@@ -29,6 +29,15 @@ export function NotificationsRow() {
   const savedPhone = me?.phone ?? "";
   useEffect(() => setPhone(savedPhone), [savedPhone]);
 
+  // /settings/account#notifications: the section appears after the account
+  // loads, which is after the browser's own jump to the hash — so land here
+  // once it exists.
+  const ready = Boolean(me);
+  useEffect(() => {
+    if (!ready || window.location.hash !== "#notifications") return;
+    document.getElementById("notifications")?.scrollIntoView({ block: "start" });
+  }, [ready]);
+
   const pushOn = permission === "granted" && subscribed;
   const pushBlocked = permission === "unsupported" || permission === "denied";
   const pushStatus =

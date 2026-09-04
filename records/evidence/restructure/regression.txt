@@ -405,3 +405,71 @@ PASS  pending user login -> 401 (non-disclosed)
 
 all invite-lifecycle checks passed
 exit 0
+
+=== scripts/check-phase39-collab.ts
+
+-- Invite lifecycle --
+PASS  owner invites a manager (READ_ONLY) -> 201                       got 201
+PASS  can't invite the same manager twice -> 409                       got 409
+PASS  can't invite yourself -> 400                                     got 400
+PASS  a NON-owner (M2) inviting -> 404 (not their routine to manage)   got 404
+PASS  invitee sees the pending invite                                  got [1,"Aarav","READ_ONLY"]
+PASS  BEFORE accepting: M2 GET routine -> 404                          got 404
+PASS  M2 accepts -> 200                                                got 200
+
+-- READ_ONLY collaborator: reads yes, ALL writes 403 --
+PASS  M2 reads the routine -> 200, role READ_ONLY                      got [200,"READ_ONLY"]
+PASS    ...and does NOT see the collaborators panel (owner-only)       got 0
+PASS  READ_ONLY: every write + owner-only action -> 403                got true
+
+-- Owner changes M2 to EDITABLE --
+PASS  owner sees the collaborator (PENDING->ACCEPTED)                  got "ACCEPTED"
+PASS  owner changes permission -> EDITABLE (200)                       got 200
+
+-- EDITABLE collaborator: routine writes yes, owner-only no --
+PASS  EDITABLE marks a habit -> 200                                    got 200
+PASS  EDITABLE logs weight -> 201                                      got 201
+PASS  EDITABLE adds a task -> 201                                      got 201
+PASS  EDITABLE adds a segment -> 201                                   got 201
+PASS  EDITABLE can send a reminder -> 200                              got 200
+PASS  EDITABLE canNOT delete the person -> 403 (owner-only)            got 403
+PASS  EDITABLE canNOT invite another manager -> 403 (owner-only)       got 403
+PASS  EDITABLE canNOT change collaborators -> 404                      got 404
+
+-- Isolation: an unrelated manager sees NOTHING of this routine --
+PASS  M3 GET routine?person=P -> 404                                   got 404
+PASS  M3 marks a habit -> 404                                          got 404
+PASS  M3 GET their OWN default routine -> 200 person:null              got [200,null]
+PASS  lead GET routine -> 403                                          got 403
+PASS  dev GET routine -> 403                                           got 403
+PASS  admin GET routine -> 403                                         got 403
+
+-- Revoke --
+PASS  owner revokes M2 -> 200                                          got 200
+PASS  M2 GET routine?person=P after revoke -> 404                      got 404
+
+-- Reminder: undone-tasks push, rate-limit, empty no-send, person sees it --
+PASS  owner reminder (undone tasks) -> sent                            got true
+PASS  immediate second reminder -> rate_limited                        got [false,"rate_limited"]
+PASS  person /kid shows the reminder                                   got true
+PASS  person /kid: reminder cleared after being shown once             got null
+PASS  reminder with NO pending tasks -> no send (reason none)          got {"sent":false,"reason":"none"}
+PASS  teardown: no p39- residue                                        got 0
+
+34 passed, 0 failed
+exit=0
+
+
+=== scripts/check-phase23-migration.ts
+Notification added column:
+  snoozedUntil  type=timestamp without time zone  nullable=YES  default=none
+
+Notification rows: 102  ·  with a snoozedUntil set: 0
+
+PASS  snoozedUntil column exists
+PASS  snoozedUntil is a timestamp
+PASS  snoozedUntil is nullable, no default (existing rows = NULL)
+PASS  snoozedUntil index exists (cron scan)
+PASS  no existing notification was touched (0 snoozed)
+exit=0
+

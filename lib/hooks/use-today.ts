@@ -6,11 +6,13 @@ import type { CalendarEventDTO, MeetingResponse, MilestoneDTO, MilestoneOutcome,
 
 export const todayKey = ["today"] as const;
 
-export function useToday() {
+/** Today's payload. Pass `enabled=false` for the ADMIN, who has no Today (the endpoint 403s them). */
+export function useToday(enabled = true) {
   return useQuery({
     queryKey: todayKey,
     queryFn: () => apiGet<TodayDTO>("/api/today"),
     refetchOnWindowFocus: true,
+    enabled,
   });
 }
 

@@ -1,0 +1,153 @@
+
+── departments ───────────────────────────────────────────────
+PASS  manager creates a department -> 403                            got 403, want 403
+PASS  director creates a department, hod as its head -> 201          got 201, want 201
+PASS  director creates a second, empty department -> 201             got 201, want 201
+PASS  hod edits their own department's description -> 200            got 200, want 200
+PASS  hod renames their own department -> 403                        got 403, want 403
+PASS  hod edits another department's description -> 403              got 403, want 403
+
+── new project ───────────────────────────────────────────────
+PASS  dev starts a project -> 403                                    got 403, want 403
+PASS  lead starts a project -> 403                                   got 403, want 403
+PASS  admin starts a project -> 403                                  got 403, want 403
+PASS  manager starts a project -> 201                                got 201, want 201
+PASS  the project belongs to the manager who started it
+PASS  hod starts a project in their own department -> 201            got 201, want 201
+PASS  hod starts a project in another department -> 403              got 403, want 403
+PASS  another manager starts their own project -> 201                got 201, want 201
+PASS  director deletes an empty department -> 200                    got 200, want 200
+
+── seeing a project ──────────────────────────────────────────
+PASS  director reads the project -> 200                              got 200, want 200
+PASS  hod reads a project in their department -> 200                 got 200, want 200
+PASS  lead reads any project -> 200                                  got 200, want 200
+PASS  another manager (not on it) reads the project -> 404           got 404, want 404
+PASS  dev (not on it yet) reads the project -> 404                   got 404, want 404
+
+── add people ────────────────────────────────────────────────
+PASS  lead adds a member -> 403                                      got 403, want 403
+PASS  manager (owner) adds dev -> 200                                got 200, want 200
+PASS  manager (owner) adds dev2 -> 200                               got 200, want 200
+PASS  manager invites someone new by email -> 201                    got 201, want 201
+PASS  another manager adds a member -> 404                           got 404, want 404
+PASS  added dev now reads the project -> 200                         got 200, want 200
+
+── edit project ──────────────────────────────────────────────
+PASS  dev renames the project -> 403                                 got 403, want 403
+PASS  lead renames the project -> 403                                got 403, want 403
+PASS  manager (owner) renames the project -> 200                     got 200, want 200
+PASS  hod (own department) sets the status -> 200                    got 200, want 200
+PASS  another manager renames the project -> 404                     got 404, want 404
+PASS  manager sets progress -> 403                                   got 403, want 403
+PASS  director sets progress -> 200                                  got 200, want 200
+
+── give a task ───────────────────────────────────────────────
+PASS  dev (member) gives a task to dev2 (member) -> 201              got 201, want 201
+PASS  dev gives a task to someone not on the project -> 400          got 400, want 400
+PASS  lead gives a task to someone not on the project -> 201         got 201, want 201
+PASS  …and that person is now on the project
+PASS  dev gives a task in a project they're not on -> 403/404        got 404, want 403/404
+
+── reassign / edit a task ────────────────────────────────────
+PASS  dev gives a task with no one named -> 201                      got 201, want 201
+PASS  …and it lands on the giver
+PASS  dev reassigns it to dev2 -> 200                                got 200, want 200
+PASS  dev3 (holds a task here) stars it -> 200                       got 200, want 200
+PASS  dev2 completes it -> 200                                       got 200, want 200
+PASS  another manager edits it -> 404                                got 404, want 404
+
+── steps ─────────────────────────────────────────────────────
+PASS  a step with its own person -> 400                              got 400, want 400
+PASS  a step under a task -> 201                                     got 201, want 201
+PASS  …its parent is the root task
+PASS  a step under a step -> 201                                     got 201, want 201
+PASS  …re-pointed to the root task
+
+── milestones ────────────────────────────────────────────────
+PASS  lead adds a milestone -> 403                                   got 403, want 403
+PASS  manager adds a milestone -> 201                                got 201, want 201
+PASS  …it has a review meeting
+PASS  manager gives a task inside the milestone -> 201               got 201, want 201
+PASS  …'by when' defaulted to the review date
+PASS  the review meeting shows on the calendar that day
+PASS  …its attendees include the lead and the task holder
+PASS  manager moves the review date -> 200                           got 200, want 200
+PASS  …the review meeting moved with it
+
+── review outcome (Needs your OK) ────────────────────────────
+PASS  manager records an outcome -> 403                              got 403, want 403
+PASS  hod records an outcome -> 403                                  got 403, want 403
+PASS  director records an outcome -> 200                             got 200, want 200
+PASS  …the outcome became a note on the milestone
+PASS  …and the project's progress was set with it
+PASS  dev deletes the milestone -> 403                               got 403, want 403
+PASS  manager deletes the milestone -> 200                           got 200, want 200
+PASS  …its task moved to 'Not in a milestone yet'
+
+── notes ─────────────────────────────────────────────────────
+PASS  dev posts a note on a task in their project -> 201             got 201, want 201
+PASS  lead deletes someone else's note -> 403                        got 403, want 403
+PASS  manager (owner) deletes someone else's note -> 403             got 403, want 403
+PASS  the author deletes their own note -> 200                       got 200, want 200
+PASS  dev posts a project note -> 201                                got 201, want 201
+PASS  dev reads notes of a project they're not on -> 404             got 404, want 404
+PASS  dev posts a note on a project they're not on -> 404            got 404, want 404
+
+── meetings ──────────────────────────────────────────────────
+PASS  dev schedules a meeting -> 403                                 got 403, want 403
+PASS  lead schedules a meeting -> 403                                got 403, want 403
+PASS  manager schedules a meeting with dev -> 201                    got 201, want 201
+PASS  dev replies Can't -> 200                                       got 200, want 200
+PASS  dev2 (not invited) replies -> 404                              got 404, want 404
+PASS  dev asks to reschedule -> 403                                  got 403, want 403
+PASS  director asks to reschedule -> 200                             got 200, want 200
+PASS  manager (organiser) asks to reschedule -> 200                  got 200, want 200
+PASS  …three slots offered
+PASS  …every slot is a working day (Mon–Fri)
+PASS  manager reschedules to the first slot -> 200                   got 200, want 200
+PASS  …the meeting is on the new day
+PASS  …and every reply was cleared
+
+── accounts ──────────────────────────────────────────────────
+PASS  lead creates a team member -> 403                              got 403, want 403
+PASS  manager creates a team lead -> 201                             got 201, want 201
+PASS  manager creates a manager -> 403                               got 403, want 403
+PASS  hod creates a manager -> 201                                   got 201, want 201
+PASS  director creates a head of department -> 201                   got 201, want 201
+PASS  admin creates a director -> 403                                got 403, want 403
+PASS  admin creates a manager -> 201                                 got 201, want 201
+PASS  manager places dev in a department -> 200                      got 200, want 200
+PASS  lead places dev in a department -> 403                         got 403, want 403
+PASS  dev reads the people list -> 403                               got 403, want 403
+PASS  lead reads the people list -> 200                              got 200, want 200
+PASS  admin reads the people list -> 200                             got 200, want 200
+
+── walls: admin ──────────────────────────────────────────────
+PASS  admin lists projects -> 403                                    got 403, want 403
+PASS  admin lists tasks -> 403                                       got 403, want 403
+PASS  admin reads Today -> 403                                       got 403, want 403
+PASS  admin reads the calendar -> 403                                got 403, want 403
+PASS  a PERSON can't be created through People -> 403                got 403, want 403
+
+── walls: person ─────────────────────────────────────────────
+PASS  a PERSON gets 403 from every work endpoint (24/24, ≥20 distinct)
+
+── cron ──────────────────────────────────────────────────────
+PASS  cron without the secret -> 401                                 got 401, want 401
+PASS  cron with a wrong secret -> 401                                got 401, want 401
+
+── My notes: isolation ───────────────────────────────────────
+PASS  dev creates a personal department -> 201                       got 201, want 201
+PASS  dev creates a personal project -> 201                          got 201, want 201
+PASS  dev creates a private note -> 201                              got 201, want 201
+PASS  dev reads their own private note -> 200                        got 200, want 200
+PASS  dev2 reads it -> 404                                           got 404, want 404
+PASS  dev2 reads its notes -> 404                                    got 404, want 404
+PASS  director reads it -> 404 (no role override)                    got 404, want 404
+
+── cleanup ───────────────────────────────────────────────────
+removed 10 throwaway accounts (tasks 7, notes 1, events 1, projects 3, departments 1)
+remaining permtest-* accounts: 0
+
+113 passed, 0 failed

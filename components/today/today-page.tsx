@@ -20,15 +20,19 @@ import { TaskRows } from "./task-rows";
  * that need your OK. One button: + gives a task.
  */
 export function TodayPage() {
-  const { data, isLoading, isError, error, refetch } = useToday();
-  const { data: me } = useMe();
+  const { data: me, isLoading: loadingMe } = useMe();
+  const admin = isAdminRole(me?.role);
+  // The ADMIN looks after accounts only: no tasks, no meetings, no Today to fetch.
+  const { data, isLoading, isError, error, refetch } = useToday(Boolean(me) && !admin);
   const [giving, setGiving] = useState(false);
-  const canGive = Boolean(me) && !isAdminRole(me?.role);
+  const canGive = Boolean(me) && !admin;
 
   // Bottom padding keeps the last card clear of the floating + button.
   return (
     <div className="mx-auto w-full max-w-content px-4 pb-20 pt-4 md:pb-24">
-      {isLoading ? (
+      {admin ? (
+        <EmptyState title="Nothing waiting on you." body="Accounts are looked after from People." />
+      ) : isLoading || loadingMe ? (
         <div className="space-y-6" aria-busy>
           <Skeleton rows={3} />
           <Skeleton rows={1} />

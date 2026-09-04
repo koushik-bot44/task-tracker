@@ -3,14 +3,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { ProjectDTO, ProjectPersonDTO, ProjectStatus } from "@/lib/types";
+import { isAdminRole } from "@/lib/roles";
+import { useMe } from "@/lib/hooks/use-users";
 
 export const projectsKey = ["projects"] as const;
 
+/**
+ * Every project the signed-in person may see. ADMIN looks after accounts and
+ * PERSON is walled off — neither may read projects, so the request is never
+ * made for them (it would only 403 in the console). While the account is
+ * still loading, `isLoading` stays true so pages show a skeleton, not an
+ * empty state.
+ */
 export function useProjects() {
-  return useQuery({
+  const me = useMe();
+  const role = me.data?.role;
+  const allowed = !!role && !isAdminRole(role) && role !== "PERSON";
+  const query = useQuery({
     queryKey: projectsKey,
     queryFn: () => apiGet<ProjectDTO[]>("/api/projects"),
+    enabled: allowed,
   });
+  return { ...query, isLoading: query.isLoading || (me.isLoading && !query.data) };
 }
 
 /** Resolve a URL slug to a project from the already-cached list. */
