@@ -115,6 +115,11 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
         ],
       },
     });
+    // Its meetings (review meetings included) go with it, or they would linger on
+    // everyone's Calendar and Today with no project behind them.
+    await tx.calendarEvent.deleteMany({
+      where: { OR: [{ projectId: params.id }, { milestoneId: { in: milestones.map((m) => m.id) } }] },
+    });
     await tx.project.delete({ where: { id: params.id } });
   });
   return NextResponse.json({ ok: true });
