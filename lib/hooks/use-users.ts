@@ -2,16 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
-import type { UserDTO, UserRole } from "@/lib/types";
+import type { MeDTO, UserDTO, UserRole } from "@/lib/types";
 
 export const meKey = ["me"] as const;
 export const usersKey = ["users"] as const;
 
-/** The signed-in account. Drives every role-aware bit of UI. */
+/** The signed-in account. Drives every role-aware bit of UI, and the Family tab. */
 export function useMe() {
   return useQuery({
     queryKey: meKey,
-    queryFn: () => apiGet<UserDTO>("/api/users/me"),
+    queryFn: () => apiGet<MeDTO>("/api/users/me"),
     staleTime: 5 * 60_000,
   });
 }
@@ -31,7 +31,7 @@ export function useUserMutations() {
   };
 
   const createUser = useMutation({
-    mutationFn: (input: { name: string; email: string; role: UserRole }) =>
+    mutationFn: (input: { name: string; email: string; role: UserRole; departmentId?: string | null }) =>
       apiPost<{ user: UserDTO; emailSent: boolean }>("/api/users", input),
     onSuccess: refresh,
   });
@@ -52,14 +52,13 @@ export function useUserMutations() {
       patch,
     }: {
       id: string;
-      patch: { role?: UserRole; disable?: boolean; reset?: true; phone?: string | null };
+      patch: { role?: UserRole; disable?: boolean; reset?: true; phone?: string | null; departmentId?: string | null };
     }) => apiPatch<{ user: UserDTO; tempPassword?: string }>(`/api/users/${id}`, patch),
     onSuccess: refresh,
   });
 
   const changeMyPassword = useMutation({
-    mutationFn: (input: { current: string; next: string }) =>
-      apiPost<{ ok: true }>("/api/users/me/password", input),
+    mutationFn: (input: { current: string; next: string }) => apiPost<{ ok: true }>("/api/users/me/password", input),
   });
 
   const updateMe = useMutation({
@@ -67,8 +66,8 @@ export function useUserMutations() {
       apiPatch<UserDTO>("/api/users/me", patch),
     onMutate: async (patch) => {
       await qc.cancelQueries({ queryKey: meKey });
-      const previous = qc.getQueryData<UserDTO>(meKey);
-      if (previous) qc.setQueryData<UserDTO>(meKey, { ...previous, ...patch });
+      const previous = qc.getQueryData<MeDTO>(meKey);
+      if (previous) qc.setQueryData<MeDTO>(meKey, { ...previous, ...patch });
       return { previous };
     },
     onError: (_e, _p, ctx) => {

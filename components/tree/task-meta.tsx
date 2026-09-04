@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, FileText, Flag, MessageSquare } from "lucide-react";
+import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
 import { Tooltip } from "@/components/tooltip";
 import { cn } from "@/lib/cn";
 import { STATUS_STYLE } from "@/lib/status";
@@ -12,26 +12,7 @@ import {
   dateState,
   formatDMY,
 } from "@/lib/dates";
-import type { Priority, Status } from "@/lib/types";
-
-/** Only P0/P1 earn a flag. P2 is the default and P3 is quieter than silence. */
-export function PriorityFlag({ priority }: { priority: Priority }) {
-  if (priority !== "P0" && priority !== "P1") return null;
-  return (
-    <span
-      className={cn(
-        "flex h-7 shrink-0 items-center gap-1 rounded-chip px-2 text-micro font-semibold",
-        priority === "P0"
-          ? "bg-danger-soft text-danger-ink"
-          : "bg-warn-soft text-warn-ink",
-      )}
-      title={`Priority ${priority}`}
-    >
-      <Flag className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
-      {priority}
-    </span>
-  );
-}
+import type { TaskStatus } from "@/lib/types";
 
 /**
  * "Est. completion" everywhere it is spoken about; the column is still
@@ -44,7 +25,7 @@ export function DuePill({
   provisional = false,
 }: {
   due: string | null;
-  status: Status;
+  status: TaskStatus;
   provisional?: boolean;
 }) {
   /* A task with no estimate is not a neutral state — it is work nobody is
@@ -55,7 +36,7 @@ export function DuePill({
      rule for overdue; the same logic says a completed task does not need
      chasing for a date it no longer needs. Struck-through rows were carrying
      a "No date" nag about work that is done. */
-  if (!due && (status === "DONE" || status === "CANCELLED")) return null;
+  if (!due && status === "DONE") return null;
   if (!due) {
     return (
       <Tooltip content="No estimated completion date — this task is unscheduled">
@@ -142,8 +123,8 @@ export function AssigneeChip({
     <Tooltip content={name}>
       <span
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full bg-primary-soft font-semibold text-primary-ink",
-          compact ? "h-6 w-6 text-[10px]" : "h-7 w-7 text-micro",
+          "flex shrink-0 items-center justify-center rounded-full bg-primary-soft text-micro font-semibold text-primary-ink",
+          compact ? "h-6 w-6" : "h-7 w-7",
         )}
         aria-label={`Assigned to ${name}`}
       >
@@ -166,9 +147,10 @@ export function ScheduleWarning({ show }: { show: boolean }) {
   );
 }
 
-/** Shown only for statuses that are not the Backlog default and not Done. */
-export function StatusPill({ status }: { status: Status }) {
-  if (status === "BACKLOG" || status === "DONE") return null;
+/** Shown only while work is in flight or stuck. To do is the default and Done
+    is already carried by the checkbox, so neither earns a pill. */
+export function StatusPill({ status }: { status: TaskStatus }) {
+  if (status !== "DOING" && status !== "STUCK") return null;
   const style = STATUS_STYLE[status];
   return (
     <span
@@ -179,22 +161,6 @@ export function StatusPill({ status }: { status: Status }) {
     >
       {style.label}
     </span>
-  );
-}
-
-export function TagPills({ tags }: { tags: string[] }) {
-  if (tags.length === 0) return null;
-  return (
-    <>
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          className="flex h-7 min-w-0 max-w-[10rem] items-center truncate rounded-chip bg-hover px-2.5 text-micro font-medium text-muted"
-        >
-          {tag}
-        </span>
-      ))}
-    </>
   );
 }
 
@@ -298,14 +264,15 @@ export function ContentHints({
   );
 }
 
-/** A blocked descendant bubbles a red dot up the ancestor chain. */
+/** A stuck descendant bubbles a red dot up the ancestor chain. The export
+    keeps its old name; only the word changed. */
 export function BlockedDot({ show }: { show: boolean }) {
   if (!show) return null;
   return (
-    <Tooltip content="Something inside this is blocked">
+    <Tooltip content="Something inside this is stuck">
       <span
         className="block h-1.5 w-1.5 shrink-0 rounded-full bg-danger"
-        aria-label="Contains blocked work"
+        aria-label="Contains stuck work"
       />
     </Tooltip>
   );

@@ -7,7 +7,6 @@ import {
   GripVertical,
   MessageSquarePlus,
   PanelRight,
-  Pin,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -16,8 +15,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import { cn } from "@/lib/cn";
 import { dateState } from "@/lib/dates";
 import type { FlatRow } from "@/lib/tree";
-import type { Status } from "@/lib/types";
-import { VerifiedChip } from "./gate-chips";
+import type { TaskStatus } from "@/lib/types";
 import { StatusCheckbox } from "./status-checkbox";
 import { StatusMenu } from "./status-menu";
 import { StatusPill } from "./task-meta";
@@ -35,19 +33,16 @@ export type TaskRowProps = {
   overlay?: boolean;
   /** This row would become the drop's new parent — glow it. */
   dropTarget?: boolean;
-  /** Manager read-only rail: show everything, offer nothing that mutates. */
+  /** Read-only: show everything, offer nothing that mutates. */
   readOnly?: boolean;
-  /** Phase 20: a manager's row hides the team's build gates and shows only
-      their own Verified sign-off indicator in the cluster's place. */
-  isManager?: boolean;
   /** Phase 33: My Space's private row is SIMPLE — only status + notes; every
-      project-only chip (priority, dates, schedule, assignee, gates, tags) is
-      hidden, and the notes affordance reads "Notes" rather than "Prompt". */
+      project-only chip (dates, schedule, assignee) is hidden, and the notes
+      affordance reads "Notes" rather than "Prompt". */
   personal?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>, row: FlatRow) => void;
   onTitleChange?: (id: string, title: string) => void;
   onToggleDone?: (row: FlatRow) => void;
-  onSetStatus?: (row: FlatRow, status: Status) => void;
+  onSetStatus?: (row: FlatRow, status: TaskStatus) => void;
   onToggleCollapse?: (id: string) => void;
   onDelete?: (row: FlatRow) => void;
   /** Blur left the title empty; the parent decides whether to discard. */
@@ -55,16 +50,12 @@ export type TaskRowProps = {
   onZoom?: (id: string) => void;
   onAddChild?: (row: FlatRow) => void;
   onOpenDetail?: (id: string) => void;
-  onTogglePin?: (row: FlatRow) => void;
   /** Phase 24 (My Space only): toggle the inline free-form "Prompt" description
       box under this row. Undefined outside compact mode, so no pill appears. */
   onOpenPrompt?: (id: string) => void;
   /** Whether this row's inline Prompt box is currently open. */
   promptOpen?: boolean;
   registerInput?: (id: string, el: HTMLInputElement | null) => void;
-  /** Phase 15: the group-tint band colour behind this row, or null for none.
-      Consecutive rows sharing a colour read as one banded group. */
-  band?: string | null;
 };
 
 export function TaskRow({
@@ -75,9 +66,7 @@ export function TaskRow({
   overlay = false,
   dropTarget = false,
   readOnly = false,
-  isManager = false,
   personal = false,
-  band = null,
   onKeyDown,
   onTitleChange,
   onToggleDone,
@@ -88,7 +77,6 @@ export function TaskRow({
   onZoom,
   onAddChild,
   onOpenDetail,
-  onTogglePin,
   onOpenPrompt,
   promptOpen = false,
   registerInput,
@@ -96,11 +84,10 @@ export function TaskRow({
   const { task } = row;
   const reduce = useReducedMotion();
   const done = task.status === "DONE";
-  const cancelled = task.status === "CANCELLED";
-  const dimmed = done || cancelled;
+  const dimmed = done;
   // The one metadata hint the calm row keeps: overdue. Not the whole date pill —
   // just a small dot, so late work still catches the eye. Everything else (the
-  // date, priority, gates, progress, tags…) now lives in the detail panel.
+  // date, progress, notes…) now lives in the detail panel.
   const overdue = !personal && dateState(task.dueDate, task.status) === "overdue";
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -142,9 +129,7 @@ export function TaskRow({
   const sortable = useSortable({ id: task.id, disabled: overlay || readOnly });
   const depth = projectedDepth ?? row.depth;
 
-  // Translate only — a scaled row would blur its own text mid-drag. The group
-  // band (phase 15) is an inline background so the whole subtree shares one tint;
-  // rows without a band keep the class-based hover surface.
+  // Translate only — a scaled row would blur its own text mid-drag.
   const style = overlay
     ? undefined
     : {
@@ -152,7 +137,6 @@ export function TaskRow({
           ? `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)`
           : undefined,
         transition: sortable.transition,
-        backgroundColor: band ?? undefined,
       };
 
   return (
@@ -240,8 +224,8 @@ export function TaskRow({
       />
 
       {/* Title + ONE status. The name gets the room (identity line); a single
-          status sits at the right. Every other signal (priority, date, gates,
-          progress, tags, links, notes) now lives in the detail panel. */}
+          status sits at the right. Every other signal (date, progress, notes)
+          now lives in the detail panel. */}
       <div className="flex min-w-0 flex-1 items-center gap-2 pr-1">
         <div
           className="relative flex min-h-10 min-w-0 flex-1 items-center cursor-text"
@@ -285,17 +269,16 @@ export function TaskRow({
           />
         </div>
 
-        {/* Calm meta: a subtle overdue hint + exactly ONE status. For a manager
-            that one status is their Verified sign-off (phase 20); for everyone
-            else it is the work-status pill (Backlog/Done show none — the checkbox
-            already carries done-ness). */}
+        {/* Calm meta: a subtle overdue hint + exactly ONE status — the
+            work-status pill (To do/Done show none — the checkbox already
+            carries done-ness). */}
         <div className="flex shrink-0 items-center gap-1.5">
           {overdue ? (
             <Tooltip content="Overdue — past its estimated completion date">
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-danger" aria-label="Overdue" />
             </Tooltip>
           ) : null}
-          {isManager ? <VerifiedChip gates={task.gates} /> : <StatusPill status={task.status} />}
+          <StatusPill status={task.status} />
           {/* My Space keeps its always-visible Notes affordance — its inline way
               to write free-form detail. */}
           {onOpenPrompt ? (
@@ -366,36 +349,14 @@ export function TaskRow({
               <Plus className="h-4 w-4" strokeWidth={2} aria-hidden />
             </button>
           </Tooltip>
-          <Tooltip content={task.pinnedAt ? "Remove from Focus" : "Pin to Focus"}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePin?.(row);
-            }}
-            aria-pressed={task.pinnedAt !== null}
-            aria-label={task.pinnedAt ? "Remove from Focus" : "Pin to Focus"}
-            className={cn(
-              "press grid h-10 w-9 place-items-center rounded-card",
-              task.pinnedAt ? "text-warn-ink" : "text-muted hover:text-ink",
-            )}
-          >
-            <Pin
-              className="h-4 w-4"
-              strokeWidth={1.75}
-              fill={task.pinnedAt ? "currentColor" : "none"}
-              aria-hidden
-            />
-          </button>
-          </Tooltip>
-          <Tooltip content="Open details, notes and gates">
+          <Tooltip content="Open details and notes">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onOpenDetail?.(task.id);
             }}
-            aria-label="Open details, notes and gates"
+            aria-label="Open details and notes"
             className="press grid h-10 w-9 place-items-center rounded-card text-muted hover:text-ink"
           >
             <PanelRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />

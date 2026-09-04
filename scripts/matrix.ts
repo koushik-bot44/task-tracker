@@ -73,96 +73,19 @@ async function main() {
   const sandbox = projects.find((p: { slug: string }) => p.slug === "ss-shot-sandbox");
   const busiest = sandbox ?? [...projects].sort((a, b) => b.taskCount - a.taskCount)[0];
   const slug: string = busiest?.slug ?? "none";
-  const tasks = await (
-    await probePage.request.get(`${BASE}/api/tasks?projectId=${busiest.id}`)
-  ).json();
-  const firstTask = tasks.find((t: { parentId: string | null }) => !t.parentId) ?? tasks[0];
   await probe.close();
 
+  // Restructure (2026-09): Today per role, then the six other routes.
   const SHOTS: Shot[] = [
     { name: "01-login", path: "/login", role: undefined },
-    { name: "02-home-manager", path: "/", role: "MANAGER" },
-    { name: "03-home-lead", path: "/", role: "TEAM_LEAD" },
-    { name: "04-home-developer", path: "/", role: "RESOURCE" },
-    { name: "05-tool-overview", path: `/t/${slug}/overview`, role: "MANAGER" },
-    {
-      name: "06-tool-overview-filtered",
-      path: `/t/${slug}/overview`,
-      role: "MANAGER",
-      prepare: async (page) => {
-        await page
-          .getByRole("button", { name: /^In progress/ })
-          .first()
-          .click({ timeout: 4000 })
-          .catch(() => {});
-        await page.waitForTimeout(500);
-      },
-    },
-    { name: "07-tree", path: `/t/${slug}`, role: "MANAGER" },
-    {
-      name: "08-tree-panel",
-      path: `/t/${slug}?task=${firstTask?.id ?? ""}`,
-      role: "MANAGER",
-    },
-    {
-      name: "09-tree-palette",
-      path: `/t/${slug}`,
-      role: "MANAGER",
-      prepare: async (page) => {
-        await page.keyboard.press("Control+k");
-        await page.waitForTimeout(500);
-      },
-    },
-    { name: "10-board", path: `/t/${slug}/board`, role: "MANAGER" },
-    { name: "11-focus", path: "/focus", role: "MANAGER" },
-    { name: "12-changelog", path: "/changelog", role: "MANAGER" },
-    { name: "13-review", path: "/review", role: "MANAGER" },
-    { name: "14-settings-users", path: "/settings/users", role: "MANAGER" },
-    { name: "15-settings-account", path: "/settings/account", role: "MANAGER" },
-    {
-      name: "16-about-panel",
-      path: `/t/${slug}/overview`,
-      role: "MANAGER",
-      prepare: async (page) => {
-        await page
-          .getByRole("button", { name: /About & requirements/ })
-          .first()
-          .click({ timeout: 4000 })
-          .catch(() => {});
-        await page.waitForTimeout(700);
-      },
-    },
-    {
-      name: "17-tool-create-modal",
-      path: "/",
-      role: "MANAGER",
-      prepare: async (page) => {
-        const add = page.getByRole("button", { name: "Add a project" });
-        if (!(await add.isVisible().catch(() => false))) {
-          await page
-            .getByRole("button", { name: /menu|navigation|open sidebar/i })
-            .first()
-            .click({ timeout: 4000 })
-            .catch(() => {});
-          await page.waitForTimeout(400);
-        }
-        await add.click({ timeout: 6000 }).catch(() => {});
-        await page.waitForTimeout(600);
-      },
-    },
-    {
-      name: "18-help",
-      path: `/t/${slug}`,
-      role: "MANAGER",
-      prepare: async (page) => {
-        await page
-          .getByRole("button", { name: "Help" })
-          .first()
-          .click({ timeout: 4000 })
-          .catch(() => {});
-        await page.waitForTimeout(600);
-      },
-    },
+    { name: "02-today-manager", path: "/", role: "MANAGER" },
+    { name: "03-today-lead", path: "/", role: "TEAM_LEAD" },
+    { name: "04-today-member", path: "/", role: "RESOURCE" },
+    { name: "05-projects", path: "/projects", role: "MANAGER" },
+    { name: "06-project", path: `/project/${slug}`, role: "MANAGER" },
+    { name: "07-calendar", path: "/calendar", role: "MANAGER" },
+    { name: "08-people", path: "/people", role: "MANAGER" },
+    { name: "09-settings-account", path: "/settings/account", role: "MANAGER" },
   ];
 
   let n = 0;

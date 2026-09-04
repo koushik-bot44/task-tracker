@@ -3,46 +3,41 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Tooltip } from "@/components/tooltip";
 import { cn } from "@/lib/cn";
-import { STATUS_LABEL, type Status } from "@/lib/types";
+import { statusLabel } from "@/lib/status";
+import type { TaskStatus } from "@/lib/types";
 
 /**
  * The completion control. Reads status at a glance: filled = done, dashed =
- * blocked, half-swept = in progress, hollow = not started.
+ * stuck, half-swept = doing, hollow = to do.
  */
 export function StatusCheckbox({
   status,
   onToggle,
   readOnly = false,
 }: {
-  status: Status;
+  status: TaskStatus;
   onToggle?: () => void;
-  /** Manager read-only rail: same glyph, but a <span>, not a control. */
+  /** Read-only: same glyph, but a <span>, not a control. */
   readOnly?: boolean;
 }) {
   const reduce = useReducedMotion();
   const done = status === "DONE";
-  const cancelled = status === "CANCELLED";
-  const blocked = status === "BLOCKED";
-  const inProgress = status === "IN_PROGRESS";
+  const stuck = status === "STUCK";
+  const doing = status === "DOING";
+  const label = statusLabel(status);
 
   /* Read-only renders the identical glyph as a plain span. Not a disabled
      button: a disabled control still reads as "something you could press",
-     and the point of the rail is that there is nothing here to press. */
+     and the point of read-only is that there is nothing here to press. */
   if (readOnly) {
     return (
-      <Tooltip content={STATUS_LABEL[status]}>
+      <Tooltip content={label}>
         <span
           role="img"
-          aria-label={STATUS_LABEL[status]}
+          aria-label={label}
           className="grid h-10 w-9 shrink-0 place-items-center"
         >
-          <Glyph
-            done={done}
-            cancelled={cancelled}
-            blocked={blocked}
-            inProgress={inProgress}
-            reduce={reduce}
-          />
+          <Glyph done={done} stuck={stuck} doing={doing} reduce={reduce} />
         </span>
       </Tooltip>
     );
@@ -50,11 +45,7 @@ export function StatusCheckbox({
 
   return (
     <Tooltip
-      content={
-        done
-          ? `${STATUS_LABEL[status]} — click to reopen`
-          : `${STATUS_LABEL[status]} — click to mark done`
-      }
+      content={done ? `${label} — click to reopen` : `${label} — click to mark done`}
     >
     <button
       type="button"
@@ -64,21 +55,11 @@ export function StatusCheckbox({
       }}
       role="checkbox"
       aria-checked={done}
-      aria-label={
-        done
-          ? `${STATUS_LABEL[status]} — mark not done`
-          : `${STATUS_LABEL[status]} — mark done`
-      }
+      aria-label={done ? `${label} — mark not done` : `${label} — mark done`}
       title={done ? "Mark not done · Ctrl+Enter" : "Mark done · Ctrl+Enter"}
       className="grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-colors duration-150 ease-out hover:bg-hover"
     >
-      <Glyph
-        done={done}
-        cancelled={cancelled}
-        blocked={blocked}
-        inProgress={inProgress}
-        reduce={reduce}
-      />
+      <Glyph done={done} stuck={stuck} doing={doing} reduce={reduce} />
     </button>
     </Tooltip>
   );
@@ -90,15 +71,13 @@ export function StatusCheckbox({
  */
 function Glyph({
   done,
-  cancelled,
-  blocked,
-  inProgress,
+  stuck,
+  doing,
   reduce,
 }: {
   done: boolean;
-  cancelled: boolean;
-  blocked: boolean;
-  inProgress: boolean;
+  stuck: boolean;
+  doing: boolean;
   reduce: boolean | null;
 }) {
   return (
@@ -106,19 +85,17 @@ function Glyph({
       className={cn(
         "relative grid h-[20px] w-[20px] place-items-center rounded-full border-2 transition-colors duration-150 ease-out",
         done && "border-ok bg-ok",
-        blocked && "border-danger border-dashed",
-        inProgress && "border-primary",
-        cancelled && "border-line",
-        !done && !blocked && !inProgress && !cancelled && "border-muted",
+        stuck && "border-danger border-dashed",
+        doing && "border-primary",
+        !done && !stuck && !doing && "border-muted",
       )}
     >
-      {inProgress ? (
+      {doing ? (
         <span className="h-[9px] w-[9px] rounded-full bg-primary" aria-hidden />
       ) : null}
-      {blocked ? (
+      {stuck ? (
         <span className="h-[7px] w-[7px] rounded-full bg-danger" aria-hidden />
       ) : null}
-      {cancelled ? <span className="h-[1px] w-[9px] bg-muted" aria-hidden /> : null}
 
       <motion.svg
         viewBox="0 0 20 20"

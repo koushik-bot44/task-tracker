@@ -1,5 +1,10 @@
-import { RoleHome } from "@/components/home/role-home";
+import { Suspense } from "react";
+import { TodayPage } from "@/components/today/today-page";
 
 export default function HomePage() {
-  return <RoleHome />;
+  return (
+    <Suspense fallback={null}>
+      <TodayPage />
+    </Suspense>
+  );
 }

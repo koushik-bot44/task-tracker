@@ -1,12 +1,16 @@
 /**
- * The phase 5 permission matrix, exercised against a running server.
+ * The permission matrix (records/plans/restructure-plan.md §3), exercised
+ * against a running server.
  *
- * Creates three throwaway accounts (one per role), runs every case, then
- * deletes them. It never touches the owner's real accounts — those keep their
- * ids, roles and passwords, and this script has no code path that writes to
- * a user it did not create.
+ * Creates throwaway `permtest-` accounts — one per mintable role, NEVER a
+ * FOUNDER (capped at one, never minted) — a throwaway department the director
+ * hands to the throwaway HOD, and a fixture project the throwaway manager
+ * owns. Every case is a real HTTP call carrying a real sign-in cookie. At the
+ * end it deletes only what it created (in a `finally`, so a crash mid-run
+ * still cleans up); it has no code path that writes to a user, project or
+ * department it did not make.
  *
- *   npx tsx scripts/perm-matrix.ts
+ *   npx tsx --env-file=.env.local scripts/perm-matrix.ts     (dev server up)
  */
 import { PrismaClient } from "@prisma/client";
 import { generateTempPassword, hashPassword } from "../lib/password";
@@ -16,6 +20,7 @@ const BASE = process.env.SCREEN_BASE ?? "http://localhost:3000";
 const PREFIX = "permtest-";
 
 type Actor = { label: string; email: string; cookie: string; id: string };
+type Reply = { status: number; json: any };
 
 let pass = 0;
 let fail = 0;
@@ -25,7 +30,13 @@ function record(name: string, got: number, want: number | number[]) {
   const ok = wants.includes(got);
   if (ok) pass++;
   else fail++;
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name.padEnd(52)} got ${got}, want ${wants.join("/")}`);
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name.padEnd(62)} got ${got}, want ${wants.join("/")}`);
+}
+
+function check(name: string, ok: boolean, detail = "") {
+  if (ok) pass++;
+  else fail++;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name.padEnd(62)} ${ok ? "" : detail}`.trimEnd());
 }
 
 async function signIn(email: string, password: string): Promise<string> {
@@ -38,15 +49,18 @@ async function signIn(email: string, password: string): Promise<string> {
   return (res.headers.get("set-cookie") ?? "").split(";")[0];
 }
 
+/** One HTTP call as `actor` (or anonymous when null). Redirects are reported, never followed. */
 async function call(
-  actor: Actor,
+  actor: Actor | null,
   method: string,
   path: string,
   body?: unknown,
-): Promise<{ status: number; json: any }> {
+  headers: Record<string, string> = {},
+): Promise<Reply> {
   const res = await fetch(BASE + path, {
     method,
-    headers: { "Content-Type": "application/json", cookie: actor.cookie },
+    redirect: "manual",
+    headers: { "Content-Type": "application/json", ...(actor ? { cookie: actor.cookie } : {}), ...headers },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   let json: any = null;
@@ -58,15 +72,45 @@ async function call(
   return { status: res.status, json };
 }
 
+/** "YYYY-MM-DD" (UTC) of the first Mon–Fri at least `days` after `from`. */
+function workingDay(from: Date | string, days: number): string {
+  const d = typeof from === "string" ? new Date(`${from}T00:00:00.000Z`) : new Date(from);
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + days);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Every calendar event the actor can see on one day. */
+async function eventsOn(actor: Actor, day: string): Promise<any[]> {
+  const r = await call(actor, "GET", `/api/calendar?from=${day}&to=${day}`);
+  return Array.isArray(r.json?.events) ? r.json.events : [];
+}
+
+/** Poll until `probe` returns something — for the server's fire-and-forget review syncs. */
+async function waitFor<T>(probe: () => Promise<T | null | undefined>, tries = 20, ms = 250): Promise<T | null> {
+  for (let i = 0; i < tries; i++) {
+    const v = await probe();
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, ms));
+  }
+  return null;
+}
+
 async function main() {
   // ── throwaway actors ──────────────────────────────────────────────────────
+  // No FOUNDER: the account is capped at one and never minted (lib/permissions).
   const specs = [
-    { label: "manager", role: "MANAGER" as const },
-    { label: "lead", role: "TEAM_LEAD" as const },
-    { label: "dev", role: "RESOURCE" as const },
-    { label: "dev2", role: "RESOURCE" as const },
-    { label: "admin", role: "ADMIN" as const },
-  ];
+    { label: "director", role: "DIRECTOR" },
+    { label: "hod", role: "HOD" },
+    { label: "manager", role: "MANAGER" },
+    { label: "manager2", role: "MANAGER" },
+    { label: "lead", role: "TEAM_LEAD" },
+    { label: "dev", role: "RESOURCE" },
+    { label: "dev2", role: "RESOURCE" },
+    { label: "dev3", role: "RESOURCE" },
+    { label: "admin", role: "ADMIN" },
+  ] as const;
 
   const actors: Record<string, Actor> = {};
   for (const spec of specs) {
@@ -74,514 +118,376 @@ async function main() {
     const password = generateTempPassword(16);
     const user = await prisma.user.upsert({
       where: { email },
-      update: { passwordHash: await hashPassword(password), role: spec.role, disabledAt: null },
-      create: {
-        email,
-        name: `Perm ${spec.label}`,
-        role: spec.role,
-        passwordHash: await hashPassword(password),
-      },
+      update: { passwordHash: await hashPassword(password), role: spec.role, disabledAt: null, status: "ACTIVE" },
+      create: { email, name: `Perm ${spec.label}`, role: spec.role, passwordHash: await hashPassword(password) },
     });
-    actors[spec.label] = {
-      label: spec.label,
-      email,
-      id: user.id,
-      cookie: await signIn(email, password),
-    };
+    actors[spec.label] = { label: spec.label, email, id: user.id, cookie: await signIn(email, password) };
   }
+  // Every account this run made, for the cleanup — the PERSON is added later.
+  const userIds = Object.values(actors).map((a) => a.id);
 
-  const { manager, lead, dev, dev2, admin } = actors;
-  /* A tool THIS SCRIPT owns. It used to grab projects[0] from an unordered
-     findMany and run the tool-edit cases against it, then "clean up" by setting
-     leadId = null — not by restoring what was there. On one run projects[0] was
-     a tool the owner had just created with a lead, and the cleanup silently
-     wiped that assignment. The rig must never mutate a real project; it makes
-     its own. */
-  const own = await call(manager, "POST", "/api/projects", {
-    name: "PT fixture tool",
-    description: "Created by the permission matrix; deleted at the end.",
-    leadId: lead.id,
-  });
-  if (own.status !== 201) throw new Error(`fixture tool not created: ${own.status}`);
-  const projectId: string = own.json.id;
-
-  console.log("\n── tool creation ─────────────────────────────────────────────");
-
-  const toolBody = (n: string) => ({
-    name: n,
-    description: "Created by the permission matrix.",
-    leadId: lead.id,
-  });
-
-  record("dev creates tool", (await call(dev, "POST", "/api/projects", toolBody("PT dev"))).status, 403);
-  record("lead creates tool", (await call(lead, "POST", "/api/projects", toolBody("PT lead"))).status, 403);
-
-  record(
-    "manager creates tool without description",
-    (await call(manager, "POST", "/api/projects", { name: "PT nodesc", leadId: lead.id })).status,
-    400,
-  );
-  record(
-    "manager creates tool without lead",
-    (await call(manager, "POST", "/api/projects", { name: "PT nolead", description: "x" })).status,
-    400,
-  );
-  record(
-    "manager creates tool with a DEVELOPER as lead",
-    (await call(manager, "POST", "/api/projects", {
-      name: "PT badlead",
-      description: "x",
-      leadId: dev.id,
-    })).status,
-    400,
-  );
-
-  const created = await call(manager, "POST", "/api/projects", toolBody("PT manager"));
-  record("manager creates tool, fully specified", created.status, 201);
-  const newProjectId: string | undefined = created.json?.id;
-
-  console.log("\n── tool edit ─────────────────────────────────────────────────");
-  record(
-    "dev edits tool",
-    (await call(dev, "PATCH", `/api/projects/${projectId}`, { description: "nope" })).status,
-    403,
-  );
-  record(
-    "lead edits tool",
-    (await call(lead, "PATCH", `/api/projects/${projectId}`, { description: "nope" })).status,
-    403,
-  );
-  record(
-    "manager assigns a lead to a legacy tool",
-    (await call(manager, "PATCH", `/api/projects/${projectId}`, { leadId: lead.id })).status,
-    200,
-  );
-
-  console.log("\n── estimated completion ──────────────────────────────────────");
-  const rootNoDate = await call(dev, "POST", "/api/tasks", { projectId, title: "PT no date" });
-  record("root task without a date", rootNoDate.status, 400);
-
-  const rootDated = await call(dev, "POST", "/api/tasks", {
-    projectId,
-    title: "PT dated root",
-    dueDate: new Date(Date.now() + 5 * 86_400_000).toISOString(),
-  });
-  record("root task with a date", rootDated.status, 201);
-  const rootId: string = rootDated.json?.id;
-
-  const sub = await call(dev, "POST", "/api/tasks", {
-    projectId,
-    parentId: rootId,
-    title: "PT subtask",
-  });
-  record("subtask without a date is accepted", sub.status, 201);
-  // Phase 11: a subtask is never assigned, not even auto-assigned to its
-  // dev creator (which is what a root task would get).
-  record("dev-created subtask is NOT auto-assigned", sub.json?.assigneeId === null ? 1 : 0, 1);
-  const inherited = sub.json?.dueDate?.slice(0, 10);
-  const parentDay = rootDated.json?.dueDate?.slice(0, 10);
-  record(
-    `subtask inherited the parent's date (${inherited} == ${parentDay})`,
-    inherited === parentDay ? 1 : 0,
-    1,
-  );
-
-  console.log("\n── assignment ────────────────────────────────────────────────");
-  /* Phase 11: a developer can only touch a project they can see. Make dev and
-     dev2 explicit members of the fixture so this section exercises the pure
-     assignment rules (claim / drop / can't-deal-it-out) rather than visibility,
-     which the membership section proves on its own tool. */
-  await call(manager, "POST", `/api/projects/${projectId}/members`, { userId: dev.id });
-  await call(manager, "POST", `/api/projects/${projectId}/members`, { userId: dev2.id });
-
-  record(
-    "dev-created task auto-assigned to the creator",
-    rootDated.json?.assigneeId === dev.id ? 1 : 0,
-    1,
-  );
-  record(
-    "dev assigns their own task to someone else",
-    (await call(dev, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev2.id })).status,
-    403,
-  );
-  record(
-    "dev unassigns their own task",
-    (await call(dev, "PATCH", `/api/tasks/${rootId}`, { assigneeId: null })).status,
-    200,
-  );
-  record(
-    "dev2 claims the now-unassigned task",
-    (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev2.id })).status,
-    200,
-  );
-  record(
-    "dev takes a task assigned to someone else",
-    (await call(dev, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev.id })).status,
-    403,
-  );
-  record(
-    "lead reassigns anyone's task",
-    (await call(lead, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev.id })).status,
-    200,
-  );
-  record(
-    "manager assigns to a disabled/unknown user",
-    (await call(manager, "PATCH", `/api/tasks/${rootId}`, { assigneeId: "nope" })).status,
-    400,
-  );
-
-  console.log("\n── gates (phase 11 roles) ────────────────────────────────────");
-  /* Phase 11 splits the gates: Verified is the manager's sign-off, and the
-     four build gates (built, reviewed, tested, deployed) are the team's. Each
-     flip is computed against FRESH server state so exactly one gate changes —
-     otherwise a stale snapshot would flip several keys and confuse the check. */
-  const flipAs = async (actor: Actor, key: string, done: boolean) => {
-    const current = (await call(manager, "GET", `/api/tasks/${rootId}`)).json?.gates ?? [];
-    const next = current.map((g: any) => (g.key === key ? { ...g, done } : g));
-    return (await call(actor, "PATCH", `/api/tasks/${rootId}`, { gates: next })).status;
-  };
-
-  record("dev flips built (team gate)", await flipAs(dev, "built", true), 200);
-  record("lead flips tested (team gate)", await flipAs(lead, "tested", true), 200);
-  record("dev flips reviewed (now a team gate)", await flipAs(dev, "reviewed", true), 200);
-  record("dev flips verified -> 403", await flipAs(dev, "verified", true), 403);
-  record("lead flips verified -> 403", await flipAs(lead, "verified", true), 403);
-  record("manager flips a team gate (built) -> 403", await flipAs(manager, "built", false), 403);
-  record("manager flips verified -> 200", await flipAs(manager, "verified", true), 200);
-
-  console.log("\n── statuses ──────────────────────────────────────────────────");
-  for (const who of [dev, lead, manager]) {
-    record(
-      `${who.label} sets ON_HOLD`,
-      (await call(who, "PATCH", `/api/tasks/${rootId}`, { status: "ON_HOLD" })).status,
-      200,
-    );
+  try {
+    await runCases(actors, userIds);
+  } finally {
+    await cleanup(userIds);
   }
-
-  console.log("\n── project notes ─────────────────────────────────────────────");
-  const devNote = await call(dev, "POST", `/api/projects/${projectId}/notes`, {
-    body: "PT note from a developer",
-  });
-  record("dev posts a project note", devNote.status, 201);
-  record(
-    "lead deletes someone else's note",
-    (await call(lead, "DELETE", `/api/project-notes/${devNote.json?.id}`)).status,
-    403,
-  );
-  record(
-    "manager deletes someone else's note",
-    (await call(manager, "DELETE", `/api/project-notes/${devNote.json?.id}`)).status,
-    403,
-  );
-  record(
-    "author deletes their own note",
-    (await call(dev, "DELETE", `/api/project-notes/${devNote.json?.id}`)).status,
-    200,
-  );
-
-  console.log("\n── people: lead scope (phase 6) ──────────────────────────────");
-  /* A lead onboards the developers they will assign work to. Anything that
-     grants authority (a lead or a manager), or changes an existing account
-     (role, password, disabled), stays with managers. The server decides on the
-     role in the request body, before any write. */
-  const leadDev = await call(lead, "POST", "/api/users", {
-    name: "PT lead-made dev",
-    email: "permtest-leadmade@orbit.local",
-    role: "RESOURCE",
-  });
-  record("lead creates a DEVELOPER", leadDev.status, 201);
-  record(
-    "lead creates a MANAGER",
-    (await call(lead, "POST", "/api/users", { name: "PT x", email: "permtest-x1@orbit.local", role: "MANAGER" })).status,
-    403,
-  );
-  record(
-    "lead creates a TEAM_LEAD",
-    (await call(lead, "POST", "/api/users", { name: "PT y", email: "permtest-x2@orbit.local", role: "TEAM_LEAD" })).status,
-    403,
-  );
-  record("lead disables a user", (await call(lead, "PATCH", `/api/users/${dev.id}`, { disable: true })).status, 403);
-  record("lead changes a role", (await call(lead, "PATCH", `/api/users/${dev.id}`, { role: "MANAGER" })).status, 403);
-  record("lead resets a password", (await call(lead, "PATCH", `/api/users/${dev.id}`, { reset: true })).status, 403);
-  record("lead reads the people list", (await call(lead, "GET", "/api/users")).status, 200);
-  record(
-    "lead assigns the dev they just made",
-    (await call(lead, "PATCH", `/api/tasks/${rootId}`, { assigneeId: leadDev.json?.user?.id })).status,
-    200,
-  );
-
-  console.log("\n── invites: resend + cancel (phase 10) ───────────────────────");
-  const leadDevId: string = leadDev.json?.user?.id;
-  // Resend mirrors create scope: lead may resend a developer's invite, not a
-  // manager's; a dev may resend nobody. Manager may resend anyone's.
-  record("lead resends a developer invite", (await call(lead, "POST", `/api/users/${leadDevId}/resend`, {})).status, 200);
-  record("dev resends an invite -> 403", (await call(dev, "POST", `/api/users/${leadDevId}/resend`, {})).status, 403);
-  record("lead resends a MANAGER invite -> 403", (await call(lead, "POST", `/api/users/${manager.id}/resend`, {})).status, 403);
-  record("manager resends a developer invite", (await call(manager, "POST", `/api/users/${leadDevId}/resend`, {})).status, 200);
-  // Manager may resend only PENDING accounts.
-  record("manager resends an ACTIVE account -> 409", (await call(manager, "POST", `/api/users/${dev.id}/resend`, {})).status, 409);
-  // Cancel/delete: manager-only. Phase 29 — a member-only ACTIVE user (owns no
-  // projects) is now DELETABLE (200); only OWNING projects blocks deletion.
-  record("lead cancels a pending invite -> 403", (await call(lead, "DELETE", `/api/users/${leadDevId}`)).status, 403);
-  record("manager deletes a member-only ACTIVE user -> 200 (phase 29)", (await call(manager, "DELETE", `/api/users/${dev.id}`)).status, 200);
-  record("manager cancels a pending invite -> 200", (await call(manager, "DELETE", `/api/users/${leadDevId}`)).status, 200);
-
-  console.log("\n── people ────────────────────────────────────────────────────");
-  record(
-    "dev lists users",
-    (await call(dev, "GET", "/api/users")).status,
-    403,
-  );
-  record("manager lists users", (await call(manager, "GET", "/api/users")).status, 200);
-  record(
-    "manager promotes someone to TEAM_LEAD",
-    (await call(manager, "PATCH", `/api/users/${dev2.id}`, { role: "TEAM_LEAD" })).status,
-    200,
-  );
-
-  console.log("\n── calendar events (phase 8) ─────────────────────────────────");
-  const scopedEv = await call(manager, "POST", "/api/events", { title: "PT event", date: "2026-08-15", projectId });
-  record("manager creates scoped event", scopedEv.status, 201);
-  const eventId: string = scopedEv.json?.id;
-  // Global event via PRISMA, not the API: creating (or deleting) a global event
-  // through the endpoint fires notifyEvent to every real lead/dev (push + email).
-  // The manager-write permission is already proven by the scoped create above
-  // (same endpoint, same gate); here we only confirm a null-project event is a
-  // valid row — without spamming real people.
-  const globalEv = await prisma.calendarEvent.create({
-    data: { title: "PT global", date: new Date("2026-08-16T00:00:00.000Z"), projectId: null, createdById: manager.id },
-  });
-  record("manager global event persists (null project)", globalEv.projectId === null ? 200 : 500, 200);
-  record("dev creates event", (await call(dev, "POST", "/api/events", { title: "PT x", date: "2026-08-15", projectId })).status, 403);
-  record("lead creates event", (await call(lead, "POST", "/api/events", { title: "PT y", date: "2026-08-15", projectId })).status, 403);
-  record("dev edits event", (await call(dev, "PATCH", `/api/events/${eventId}`, { title: "z" })).status, 403);
-  record("lead edits event", (await call(lead, "PATCH", `/api/events/${eventId}`, { title: "z" })).status, 403);
-  record("manager edits event", (await call(manager, "PATCH", `/api/events/${eventId}`, { title: "PT event 2" })).status, 200);
-  record("dev deletes event", (await call(dev, "DELETE", `/api/events/${eventId}`)).status, 403);
-  record("lead deletes event", (await call(lead, "DELETE", `/api/events/${eventId}`)).status, 403);
-
-  console.log("\n── notifications (phase 8) ───────────────────────────────────");
-  record("dev reads own notifications", (await call(dev, "GET", "/api/notifications")).status, 200);
-  const leadNotif = await prisma.notification.findFirst({ where: { userId: lead.id } });
-  const devNotif = await prisma.notification.findFirst({ where: { userId: dev.id } });
-  record(
-    "dev marks ANOTHER user's notification read -> 404",
-    (await call(dev, "POST", "/api/notifications/read", { id: leadNotif?.id ?? "none" })).status,
-    404,
-  );
-  record(
-    "dev marks own notification read",
-    (await call(dev, "POST", "/api/notifications/read", { id: devNotif?.id ?? "none" })).status,
-    devNotif ? 200 : 404,
-  );
-  record("dev marks all read", (await call(dev, "POST", "/api/notifications/read", { all: true })).status, 200);
-  // Manager deletes the scoped event via the API — notifies only the permtest
-  // fixtures (cascade-cleaned at teardown). The global event is removed via
-  // prisma so its delete never notifies real users.
-  record("manager deletes event", (await call(manager, "DELETE", `/api/events/${eventId}`)).status, 200);
-  await prisma.calendarEvent.delete({ where: { id: globalEv.id } }).catch(() => undefined);
-
-  console.log("\n── cron (phase 9) ────────────────────────────────────────────");
-  // Cron endpoint: not session-guarded, demands CRON_SECRET; anything else 401.
-  record("cron: no CRON_SECRET header -> 401", (await fetch(`${BASE}/api/cron/task-due`)).status, 401);
-  record(
-    "cron: wrong CRON_SECRET -> 401",
-    (await fetch(`${BASE}/api/cron/task-due`, { headers: { authorization: "Bearer wrong" } })).status,
-    401,
-  );
-
-  console.log("\n── membership visibility (phase 11) ──────────────────────────");
-  /* A tool that `dev` is neither a member of nor assigned a task in. `dev2` is
-     made a member at creation, so the same tool is visible to them. */
-  const hidden = await call(manager, "POST", "/api/projects", {
-    name: "PT hidden tool",
-    description: "Scoped away from dev; visible to dev2 as a member.",
-    leadId: lead.id,
-    developerIds: [dev2.id],
-  });
-  record("manager creates a scoped tool with a member", hidden.status, 201);
-  const hiddenId: string = hidden.json?.id;
-  const hiddenTask = await call(manager, "POST", "/api/tasks", {
-    projectId: hiddenId,
-    title: "PT hidden root",
-    dueDate: new Date(Date.now() + 7 * 86_400_000).toISOString(),
-    assigneeId: dev2.id,
-  });
-  record("manager creates a root task assigned to dev2", hiddenTask.status, 201);
-  const hiddenTaskId: string = hiddenTask.json?.id;
-
-  const inList = async (actor: Actor, id: string) =>
-    ((await call(actor, "GET", "/api/projects")).json ?? []).some((p: any) => p.id === id);
-  record("dev's project list EXCLUDES a non-member tool", (await inList(dev, hiddenId)) ? 0 : 1, 1);
-  record("lead's project list INCLUDES every tool", (await inList(lead, hiddenId)) ? 1 : 0, 1);
-  record("member dev's list INCLUDES their tool", (await inList(dev2, hiddenId)) ? 1 : 0, 1);
-  record("dev reads a non-member tool's tasks -> 404", (await call(dev, "GET", `/api/tasks?projectId=${hiddenId}`)).status, 404);
-  record("dev reads a task in a non-member tool -> 404", (await call(dev, "GET", `/api/tasks/${hiddenTaskId}`)).status, 404);
-  record("dev deletes a task in a non-member tool -> 404", (await call(dev, "DELETE", `/api/tasks/${hiddenTaskId}`)).status, 404);
-  record("member dev reads their tool's tasks -> 200", (await call(dev2, "GET", `/api/tasks?projectId=${hiddenId}`)).status, 200);
-
-  console.log("\n── project rename + delete (phase 11 UI-bug fix) ─────────────");
-  record("dev renames a tool -> 403", (await call(dev, "PATCH", `/api/projects/${hiddenId}`, { name: "PT nope" })).status, 403);
-  record("lead renames a tool -> 403", (await call(lead, "PATCH", `/api/projects/${hiddenId}`, { name: "PT nope" })).status, 403);
-  record("manager renames a tool -> 200", (await call(manager, "PATCH", `/api/projects/${hiddenId}`, { name: "PT hidden tool" })).status, 200);
-  const delFixture = await call(manager, "POST", "/api/projects", { name: "PT deltest", description: "x", leadId: lead.id });
-  const delId: string = delFixture.json?.id;
-  record("dev deletes a tool -> 403", (await call(dev, "DELETE", `/api/projects/${delId}`)).status, 403);
-  record("lead deletes a tool -> 403", (await call(lead, "DELETE", `/api/projects/${delId}`)).status, 403);
-  record("manager deletes a tool -> 200", (await call(manager, "DELETE", `/api/projects/${delId}`)).status, 200);
-
-  console.log("\n── members management (phase 11) ─────────────────────────────");
-  record("dev manages members -> 403", (await call(dev, "POST", `/api/projects/${hiddenId}/members`, { userId: dev.id })).status, 403);
-  record("lead manages members -> 403", (await call(lead, "POST", `/api/projects/${hiddenId}/members`, { userId: dev.id })).status, 403);
-  record("manager adds a non-developer -> 400", (await call(manager, "POST", `/api/projects/${hiddenId}/members`, { userId: lead.id })).status, 400);
-  record("manager adds a developer -> 200", (await call(manager, "POST", `/api/projects/${hiddenId}/members`, { userId: dev.id })).status, 200);
-  record("added dev now reads the tool's tasks -> 200", (await call(dev, "GET", `/api/tasks?projectId=${hiddenId}`)).status, 200);
-  const removed = await call(manager, "DELETE", `/api/projects/${hiddenId}/members`, { userId: dev.id });
-  record("manager removes a member -> 200", removed.status, 200);
-  record("removed dev reports 0 still-assigned tasks", removed.json?.stillAssignedTasks === 0 ? 1 : 0, 1);
-  record("removed dev can no longer read the tool -> 404", (await call(dev, "GET", `/api/tasks?projectId=${hiddenId}`)).status, 404);
-
-  console.log("\n── assignee: root-only (phase 11) ────────────────────────────");
-  record(
-    "POST a subtask WITH an assignee -> 400",
-    (await call(lead, "POST", "/api/tasks", { projectId, parentId: rootId, title: "PT sub assigned", assigneeId: dev2.id })).status,
-    400,
-  );
-  record("PATCH a subtask's assignee -> 400", (await call(lead, "PATCH", `/api/tasks/${sub.json?.id}`, { assigneeId: dev2.id })).status, 400);
-  record("PATCH a subtask's status (not assignee) -> 200", (await call(lead, "PATCH", `/api/tasks/${sub.json?.id}`, { status: "IN_PROGRESS" })).status, 200);
-  record("PATCH a root task's assignee -> 200", (await call(lead, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev.id })).status, 200);
-
-  console.log("\n── task colour (phase 11) ────────────────────────────────────");
-  record("editor sets a task colour -> 200", (await call(dev, "PATCH", `/api/tasks/${rootId}`, { color: "#f87171" })).status, 200);
-  record("invalid colour format -> 400", (await call(dev, "PATCH", `/api/tasks/${rootId}`, { color: "red" })).status, 400);
-  record("clearing a task colour -> 200", (await call(dev, "PATCH", `/api/tasks/${rootId}`, { color: null })).status, 200);
-  record("non-member dev sets a colour -> 404", (await call(dev, "PATCH", `/api/tasks/${hiddenTaskId}`, { color: "#f87171" })).status, 404);
-
-  console.log("\n── departments / departments (phase 12) ──────────────────────────");
-  // Writes are manager-only.
-  record("dev creates a department -> 403", (await call(dev, "POST", "/api/departments", { name: "PT dev department", color: "#0d9488" })).status, 403);
-  record("lead creates a department -> 403", (await call(lead, "POST", "/api/departments", { name: "PT lead department", color: "#0d9488" })).status, 403);
-  const departmentA = await call(manager, "POST", "/api/departments", { name: "PT department A", color: "#0d9488" });
-  record("manager creates a department -> 201", departmentA.status, 201);
-  const departmentAId: string = departmentA.json?.id;
-  const departmentB = await call(manager, "POST", "/api/departments", { name: "PT department B", color: "#7c3aed" });
-  const departmentBId: string = departmentB.json?.id;
-
-  record("manager edits a department -> 200", (await call(manager, "PATCH", `/api/departments/${departmentAId}`, { name: "PT department A2" })).status, 200);
-  record("dev edits a department -> 403", (await call(dev, "PATCH", `/api/departments/${departmentAId}`, { name: "no" })).status, 403);
-  record("lead deletes a department -> 403", (await call(lead, "DELETE", `/api/departments/${departmentBId}`)).status, 403);
-
-  // Filing tools into departments is a project edit → manager-only. projectId has
-  // dev + dev2 as members; hiddenId has neither dev.
-  record("manager files a member tool into department A -> 200", (await call(manager, "PATCH", `/api/projects/${projectId}`, { departmentId: departmentAId })).status, 200);
-  record("manager files the hidden tool into department B -> 200", (await call(manager, "PATCH", `/api/projects/${hiddenId}`, { departmentId: departmentBId })).status, 200);
-  record("dev changes a tool's department -> 403", (await call(dev, "PATCH", `/api/projects/${projectId}`, { departmentId: null })).status, 403);
-  record("lead changes a tool's department -> 403", (await call(lead, "PATCH", `/api/projects/${projectId}`, { departmentId: null })).status, 403);
-  record("filing into a non-existent department -> 400", (await call(manager, "PATCH", `/api/projects/${projectId}`, { departmentId: "nope" })).status, 400);
-
-  // Department READ is visibility-scoped: a developer only sees departments holding a
-  // tool they can see.
-  const seesDepartment = async (actor: Actor, id: string) =>
-    ((await call(actor, "GET", "/api/departments")).json ?? []).some((f: any) => f.id === id);
-  record("dev SEES a department holding their member tool", (await seesDepartment(dev, departmentAId)) ? 1 : 0, 1);
-  record("dev does NOT see a department holding only hidden tools", (await seesDepartment(dev, departmentBId)) ? 0 : 1, 1);
-  record("manager sees every department (A)", (await seesDepartment(manager, departmentAId)) ? 1 : 0, 1);
-  record("manager sees every department (B)", (await seesDepartment(manager, departmentBId)) ? 1 : 0, 1);
-
-  // Deleting a department UNFILES its tools — never deletes them.
-  const delDepartment = await call(manager, "DELETE", `/api/departments/${departmentAId}`);
-  record("manager deletes a department -> 200", delDepartment.status, 200);
-  record("delete reports its tools unfiled (>=1)", (delDepartment.json?.unfiledProjects ?? 0) >= 1 ? 1 : 0, 1);
-  const survived = await prisma.project.findUnique({ where: { id: projectId }, select: { departmentId: true } });
-  record("the filed tool SURVIVES the department delete", survived ? 1 : 0, 1);
-  record("the filed tool is now unfiled (departmentId null)", survived?.departmentId === null ? 1 : 0, 1);
-
-  console.log("\n── admin: a peer of manager (phase 13) ───────────────────────");
-  // Visibility: an admin sees everything, like a manager (no department/project filter).
-  record("admin sees a tool a dev can't (no visibility filter)", (await inList(admin, hiddenId)) ? 1 : 0, 1);
-  record("admin reads any task in any tool -> 200", (await call(admin, "GET", `/api/tasks/${rootId}`)).status, 200);
-
-  // The two strict powers admins do NOT get.
-  record("admin creates a project -> 403", (await call(admin, "POST", "/api/projects", { name: "PT admin proj", description: "x", leadId: lead.id })).status, 403);
-  record("admin deletes a project -> 403", (await call(admin, "DELETE", `/api/projects/${projectId}`)).status, 403);
-  const mgrDepartment = await call(manager, "POST", "/api/departments", { name: "PT mgr department", color: "#0d9488" });
-  const mgrDepartmentId: string = mgrDepartment.json?.id;
-  record("admin creates a department -> 403", (await call(admin, "POST", "/api/departments", { name: "PT admin department", color: "#0d9488" })).status, 403);
-  record("admin edits a department -> 403", (await call(admin, "PATCH", `/api/departments/${mgrDepartmentId}`, { name: "no" })).status, 403);
-  record("admin deletes a department -> 403", (await call(admin, "DELETE", `/api/departments/${mgrDepartmentId}`)).status, 403);
-  record("admin re-files a project (departmentId) -> 403", (await call(admin, "PATCH", `/api/projects/${projectId}`, { departmentId: mgrDepartmentId })).status, 403);
-
-  // Project metadata (name, description) — admins may edit an existing tool.
-  record("admin renames a project -> 200", (await call(admin, "PATCH", `/api/projects/${projectId}`, { name: "PT fixture tool" })).status, 200);
-  record("admin edits a project description -> 200", (await call(admin, "PATCH", `/api/projects/${projectId}`, { description: "edited by admin" })).status, 200);
-
-  // Tasks, assignment, membership — full manager-peer powers.
-  record("admin edits a task (status) -> 200", (await call(admin, "PATCH", `/api/tasks/${rootId}`, { status: "IN_PROGRESS" })).status, 200);
-  record("admin assigns a task -> 200", (await call(admin, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev.id })).status, 200);
-  // dev is still a DEVELOPER (dev2 was promoted to lead earlier); membership is developers-only.
-  record("admin adds a project member -> 200", (await call(admin, "POST", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 200);
-  record("admin removes a project member -> 200", (await call(admin, "DELETE", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 200);
-
-  // Gates: admin signs off Verified (peer), but never touches the build gates.
-  record("admin ticks Verified -> 200", await flipAs(admin, "verified", true), 200);
-  record("admin ticks a build gate -> 403", await flipAs(admin, "built", false), 403);
-
-  // Accounts: admin invites any role, including manager and admin.
-  const invMgr = await call(admin, "POST", "/api/users", { name: "PT amgr", email: "permtest-amgr@orbit.local", role: "MANAGER" });
-  record("admin invites a MANAGER -> 201", invMgr.status, 201);
-  const invAdmin = await call(admin, "POST", "/api/users", { name: "PT aadm", email: "permtest-aadm@orbit.local", role: "ADMIN" });
-  record("admin invites an ADMIN -> 201", invAdmin.status, 201);
-
-  // Safety guards.
-  record("admin disables self -> 403", (await call(admin, "PATCH", `/api/users/${admin.id}`, { disable: true })).status, 403);
-  record("admin deletes self -> 403", (await call(admin, "DELETE", `/api/users/${admin.id}`)).status, 403);
-  // The permtest manager is disableable because the owner's real manager backs it.
-  record("admin disables a manager (backup exists) -> 200", (await call(admin, "PATCH", `/api/users/${manager.id}`, { disable: true })).status, 200);
-  await prisma.user.update({ where: { id: manager.id }, data: { disabledAt: null } }); // restore for later tests/cleanup
-  record("manager disables an admin -> 200", (await call(manager, "PATCH", `/api/users/${admin.id}`, { disable: true })).status, 200);
-  await prisma.user.update({ where: { id: admin.id }, data: { disabledAt: null } });
-
-  // The invite list is SHARED: an invite a MANAGER created, an ADMIN can act on.
-  const shared = await call(manager, "POST", "/api/users", { name: "PT shared", email: "permtest-shared@orbit.local", role: "RESOURCE" });
-  const sharedId: string = shared.json?.user?.id;
-  record("manager creates an invite", shared.status, 201);
-  record("admin RESENDS a manager-created invite -> 200", (await call(admin, "POST", `/api/users/${sharedId}/resend`, {})).status, 200);
-  record("admin CANCELS a manager-created invite -> 200", (await call(admin, "DELETE", `/api/users/${sharedId}`)).status, 200);
-  // …and the reverse: an admin-created invite, a manager can act on.
-  const shared2 = await call(admin, "POST", "/api/users", { name: "PT shared2", email: "permtest-shared2@orbit.local", role: "RESOURCE" });
-  record("manager RESENDS an admin-created invite -> 200", (await call(manager, "POST", `/api/users/${shared2.json?.user?.id}/resend`, {})).status, 200);
-  record("manager CANCELS an admin-created invite -> 200", (await call(manager, "DELETE", `/api/users/${shared2.json?.user?.id}`)).status, 200);
-
-  await call(manager, "DELETE", `/api/departments/${mgrDepartmentId}`);
-
-  // ── cleanup: only what this script created ────────────────────────────────
-  console.log("\n── cleanup ───────────────────────────────────────────────────");
-  await prisma.emailLog.deleteMany({ where: { refId: "test" } });
-  await prisma.calendarEvent.deleteMany({ where: { title: { startsWith: "PT " } } });
-  await prisma.task.deleteMany({ where: { title: { startsWith: "PT " } } });
-  await prisma.projectNote.deleteMany({ where: { body: { startsWith: "PT " } } });
-  if (newProjectId) await prisma.project.delete({ where: { id: newProjectId } });
-  await prisma.project.deleteMany({ where: { name: { startsWith: "PT " } } });
-  // Departments before their creator: Department.createdById is Restrict, so a department
-  // this run made must go before the manager account that made it.
-  await prisma.department.deleteMany({ where: { name: { startsWith: "PT " } } });
-
-  const ids = Object.values(actors).map((a) => a.id);
-  await prisma.projectNote.deleteMany({ where: { authorId: { in: ids } } });
-  await prisma.taskNote.deleteMany({ where: { authorId: { in: ids } } });
-  await prisma.task.updateMany({
-    where: { completedById: { in: ids } },
-    data: { completedById: null },
-  });
-  await prisma.task.updateMany({
-    where: { assigneeId: { in: ids } },
-    data: { assigneeId: null },
-  });
-  await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
-  console.log(`removed ${ids.length} throwaway accounts and their artefacts`);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   if (fail > 0) process.exitCode = 1;
+}
+
+async function runCases(actors: Record<string, Actor>, userIds: string[]) {
+  const { director, hod, manager, manager2, lead, dev, dev2, dev3, admin } = actors;
+  const today = new Date();
+
+  console.log("\n── departments ───────────────────────────────────────────────");
+  record("manager creates a department -> 403", (await call(manager, "POST", "/api/departments", { name: "PT manager department", color: "#0d9488" })).status, 403);
+  const dept = await call(director, "POST", "/api/departments", { name: "PT department", color: "#0d9488", hodId: hod.id });
+  record("director creates a department, hod as its head -> 201", dept.status, 201);
+  if (dept.status !== 201) throw new Error(`fixture department not created: ${dept.status} ${JSON.stringify(dept.json)}`);
+  const deptId: string = dept.json.id;
+  const otherDept = await call(director, "POST", "/api/departments", { name: "PT other department", color: "#7c3aed" });
+  record("director creates a second, empty department -> 201", otherDept.status, 201);
+  const otherDeptId: string = otherDept.json?.id;
+  record("hod edits their own department's description -> 200", (await call(hod, "PATCH", `/api/departments/${deptId}`, { description: "PT described by its head" })).status, 200);
+  record("hod renames their own department -> 403", (await call(hod, "PATCH", `/api/departments/${deptId}`, { name: "PT renamed" })).status, 403);
+  record("hod edits another department's description -> 403", (await call(hod, "PATCH", `/api/departments/${otherDeptId}`, { description: "PT nope" })).status, 403);
+
+  console.log("\n── new project ───────────────────────────────────────────────");
+  const projectBody = (name: string, departmentId: string) => ({
+    name,
+    departmentId,
+    leadId: lead.id,
+    description: "Created by the permission matrix; deleted at the end.",
+  });
+  record("dev starts a project -> 403", (await call(dev, "POST", "/api/projects", projectBody("PT dev project", deptId))).status, 403);
+  record("lead starts a project -> 403", (await call(lead, "POST", "/api/projects", projectBody("PT lead project", deptId))).status, 403);
+  record("admin starts a project -> 403", (await call(admin, "POST", "/api/projects", projectBody("PT admin project", deptId))).status, 403);
+  const own = await call(manager, "POST", "/api/projects", projectBody("PT fixture project", deptId));
+  record("manager starts a project -> 201", own.status, 201);
+  if (own.status !== 201) throw new Error(`fixture project not created: ${own.status} ${JSON.stringify(own.json)}`);
+  const projectId: string = own.json.id;
+  check("the project belongs to the manager who started it", own.json.ownerId === manager.id, `ownerId ${own.json.ownerId}`);
+  record("hod starts a project in their own department -> 201", (await call(hod, "POST", "/api/projects", projectBody("PT hod project", deptId))).status, 201);
+  record("hod starts a project in another department -> 403", (await call(hod, "POST", "/api/projects", projectBody("PT hod elsewhere", otherDeptId))).status, 403);
+  const other = await call(manager2, "POST", "/api/projects", projectBody("PT other project", deptId));
+  record("another manager starts their own project -> 201", other.status, 201);
+  const otherProjectId: string = other.json?.id;
+  record("director deletes an empty department -> 200", (await call(director, "DELETE", `/api/departments/${otherDeptId}`)).status, 200);
+
+  console.log("\n── seeing a project ──────────────────────────────────────────");
+  record("director reads the project -> 200", (await call(director, "GET", `/api/projects/${projectId}`)).status, 200);
+  record("hod reads a project in their department -> 200", (await call(hod, "GET", `/api/projects/${projectId}`)).status, 200);
+  record("lead reads any project -> 200", (await call(lead, "GET", `/api/projects/${projectId}`)).status, 200);
+  record("another manager (not on it) reads the project -> 404", (await call(manager2, "GET", `/api/projects/${projectId}`)).status, 404);
+  record("dev (not on it yet) reads the project -> 404", (await call(dev, "GET", `/api/projects/${projectId}`)).status, 404);
+
+  console.log("\n── add people ────────────────────────────────────────────────");
+  record("lead adds a member -> 403", (await call(lead, "POST", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 403);
+  record("manager (owner) adds dev -> 200", (await call(manager, "POST", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 200);
+  record("manager (owner) adds dev2 -> 200", (await call(manager, "POST", `/api/projects/${projectId}/members`, { userId: dev2.id })).status, 200);
+  record(
+    "manager invites someone new by email -> 201",
+    (await call(manager, "POST", `/api/projects/${projectId}/members`, { invite: { name: "PT invited", email: `${PREFIX}invited@orbit.local` } })).status,
+    201,
+  );
+  record("another manager adds a member -> 404", (await call(manager2, "POST", `/api/projects/${projectId}/members`, { userId: dev3.id })).status, 404);
+  record("added dev now reads the project -> 200", (await call(dev, "GET", `/api/projects/${projectId}`)).status, 200);
+
+  console.log("\n── edit project ──────────────────────────────────────────────");
+  record("dev renames the project -> 403", (await call(dev, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 403);
+  record("lead renames the project -> 403", (await call(lead, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 403);
+  record("manager (owner) renames the project -> 200", (await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "PT fixture project" })).status, 200);
+  record("hod (own department) sets the status -> 200", (await call(hod, "PATCH", `/api/projects/${projectId}`, { status: "ACTIVE" })).status, 200);
+  record("another manager renames the project -> 404", (await call(manager2, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 404);
+  record("manager sets progress -> 403", (await call(manager, "PATCH", `/api/projects/${projectId}`, { progress: 10 })).status, 403);
+  record("director sets progress -> 200", (await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 10 })).status, 200);
+
+  console.log("\n── give a task ───────────────────────────────────────────────");
+  const dueDate = new Date(today.getTime() + 5 * 86_400_000).toISOString();
+  record(
+    "dev (member) gives a task to dev2 (member) -> 201",
+    (await call(dev, "POST", "/api/tasks", { projectId, title: "PT task for dev2", dueDate, assigneeId: dev2.id })).status,
+    201,
+  );
+  record(
+    "dev gives a task to someone not on the project -> 400",
+    (await call(dev, "POST", "/api/tasks", { projectId, title: "PT task for dev3", dueDate, assigneeId: dev3.id })).status,
+    400,
+  );
+  const leadGiven = await call(lead, "POST", "/api/tasks", { projectId, title: "PT task for dev3", dueDate, assigneeId: dev3.id });
+  record("lead gives a task to someone not on the project -> 201", leadGiven.status, 201);
+  const people = await call(lead, "GET", `/api/projects/${projectId}/members`);
+  check(
+    "…and that person is now on the project",
+    Array.isArray(people.json) && people.json.some((p: any) => p.id === dev3.id),
+    `people: ${JSON.stringify(people.json?.map?.((p: any) => p.name))}`,
+  );
+  record(
+    "dev gives a task in a project they're not on -> 403/404",
+    (await call(dev, "POST", "/api/tasks", { projectId: otherProjectId, title: "PT nope", dueDate })).status,
+    [403, 404],
+  );
+
+  console.log("\n── reassign / edit a task ────────────────────────────────────");
+  const mine = await call(dev, "POST", "/api/tasks", { projectId, title: "PT dev's own task", dueDate });
+  record("dev gives a task with no one named -> 201", mine.status, 201);
+  if (mine.status !== 201) throw new Error(`root task not created: ${mine.status}`);
+  const rootId: string = mine.json.id;
+  check("…and it lands on the giver", mine.json.assigneeId === dev.id, `assigneeId ${mine.json.assigneeId}`);
+  record("dev reassigns it to dev2 -> 200", (await call(dev, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev2.id })).status, 200);
+  record("dev3 (holds a task here) stars it -> 200", (await call(dev3, "PATCH", `/api/tasks/${rootId}`, { important: true })).status, 200);
+  record("dev2 completes it -> 200", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { status: "DONE" })).status, 200);
+  record("another manager edits it -> 404", (await call(manager2, "PATCH", `/api/tasks/${rootId}`, { title: "PT nope" })).status, 404);
+
+  console.log("\n── steps ─────────────────────────────────────────────────────");
+  record(
+    "a step with its own person -> 400",
+    (await call(dev, "POST", "/api/tasks", { projectId, parentId: rootId, title: "PT step", assigneeId: dev2.id })).status,
+    400,
+  );
+  const step = await call(dev, "POST", "/api/tasks", { projectId, parentId: rootId, title: "PT step" });
+  record("a step under a task -> 201", step.status, 201);
+  check("…its parent is the root task", step.json?.parentId === rootId, `parentId ${step.json?.parentId}`);
+  const deeper = await call(dev, "POST", "/api/tasks", { projectId, parentId: step.json?.id, title: "PT step of a step" });
+  record("a step under a step -> 201", deeper.status, 201);
+  check("…re-pointed to the root task", deeper.json?.parentId === rootId, `parentId ${deeper.json?.parentId}`);
+
+  console.log("\n── milestones ────────────────────────────────────────────────");
+  const reviewDay = workingDay(today, 7);
+  record(
+    "lead adds a milestone -> 403",
+    (await call(lead, "POST", "/api/milestones", { projectId, name: "PT milestone", reviewDate: reviewDay })).status,
+    403,
+  );
+  const ms = await call(manager, "POST", "/api/milestones", { projectId, name: "PT milestone", reviewDate: reviewDay });
+  record("manager adds a milestone -> 201", ms.status, 201);
+  if (ms.status !== 201) throw new Error(`milestone not created: ${ms.status} ${JSON.stringify(ms.json)}`);
+  const milestoneId: string = ms.json.id;
+  const reviewEventId: string | null = ms.json.reviewEventId ?? null;
+  check("…it has a review meeting", Boolean(reviewEventId), "reviewEventId null");
+
+  const boxed = await call(manager, "POST", "/api/tasks", { projectId, milestoneId, title: "PT milestone task", assigneeId: dev.id });
+  record("manager gives a task inside the milestone -> 201", boxed.status, 201);
+  const boxedId: string = boxed.json?.id;
+  check("…'by when' defaulted to the review date", (boxed.json?.dueDate ?? "").slice(0, 10) === reviewDay, `dueDate ${boxed.json?.dueDate}`);
+
+  // The task route refreshes the review's attendees in the background — poll.
+  const review = await waitFor(async () => {
+    const ev = (await eventsOn(manager, reviewDay)).find((e) => e.id === reviewEventId);
+    return ev && ev.attendees.some((a: any) => a.userId === dev.id) ? ev : null;
+  });
+  check("the review meeting shows on the calendar that day", Boolean(review), "not found (or dev never joined it)");
+  check(
+    "…its attendees include the lead and the task holder",
+    Boolean(review) && [lead.id, dev.id].every((id) => review.attendees.some((a: any) => a.userId === id)),
+    `attendees: ${JSON.stringify(review?.attendees?.map((a: any) => a.name))}`,
+  );
+  const movedDay = workingDay(reviewDay, 1);
+  record("manager moves the review date -> 200", (await call(manager, "PATCH", `/api/milestones/${milestoneId}`, { reviewDate: movedDay })).status, 200);
+  const movedReview = (await eventsOn(manager, movedDay)).find((e) => e.id === reviewEventId);
+  check("…the review meeting moved with it", Boolean(movedReview), `no meeting ${reviewEventId} on ${movedDay}`);
+
+  console.log("\n── review outcome (Needs your OK) ────────────────────────────");
+  record(
+    "manager records an outcome -> 403",
+    (await call(manager, "POST", `/api/milestones/${milestoneId}/outcome`, { outcome: "ON_TRACK", note: "PT fine" })).status,
+    403,
+  );
+  record(
+    "hod records an outcome -> 403",
+    (await call(hod, "POST", `/api/milestones/${milestoneId}/outcome`, { outcome: "ON_TRACK", note: "PT fine" })).status,
+    403,
+  );
+  record(
+    "director records an outcome -> 200",
+    (await call(director, "POST", `/api/milestones/${milestoneId}/outcome`, { outcome: "ON_TRACK", note: "PT on track", progress: 40 })).status,
+    200,
+  );
+  const outcomeNotes = await call(director, "GET", `/api/comments?targetType=MILESTONE&targetId=${milestoneId}`);
+  check(
+    "…the outcome became a note on the milestone",
+    Array.isArray(outcomeNotes.json) && outcomeNotes.json.some((n: any) => String(n.body).startsWith("On track")),
+    `notes: ${JSON.stringify(outcomeNotes.json)}`,
+  );
+  const afterOutcome = await call(director, "GET", `/api/projects/${projectId}`);
+  check("…and the project's progress was set with it", afterOutcome.json?.progress === 40, `progress ${afterOutcome.json?.progress}`);
+
+  record("dev deletes the milestone -> 403", (await call(dev, "DELETE", `/api/milestones/${milestoneId}`)).status, 403);
+  record("manager deletes the milestone -> 200", (await call(manager, "DELETE", `/api/milestones/${milestoneId}`)).status, 200);
+  const unboxed = await call(manager, "GET", `/api/tasks/${boxedId}`);
+  check("…its task moved to 'Not in a milestone yet'", unboxed.status === 200 && unboxed.json?.milestoneId === null, `milestoneId ${unboxed.json?.milestoneId}`);
+
+  console.log("\n── notes ─────────────────────────────────────────────────────");
+  const note = await call(dev, "POST", "/api/comments", { targetType: "TASK", targetId: rootId, body: "PT note from dev" });
+  record("dev posts a note on a task in their project -> 201", note.status, 201);
+  record("lead deletes someone else's note -> 403", (await call(lead, "DELETE", `/api/comments/${note.json?.id}`)).status, 403);
+  record("manager (owner) deletes someone else's note -> 403", (await call(manager, "DELETE", `/api/comments/${note.json?.id}`)).status, 403);
+  record("the author deletes their own note -> 200", (await call(dev, "DELETE", `/api/comments/${note.json?.id}`)).status, 200);
+  record("dev posts a project note -> 201", (await call(dev, "POST", "/api/comments", { targetType: "PROJECT", targetId: projectId, body: "PT project note" })).status, 201);
+  record(
+    "dev reads notes of a project they're not on -> 404",
+    (await call(dev, "GET", `/api/comments?targetType=PROJECT&targetId=${otherProjectId}`)).status,
+    404,
+  );
+  record(
+    "dev posts a note on a project they're not on -> 404",
+    (await call(dev, "POST", "/api/comments", { targetType: "PROJECT", targetId: otherProjectId, body: "PT nope" })).status,
+    404,
+  );
+
+  console.log("\n── meetings ──────────────────────────────────────────────────");
+  const meetDay = workingDay(today, 5);
+  const meetingBody = { title: "PT meeting", date: meetDay, projectId, startTime: "10:00", attendeeIds: [dev.id] };
+  record("dev schedules a meeting -> 403", (await call(dev, "POST", "/api/events", meetingBody)).status, 403);
+  record("lead schedules a meeting -> 403", (await call(lead, "POST", "/api/events", meetingBody)).status, 403);
+  const meeting = await call(manager, "POST", "/api/events", meetingBody);
+  record("manager schedules a meeting with dev -> 201", meeting.status, 201);
+  const eventId: string = meeting.json?.id;
+  record("dev replies Can't -> 200", (await call(dev, "POST", `/api/events/${eventId}/reply`, { response: "NO" })).status, 200);
+  record("dev2 (not invited) replies -> 404", (await call(dev2, "POST", `/api/events/${eventId}/reply`, { response: "YES" })).status, 404);
+  record("dev asks to reschedule -> 403", (await call(dev, "GET", `/api/events/${eventId}/reschedule`)).status, 403);
+  record("director asks to reschedule -> 200", (await call(director, "GET", `/api/events/${eventId}/reschedule`)).status, 200);
+  const slots = await call(manager, "GET", `/api/events/${eventId}/reschedule`);
+  record("manager (organiser) asks to reschedule -> 200", slots.status, 200);
+  const slotList: string[] = Array.isArray(slots.json?.slots) ? slots.json.slots : [];
+  check("…three slots offered", slotList.length === 3, `slots ${JSON.stringify(slotList)}`);
+  check(
+    "…every slot is a working day (Mon–Fri)",
+    slotList.length > 0 && slotList.every((s) => [1, 2, 3, 4, 5].includes(new Date(s).getUTCDay())),
+    `slots ${JSON.stringify(slotList)}`,
+  );
+  const newDay = (slotList[0] ?? "").slice(0, 10);
+  record("manager reschedules to the first slot -> 200", (await call(manager, "POST", `/api/events/${eventId}/reschedule`, { date: newDay })).status, 200);
+  const movedMeeting = (await eventsOn(manager, newDay)).find((e) => e.id === eventId);
+  check("…the meeting is on the new day", Boolean(movedMeeting), `no meeting ${eventId} on ${newDay}`);
+  check(
+    "…and every reply was cleared",
+    Boolean(movedMeeting) && movedMeeting.attendees.length > 0 && movedMeeting.attendees.every((a: any) => a.response === null),
+    `attendees ${JSON.stringify(movedMeeting?.attendees)}`,
+  );
+
+  console.log("\n── accounts ──────────────────────────────────────────────────");
+  const mint = (actor: Actor, label: string, role: string) =>
+    call(actor, "POST", "/api/users", { name: `PT ${label}`, email: `${PREFIX}${label}@orbit.local`, role });
+  record("lead creates a team member -> 403", (await mint(lead, "leadmade", "RESOURCE")).status, 403);
+  record("manager creates a team lead -> 201", (await mint(manager, "mgrlead", "TEAM_LEAD")).status, 201);
+  record("manager creates a manager -> 403", (await mint(manager, "mgrmgr", "MANAGER")).status, 403);
+  record("hod creates a manager -> 201", (await mint(hod, "hodmgr", "MANAGER")).status, 201);
+  record("director creates a head of department -> 201", (await mint(director, "dirhod", "HOD")).status, 201);
+  record("admin creates a director -> 403", (await mint(admin, "admdir", "DIRECTOR")).status, 403);
+  record("admin creates a manager -> 201", (await mint(admin, "admmgr", "MANAGER")).status, 201);
+  record("manager places dev in a department -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 200);
+  record("lead places dev in a department -> 403", (await call(lead, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 403);
+  record("dev reads the people list -> 403", (await call(dev, "GET", "/api/users")).status, 403);
+  record("lead reads the people list -> 200", (await call(lead, "GET", "/api/users")).status, 200);
+  record("admin reads the people list -> 200", (await call(admin, "GET", "/api/users")).status, 200);
+
+  console.log("\n── walls: admin ──────────────────────────────────────────────");
+  record("admin lists projects -> 403", (await call(admin, "GET", "/api/projects")).status, 403);
+  record("admin lists tasks -> 403", (await call(admin, "GET", "/api/tasks?view=all")).status, 403);
+  record("admin reads Today -> 403", (await call(admin, "GET", "/api/today")).status, 403);
+  record("admin reads the calendar -> 403", (await call(admin, "GET", `/api/calendar?from=${meetDay}&to=${meetDay}`)).status, 403);
+  record("a PERSON can't be created through People -> 403", (await mint(director, "person-x", "PERSON")).status, 403);
+
+  console.log("\n── walls: person ─────────────────────────────────────────────");
+  // A Well Being login, made directly (the Family tab is the only real door),
+  // owned by a throwaway manager. The middleware answers 403 at the edge for
+  // every /api path outside /api/routine/kid, and requireUser backs it up.
+  const personPassword = generateTempPassword(16);
+  const personEmail = `${PREFIX}person@orbit.local`;
+  const personUser = await prisma.user.create({
+    data: { email: personEmail, name: "PT person", role: "PERSON", passwordHash: await hashPassword(personPassword) },
+  });
+  userIds.push(personUser.id);
+  await prisma.person.create({ data: { managerId: manager2.id, userId: personUser.id, name: "PT person" } });
+  const person: Actor = { label: "person", email: personEmail, id: personUser.id, cookie: await signIn(personEmail, personPassword) };
+  const walled: [string, string, unknown?][] = [
+    ["GET", "/api/projects"],
+    ["POST", "/api/projects", projectBody("PT person project", deptId)],
+    ["GET", `/api/projects/${projectId}`],
+    ["PATCH", `/api/projects/${projectId}`, { name: "PT nope" }],
+    ["GET", `/api/projects/${projectId}/members`],
+    ["GET", "/api/tasks?view=all"],
+    ["GET", "/api/tasks?scope=private"],
+    ["POST", "/api/tasks", { projectId, title: "PT nope", dueDate }],
+    ["GET", `/api/tasks/${rootId}`],
+    ["PATCH", `/api/tasks/${rootId}`, { title: "PT nope" }],
+    ["GET", "/api/today"],
+    ["GET", `/api/calendar?from=${meetDay}&to=${meetDay}`],
+    ["GET", `/api/comments?targetType=TASK&targetId=${rootId}`],
+    ["POST", "/api/comments", { targetType: "TASK", targetId: rootId, body: "PT nope" }],
+    ["GET", `/api/milestones?projectId=${projectId}`],
+    ["POST", "/api/milestones", { projectId, name: "PT nope", reviewDate: reviewDay }],
+    ["GET", "/api/users"],
+    ["POST", "/api/users", { name: "PT nope", email: `${PREFIX}nope@orbit.local`, role: "RESOURCE" }],
+    ["GET", "/api/users/me"],
+    ["GET", "/api/departments"],
+    ["POST", "/api/departments", { name: "PT nope", color: "#0d9488" }],
+    ["GET", "/api/notifications"],
+    ["POST", "/api/events", meetingBody],
+    ["GET", "/api/my-space/departments"],
+  ];
+  let walledOk = 0;
+  for (const [method, path, body] of walled) {
+    const r = await call(person, method, path, body);
+    if (r.status === 403) walledOk++;
+    else console.log(`      person ${method} ${path} -> ${r.status}`);
+  }
+  check(`a PERSON gets 403 from every work endpoint (${walledOk}/${walled.length}, ≥20 distinct)`, walledOk === walled.length && walled.length >= 20);
+
+  console.log("\n── cron ──────────────────────────────────────────────────────");
+  record("cron without the secret -> 401", (await call(null, "GET", "/api/cron/tomorrow")).status, 401);
+  record("cron with a wrong secret -> 401", (await call(null, "GET", "/api/cron/tomorrow", undefined, { authorization: "Bearer wrong" })).status, 401);
+
+  console.log("\n── My notes: isolation ───────────────────────────────────────");
+  const pdept = await call(dev, "POST", "/api/my-space/departments", { name: "PT personal department" });
+  record("dev creates a personal department -> 201", pdept.status, 201);
+  const pproj = await call(dev, "POST", "/api/my-space/projects", { departmentId: pdept.json?.id, name: "PT personal project" });
+  record("dev creates a personal project -> 201", pproj.status, 201);
+  const priv = await call(dev, "POST", "/api/tasks", { isPrivate: true, personalProjectId: pproj.json?.id, title: "PT private note" });
+  record("dev creates a private note -> 201", priv.status, 201);
+  const privId: string = priv.json?.id;
+  record("dev reads their own private note -> 200", (await call(dev, "GET", `/api/tasks/${privId}`)).status, 200);
+  record("dev2 reads it -> 404", (await call(dev2, "GET", `/api/tasks/${privId}`)).status, 404);
+  record("dev2 reads its notes -> 404", (await call(dev2, "GET", `/api/comments?targetType=TASK&targetId=${privId}`)).status, 404);
+  record("director reads it -> 404 (no role override)", (await call(director, "GET", `/api/tasks/${privId}`)).status, 404);
+}
+
+/**
+ * Only what this run created, in FK-safe order. Restrict FKs that would wall
+ * off a user delete: Comment.author, Invite.createdBy, CalendarEvent.createdBy.
+ * Milestones, members and project tasks cascade with their project; a review
+ * meeting does NOT (SetNull), so events go by creator. A private note's
+ * ownerId would only SetNull, so tasks go by owner too.
+ */
+async function cleanup(userIds: string[]) {
+  console.log("\n── cleanup ───────────────────────────────────────────────────");
+  const tasks = await prisma.task.deleteMany({
+    where: { OR: [{ title: { startsWith: "PT " } }, { ownerId: { in: userIds } }, { givenById: { in: userIds } }] },
+  });
+  const notes = await prisma.comment.deleteMany({ where: { authorId: { in: userIds } } });
+  const events = await prisma.calendarEvent.deleteMany({
+    where: { OR: [{ createdById: { in: userIds } }, { title: { startsWith: "PT " } }] },
+  });
+  const projects = await prisma.project.deleteMany({
+    where: { OR: [{ name: { startsWith: "PT " } }, { ownerId: { in: userIds } }] },
+  });
+  const departments = await prisma.department.deleteMany({ where: { name: { startsWith: "PT " } } });
+  await prisma.invite.deleteMany({ where: { createdById: { in: userIds } } });
+  await prisma.task.updateMany({ where: { completedById: { in: userIds } }, data: { completedById: null } });
+  await prisma.task.updateMany({ where: { assigneeId: { in: userIds } }, data: { assigneeId: null } });
+  await prisma.task.updateMany({ where: { givenById: { in: userIds } }, data: { givenById: null } });
+  await prisma.project.updateMany({ where: { leadId: { in: userIds } }, data: { leadId: null } });
+  // Invitees (PENDING, never signed in) first: their Invite rows cascade with
+  // them, and an inviter can't go while an invite it created remains.
+  await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX }, status: "PENDING" } });
+  const users = await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
+  console.log(
+    `removed ${users.count} throwaway accounts (tasks ${tasks.count}, notes ${notes.count}, ` +
+      `events ${events.count}, projects ${projects.count}, departments ${departments.count})`,
+  );
+  console.log(`remaining ${PREFIX}* accounts: ${await prisma.user.count({ where: { email: { startsWith: PREFIX } } })}`);
 }
 
 main()

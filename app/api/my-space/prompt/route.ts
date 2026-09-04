@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
-import { COMPLETED_BY_SELECT, serializeTask } from "@/lib/serialize";
+import { TASK_INCLUDE, serializeTask } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
 import { parseBody, promptSchema } from "@/lib/validation";
 
@@ -9,26 +9,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * The My Space "Prompt" quick-capture (phase 33) — team members (RESOURCE) only. It turns a
- * blob of free text into a private task in one of the caller's OWN personal
- * projects (first line = title, the rest = notes/descriptionMd). Gated in the UI
- * AND here: any other role (lead/manager/admin) hitting it is a 403. It never
- * touches anyone else's space — the personal project must be the caller's own.
+ * The My notes "Prompt" quick-capture (phase 33) — team members (RESOURCE) only.
+ * Turns a blob of free text into a private task in one of the caller's OWN
+ * personal projects (first line = title, the rest = notes/descriptionMd).
  */
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
   if (user.role !== "RESOURCE") {
-    throw new HttpError(403, "The prompt is available to developers only.");
+    throw new HttpError(403, "The prompt is available to team members only.");
   }
 
   const parsed = await parseBody(req, promptSchema);
   if (!parsed.ok) return parsed.response;
   const { personalProjectId, text } = parsed.data;
 
-  const pp = await prisma.personalProject.findFirst({
-    where: { id: personalProjectId, ownerId: user.id },
-    select: { id: true },
-  });
+  const pp = await prisma.personalProject.findFirst({ where: { id: personalProjectId, ownerId: user.id }, select: { id: true } });
   if (!pp) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const trimmed = text.trim();
@@ -51,11 +46,10 @@ export const POST = route(async (req: Request) => {
       title,
       descriptionMd,
       orderKey: generateKeyBetween(last?.orderKey ?? null, null),
-      status: "BACKLOG",
-      priority: "P2",
+      status: "TODO",
       assigneeId: null,
     },
-    include: COMPLETED_BY_SELECT,
+    include: TASK_INCLUDE,
   });
   return NextResponse.json(serializeTask(task), { status: 201 });
 });

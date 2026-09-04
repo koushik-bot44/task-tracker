@@ -74,8 +74,12 @@ async function main() {
     orderBy: { id: "asc" },
   });
 
-  const notes = await prisma.projectNote.findMany({
-    select: { id: true, projectId: true, authorId: true, body: true },
+  /* Restructure: a project note is a Comment row with targetType PROJECT
+     (targetId = the project). Only the `full` hash sees these; the historical
+     6-field task fingerprint below is untouched. */
+  const notes = await prisma.comment.findMany({
+    where: { targetType: "PROJECT" },
+    select: { id: true, targetId: true, authorId: true, body: true },
     orderBy: { id: "asc" },
   });
 

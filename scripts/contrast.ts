@@ -8,7 +8,6 @@
  * pragmatic 1.2 for hairlines — a border only has to be findable.
  */
 import { readFileSync } from "node:fs";
-import { GROUP_TINTS } from "../lib/group-tints";
 
 type Rgb = { r: number; g: number; b: number };
 
@@ -80,7 +79,8 @@ function ratio(a: Rgb, b: Rgb): number {
 }
 
 /**
- * Pairs actually rendered by the UI, with the bar each has to clear.
+ * Pairs actually rendered by the UI (restructure, 2026-09), with the bar each
+ * has to clear. Every token named here exists in globals.css `:root`.
  *
  * Soft tints are translucent, so a chip's real backdrop is the tint composited
  * over whatever sits behind it. `over` names that base and the tint is flattened
@@ -94,81 +94,66 @@ const PAIRS: Array<{
   what: string;
   over?: string;
 }> = [
+  // Body and secondary text on the page, a card, and the rail.
   { fg: "--ink", bg: "--bg", min: 4.5, what: "body text on page" },
   { fg: "--ink", bg: "--surface", min: 4.5, what: "body text on card" },
-  { fg: "--ink", bg: "--surface-2", min: 4.5, what: "body text on menu" },
+  { fg: "--ink", bg: "--surface-2", min: 4.5, what: "body text on rail" },
   { fg: "--muted", bg: "--bg", min: 4.5, what: "secondary text on page" },
   { fg: "--muted", bg: "--surface", min: 4.5, what: "secondary text on card" },
-  { fg: "--muted", bg: "--surface-2", min: 4.5, what: "secondary text on menu" },
+  { fg: "--muted", bg: "--surface-2", min: 4.5, what: "secondary text on rail" },
 
-  // Hue used as text sits on white, or on its own pastel chip.
+  // A hue used as text sits on a card.
   { fg: "--primary-ink", bg: "--surface", min: 4.5, what: "primary text on card" },
-  { fg: "--primary-ink", bg: "--bg", min: 4.5, what: "primary text on page" },
-  { fg: "--accent-ink", bg: "--surface", min: 4.5, what: "accent text on card" },
   { fg: "--ok-ink", bg: "--surface", min: 4.5, what: "done text on card" },
-  { fg: "--info-ink", bg: "--surface", min: 4.5, what: "planned text on card" },
-  { fg: "--danger-ink", bg: "--surface", min: 4.5, what: "danger text on card" },
-  { fg: "--warn-ink", bg: "--surface", min: 4.5, what: "reviewed text on card" },
+  { fg: "--info-ink", bg: "--surface", min: 4.5, what: "to-do text on card" },
+  { fg: "--danger-ink", bg: "--surface", min: 4.5, what: "stuck / overdue text on card" },
+  { fg: "--warn-ink", bg: "--surface", min: 4.5, what: "needs-work text on card" },
 
-  // Pastel status chips: hue-ink on a 12-16% tint of the same hue over white.
-  { fg: "--primary-ink", bg: "--primary-soft", over: "--surface", min: 4.5, what: "chip: in progress" },
-  { fg: "--info-ink", bg: "--info-soft", over: "--surface", min: 4.5, what: "chip: planned" },
-  { fg: "--ok-ink", bg: "--ok-soft", over: "--surface", min: 4.5, what: "chip: done" },
-  { fg: "--danger-ink", bg: "--danger-soft", over: "--surface", min: 4.5, what: "chip: blocked" },
-  { fg: "--warn-ink", bg: "--warn-soft", over: "--surface", min: 4.5, what: "chip: reviewed" },
-  { fg: "--accent-ink", bg: "--accent-soft", over: "--surface", min: 4.5, what: "chip: accent" },
-  { fg: "--muted", bg: "--hover", over: "--surface", min: 4.5, what: "chip: backlog" },
+  // Status chips: hue-ink on a 10-14% tint of the same hue, over a card...
+  { fg: "--primary-ink", bg: "--primary-soft", over: "--surface", min: 4.5, what: "chip on card: doing" },
+  { fg: "--ok-ink", bg: "--ok-soft", over: "--surface", min: 4.5, what: "chip on card: done" },
+  { fg: "--info-ink", bg: "--info-soft", over: "--surface", min: 4.5, what: "chip on card: to do" },
+  { fg: "--danger-ink", bg: "--danger-soft", over: "--surface", min: 4.5, what: "chip on card: stuck" },
+  { fg: "--warn-ink", bg: "--warn-soft", over: "--surface", min: 4.5, what: "chip on card: needs work" },
 
-  // The same chips again on the page backdrop. The review filter row and the
-  // tool-health line sit on --bg, not on a card, and a tint flattens against a
-  // tinted page differently than against white — so it is a separate pair, not
-  // an assumption.
-  { fg: "--primary-ink", bg: "--primary-soft", over: "--bg", min: 4.5, what: "chip on page: selected filter" },
-  { fg: "--muted", bg: "--hover", over: "--bg", min: 4.5, what: "chip on page: unselected filter" },
-  { fg: "--warn-ink", bg: "--warn-soft", over: "--bg", min: 4.5, what: "chip on page: manager role" },
-  { fg: "--ok-ink", bg: "--ok-soft", over: "--bg", min: 4.5, what: "chip on page: active account" },
-  { fg: "--ink", bg: "--hover", over: "--surface", min: 4.5, what: "chip: keycap / tag" },
-  { fg: "--surface", bg: "--ink", min: 4.5, what: "tooltip label on inverted chip" },
-  { fg: "--on-ink", bg: "--ink", min: 4.5, what: "tooltip: primary text" },
-  { fg: "--on-ink-muted", bg: "--ink", min: 4.5, what: "tooltip: secondary text" },
-  { fg: "--ok", bg: "--ink", min: 3.0, what: "tooltip: passed gate tick" },
-  { fg: "--dot-off", bg: "--hover", over: "--surface", min: 3.0, what: "gate dot: not passed" },
-  { fg: "--dot-off-warn", bg: "--hover", over: "--surface", min: 3.0, what: "gate dot: reviewed, not passed" },
+  // ...and the same chips on the page backdrop. A tint flattens against the
+  // tinted page differently than against white, so each is its own pair.
+  { fg: "--primary-ink", bg: "--primary-soft", over: "--bg", min: 4.5, what: "chip on page: doing" },
+  { fg: "--ok-ink", bg: "--ok-soft", over: "--bg", min: 4.5, what: "chip on page: done" },
+  { fg: "--info-ink", bg: "--info-soft", over: "--bg", min: 4.5, what: "chip on page: to do" },
+  { fg: "--danger-ink", bg: "--danger-soft", over: "--bg", min: 4.5, what: "chip on page: stuck" },
+  { fg: "--warn-ink", bg: "--warn-soft", over: "--bg", min: 4.5, what: "chip on page: needs work" },
 
   // Solid fills. Primary is the only one dark enough to carry white; the
-  // brighter hues carry navy instead, which is also friendlier.
+  // brighter hues carry ink instead.
   { fg: "--on-primary", bg: "--primary", min: 4.5, what: "label on primary button" },
-  { fg: "--on-fill", bg: "--accent", min: 3.0, what: "label on accent fill" },
   { fg: "--on-fill", bg: "--ok", min: 3.0, what: "label on done fill" },
-  { fg: "--on-fill", bg: "--danger", min: 3.0, what: "label on danger fill" },
-  { fg: "--on-fill", bg: "--warn", min: 3.0, what: "label on reviewed fill" },
-  { fg: "--on-fill", bg: "--info", min: 3.0, what: "label on planned fill" },
+  { fg: "--on-fill", bg: "--danger", min: 3.0, what: "label on stuck fill" },
+  { fg: "--on-fill", bg: "--warn", min: 3.0, what: "label on needs-work fill" },
+  { fg: "--on-fill", bg: "--info", min: 3.0, what: "label on to-do fill" },
+  { fg: "--on-fill", bg: "--accent", min: 3.0, what: "label on accent fill" },
 
   // Standalone dots and glyphs use the ink variant, so a 6px circle is still
-  // findable against white. Vivid values stay for tints and fills.
+  // findable against white.
   { fg: "--primary", bg: "--surface", min: 3.0, what: "primary dot / focus ring" },
   { fg: "--ok-ink", bg: "--surface", min: 3.0, what: "done dot" },
-  { fg: "--warn-ink", bg: "--surface", min: 3.0, what: "reviewed dot" },
-  { fg: "--danger-ink", bg: "--surface", min: 3.0, what: "blocked dot" },
-  { fg: "--info-ink", bg: "--surface", min: 3.0, what: "planned dot" },
+  { fg: "--warn-ink", bg: "--surface", min: 3.0, what: "needs-work dot" },
+  { fg: "--danger-ink", bg: "--surface", min: 3.0, what: "stuck dot" },
+  { fg: "--info-ink", bg: "--surface", min: 3.0, what: "to-do dot" },
 
-  /* Chart wedges are large adjacent fills, so the bar is "findable against the
-     card", not the text bar — they carry a legend, not a label. */
-  { fg: "--chart-idle", bg: "--surface", min: 1.2, what: "chart: idle wedge" },
-  { fg: "--line", bg: "--bg", min: 1.2, what: "hairline on page" },
+  // Hairlines only have to be findable. `--line` is documented in globals.css
+  // as "dividers inside a card and input edges only", so its backdrop is the
+  // card; the page-level rule is `--guide`. (`--line` on `--bg` measures 1.15 —
+  // below the bar, and not a pair the app draws.)
   { fg: "--line", bg: "--surface", min: 1.2, what: "hairline on card" },
+  { fg: "--guide", bg: "--bg", min: 1.2, what: "guide line on page" },
+
+  // The tooltip is an inverted surface; its text cannot use --ink/--muted.
+  { fg: "--on-ink", bg: "--ink", min: 4.5, what: "tooltip: primary text" },
+  { fg: "--on-ink-muted", bg: "--ink", min: 4.5, what: "tooltip: secondary text" },
 ];
 
-/* Phase 15: a group band is a light OPAQUE tint (a literal hex, not a token —
-   it's per-task data). The row's own ink and muted text sit directly on it, so
-   both must clear the 4.5 body-text bar against every tint. */
-for (const t of GROUP_TINTS) {
-  PAIRS.push({ fg: "--ink", bg: t.bg, min: 4.5, what: `group tint ${t.key}: ink` });
-  PAIRS.push({ fg: "--muted", bg: t.bg, min: 4.5, what: `group tint ${t.key}: muted` });
-}
-
-/* One theme now. The pair list is unchanged — the app still renders every one
-   of these combinations, there is just a single set of values behind them. */
+/* One theme: a single set of values behind every pair. */
 const css = readFileSync("app/globals.css", "utf8");
 const tokens = parseTheme(css, ":root");
 
@@ -179,8 +164,6 @@ rows.push("| Pair | What | Min | Ratio | |");
 rows.push("|---|---|---|---|---|");
 
 for (const pair of PAIRS) {
-  // A value may be a token name (--foo) or, for phase-15 group tints, a literal
-  // hex; fall back to the literal when it is not in the token map.
   const fg = toRgb(tokens[pair.fg] ?? pair.fg);
 
   const rawBg = toRgba(tokens[pair.bg] ?? pair.bg);

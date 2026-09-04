@@ -26,14 +26,11 @@ import {
 } from "react";
 import { useCollapse } from "@/lib/hooks/use-collapse";
 import { useEditMode } from "@/lib/hooks/use-edit-mode";
-import { useMe } from "@/lib/hooks/use-users";
-import { isManagerRole } from "@/lib/roles";
 import { usePanelParams } from "@/lib/hooks/use-panel";
 import { newTaskId, useTaskMutations, useTasks } from "@/lib/hooks/use-tasks";
 import { keyAfter, keyAtEnd, keyBetweenSiblings, keyForNudge } from "@/lib/order";
 import { getProjection } from "@/lib/projection";
-import { groupTintBg } from "@/lib/group-tints";
-import { AUTO_DATE_DAYS, isoDaysFromNow } from "@/lib/dates";
+import { isoDaysFromNow } from "@/lib/dates";
 import {
   buildTree,
   descendantIds,
@@ -45,9 +42,13 @@ import {
 import { TaskTitle } from "@/components/task-title";
 import { useToast } from "@/components/toast";
 import { FirstRunHint } from "@/components/first-run-hint";
-import type { ProjectDTO, Status, TaskDTO } from "@/lib/types";
+import type { ProjectDTO, TaskDTO, TaskStatus } from "@/lib/types";
 import { INDENT_WIDTH, TaskRow } from "./task-row";
 import { DescriptionField } from "./description-field";
+
+/** A project root minted with nothing to copy a date from is guessed this far
+    out — a placeholder, rendered provisional until a person confirms it. */
+const AUTO_DATE_DAYS = 7;
 
 /**
  * Everything the tree renders from, so ONE outliner serves both a project tool
@@ -75,8 +76,8 @@ export type TreeSource = {
       task at the foot is enough. Undefined/false keeps the full project chrome. */
   compact?: boolean;
   /** Phase 33 — My Space's private tree. The task is SIMPLE: only title, status
-      and notes. Every project-only meta chip (priority, dates, schedule warning,
-      assignee, gates/verified, tags) is hidden on the row. */
+      and notes. Every project-only meta chip (dates, schedule warning,
+      assignee) is hidden on the row. */
   personal?: boolean;
 } & ReturnType<typeof useTaskMutations>;
 
@@ -94,11 +95,7 @@ export function TreeView({
      the server still accepts their writes — a guard against the stray click. */
   const { canEdit } = useEditMode(project.slug);
   const query = useTasks(project.id);
-  const mutations = useTaskMutations({
-    kind: "project",
-    projectId: project.id,
-    gateTemplate: project.gateTemplate,
-  });
+  const mutations = useTaskMutations({ kind: "project", projectId: project.id });
   const collapse = useCollapse(project.id);
 
   return (
@@ -135,10 +132,6 @@ export function TreeCore({
   const { collapsed, toggleCollapse, setCollapsedFor } = source;
   const { show: toast, dismissAll } = useToast();
   const { openTask, zoomTo } = usePanelParams();
-  /* Phase 20: a manager's rows show only their Verified sign-off, not the
-     team's build-gate cluster. Read the role once here, not per row. */
-  const { data: me } = useMe();
-  const isManager = isManagerRole(me?.role);
   const tasks = useMemo(() => source.tasks, [source.tasks]);
 
   // Toast handlers fire long after their closure was built, so they read the
@@ -186,28 +179,6 @@ export function TreeCore({
   }, [tasks, rootId]);
 
   const rows = useMemo(() => flattenTree(roots, collapsed), [roots, collapsed]);
-
-  /**
-   * The group-tint band for a row (phase 15): walk from the row up its ancestors
-   * and take the FIRST task that both carries a groupColor and actually has
-   * children — so a band only appears for a real group, and an inner group's own
-   * colour overrides its parent's within its subtree (self is checked first).
-   */
-  const bandColorFor = useMemo(() => {
-    const byId = new Map(tasks.map((t) => [t.id, t]));
-    const hasChildren = new Set<string>();
-    for (const t of tasks) if (t.parentId) hasChildren.add(t.parentId);
-    return (taskId: string): string | null => {
-      let cursor = byId.get(taskId);
-      while (cursor) {
-        if (cursor.groupColor && hasChildren.has(cursor.id)) {
-          return groupTintBg(cursor.groupColor);
-        }
-        cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
-      }
-      return null;
-    };
-  }, [tasks]);
 
   /** The rooted task and every ancestor above it, tool root first. */
   const trail = useMemo(() => {
@@ -379,12 +350,11 @@ export function TreeCore({
 
   // applyStatus and the prompt call each other; a ref breaks the cycle without
   // making either of them stale.
-  const applyStatusRef = useRef<(id: string, status: Status) => void>(() => {});
+  const applyStatusRef = useRef<(id: string, status: TaskStatus) => void>(() => {});
 
   /**
-   * Offer to close the parent once every sibling that still counts is done.
-   * Cancelled siblings do not hold a parent open; a parent that is already
-   * DONE or CANCELLED is never nagged about.
+   * Offer to close the parent once every sibling is done. A parent that is
+   * already DONE is never nagged about.
    */
   const promptParentIfComplete = useCallback(
     (childId: string, projected: TaskDTO[]) => {
@@ -393,11 +363,9 @@ export function TreeCore({
 
       const parent = projected.find((t) => t.id === child.parentId);
       if (!parent) return;
-      if (parent.status === "DONE" || parent.status === "CANCELLED") return;
+      if (parent.status === "DONE") return;
 
-      const siblings = projected.filter(
-        (t) => t.parentId === parent.id && t.status !== "CANCELLED",
-      );
+      const siblings = projected.filter((t) => t.parentId === parent.id);
       if (siblings.length === 0) return;
       if (!siblings.every((s) => s.status === "DONE")) return;
 
@@ -414,7 +382,7 @@ export function TreeCore({
   );
 
   const applyStatus = useCallback(
-    (taskId: string, status: Status) => {
+    (taskId: string, status: TaskStatus) => {
       updateTask.mutate({ id: taskId, patch: { status } });
       if (status !== "DONE") return;
       // onMutate lands asynchronously, so project the change rather than
@@ -432,13 +400,13 @@ export function TreeCore({
   }, [applyStatus]);
 
   const setStatus = useCallback(
-    (row: FlatRow, status: Status) => applyStatus(row.task.id, status),
+    (row: FlatRow, status: TaskStatus) => applyStatus(row.task.id, status),
     [applyStatus],
   );
 
   const toggleDone = useCallback(
     (row: FlatRow) => {
-      applyStatus(row.task.id, row.task.status === "DONE" ? "BACKLOG" : "DONE");
+      applyStatus(row.task.id, row.task.status === "DONE" ? "TODO" : "DONE");
     },
     [applyStatus],
   );
@@ -531,16 +499,6 @@ export function TreeCore({
       focusRow(row.task.id);
     },
     [tasks, updateTask, focusRow, rootId],
-  );
-
-  const togglePin = useCallback(
-    (row: FlatRow) => {
-      updateTask.mutate({
-        id: row.task.id,
-        patch: { pinnedAt: row.task.pinnedAt ? null : new Date().toISOString() },
-      });
-    },
-    [updateTask],
   );
 
   const nudge = useCallback(
@@ -769,7 +727,6 @@ export function TreeCore({
                 >
                   <TaskRow
                     row={row}
-                    band={bandColorFor(row.task.id)}
                     collapsed={collapsed.has(row.task.id)}
                     isDragging={activeId === row.task.id}
                     dropTarget={
@@ -779,7 +736,6 @@ export function TreeCore({
                     }
                     onKeyDown={canEdit ? onKeyDown : undefined}
                     readOnly={!canEdit}
-                    isManager={isManager}
                     personal={source.personal}
                     onTitleChange={canEdit ? changeTitle : undefined}
                     onToggleDone={canEdit ? toggleDone : undefined}
@@ -789,7 +745,6 @@ export function TreeCore({
                     onBlurEmpty={canEdit ? discardBlank : undefined}
                     onZoom={zoomTo}
                     onOpenDetail={openTask}
-                    onTogglePin={canEdit ? togglePin : undefined}
                     onAddChild={canEdit ? (r) => addTask(r.task.id, null) : undefined}
                     onOpenPrompt={
                       canEdit && source.compact
@@ -822,7 +777,6 @@ export function TreeCore({
                 row={{ ...activeRow, depth: projection?.depth ?? activeRow.depth }}
                 collapsed
                 overlay
-                isManager={isManager}
                 personal={source.personal}
               />
             </div>

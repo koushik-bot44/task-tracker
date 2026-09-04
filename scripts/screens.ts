@@ -75,39 +75,17 @@ async function main() {
   const busiest = [...projects].sort((a, b) => b.taskCount - a.taskCount)[0];
   const slug: string = busiest?.slug ?? "none";
 
-  const tasks = await (
-    await probePage.request.get(`${BASE}/api/tasks?projectId=${busiest.id}`)
-  ).json();
-  const sampleTask = tasks.find((t: { parentId: string | null }) => t.parentId) ?? tasks[0];
   await probe.close();
 
+  // Restructure (2026-09): the whole app is seven routes.
   const shots: Shot[] = [
     { name: "login", path: "/login" },
-    { name: "home", path: "/" },
-    { name: "tree", path: `/t/${slug}` },
-    { name: "board", path: `/t/${slug}/board` },
-    { name: "focus", path: "/focus" },
-    { name: "changelog", path: "/changelog" },
-    { name: "review", path: "/review" },
-    { name: "settings-users", path: "/settings/users" },
+    { name: "today", path: "/" },
+    { name: "projects", path: "/projects" },
+    { name: "project", path: `/project/${slug}` },
+    { name: "calendar", path: "/calendar" },
+    { name: "people", path: "/people" },
     { name: "settings-account", path: "/settings/account" },
-    { name: "tree-panel", path: `/t/${slug}?task=${sampleTask?.id ?? ""}` },
-    {
-      name: "tree-palette",
-      path: `/t/${slug}`,
-      prepare: async (page) => {
-        await page.keyboard.press("Control+k");
-        await page.waitForTimeout(400);
-      },
-    },
-    {
-      name: "help",
-      path: "/",
-      prepare: async (page) => {
-        await page.getByRole("button", { name: "Help" }).click();
-        await page.waitForTimeout(400);
-      },
-    },
   ];
 
   let count = 0;

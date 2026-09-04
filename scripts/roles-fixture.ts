@@ -29,8 +29,7 @@ async function main() {
     });
     const ids = users.map((u) => u.id);
     if (ids.length > 0) {
-      const notes = await prisma.taskNote.deleteMany({ where: { authorId: { in: ids } } });
-      const pnotes = await prisma.projectNote.deleteMany({ where: { authorId: { in: ids } } });
+      const notes = await prisma.comment.deleteMany({ where: { authorId: { in: ids } } });
       const credited = await prisma.task.updateMany({
         where: { completedById: { in: ids } },
         data: { completedById: null },
@@ -45,7 +44,7 @@ async function main() {
       });
       await prisma.user.deleteMany({ where: { id: { in: ids } } });
       console.log(
-        `removed ${ids.length} shot accounts (notes ${notes.count}/${pnotes.count}, ` +
+        `removed ${ids.length} shot accounts (notes ${notes.count}, ` +
           `uncredited ${credited.count}, unassigned ${assigned.count}, unled ${led.count})`,
       );
     } else {

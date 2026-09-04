@@ -18,8 +18,16 @@ export function useDepartmentMutations() {
   const qc = useQueryClient();
 
   const createDepartment = useMutation({
-    mutationFn: (input: { name: string; color: string; icon?: string | null; orderKey?: string }) =>
-      apiPost<DepartmentDTO>("/api/departments", input),
+    mutationFn: (input: {
+      name: string;
+      color: string;
+      icon?: string | null;
+      orderKey?: string;
+      /** "What it does" — shown under the department on People and in its sheet. */
+      description?: string;
+      /** The head of department: an active HOD account, or null for none yet. */
+      hodId?: string | null;
+    }) => apiPost<DepartmentDTO>("/api/departments", input),
     onSettled: () => void qc.invalidateQueries({ queryKey: departmentsKey }),
   });
 
@@ -29,7 +37,7 @@ export function useDepartmentMutations() {
       patch,
     }: {
       id: string;
-      patch: Partial<Pick<DepartmentDTO, "name" | "color" | "icon" | "orderKey">>;
+      patch: Partial<Pick<DepartmentDTO, "name" | "color" | "icon" | "orderKey" | "description" | "hodId">>;
     }) => apiPatch<DepartmentDTO>(`/api/departments/${id}`, patch),
     // Rename / recolour / reorder should feel instant; roll back on failure.
     onMutate: async ({ id, patch }) => {

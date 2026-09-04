@@ -12,7 +12,7 @@ export type FlatRow = {
   /** Leaf-descendant progress used for the "n/m" chip on parents. */
   doneLeaves: number;
   totalLeaves: number;
-  /** True when this task or anything beneath it is BLOCKED. */
+  /** True when this task or anything beneath it is STUCK. */
   blockedBelow: boolean;
   /** The parent's estimated completion, so a row can flag that it lands after
       the thing it belongs to. Null at the root, where there is nothing to
@@ -55,10 +55,9 @@ function isCountableLeaf(node: TreeNode): boolean {
   return node.children.length === 0;
 }
 
-/** Done leaves / total leaves, per the product's rollup rule. Cancelled leaves are excluded. */
+/** Done leaves / total leaves, per the product's rollup rule. */
 export function leafProgress(node: TreeNode): { done: number; total: number } {
   if (isCountableLeaf(node)) {
-    if (node.task.status === "CANCELLED") return { done: 0, total: 0 };
     return { done: node.task.status === "DONE" ? 1 : 0, total: 1 };
   }
   let done = 0;
@@ -71,8 +70,9 @@ export function leafProgress(node: TreeNode): { done: number; total: number } {
   return { done, total };
 }
 
+/** True when this task, or anything beneath it, is STUCK. */
 export function hasBlockedInSubtree(node: TreeNode): boolean {
-  if (node.task.status === "BLOCKED") return true;
+  if (node.task.status === "STUCK") return true;
   return node.children.some(hasBlockedInSubtree);
 }
 
@@ -152,8 +152,7 @@ export function descendantIds(tasks: TaskDTO[], id: string): string[] {
 
 /**
  * True for an ABANDONED row: untitled and carrying nothing the user actually
- * authored — no description, notes, tags, links, deliverable, confirmed date,
- * passed gates, or children.
+ * authored — no description, notes, deliverable, confirmed date, or children.
  *
  * Pressing Enter / "+" / "Add subtask" mints a task immediately, so walking
  * away without naming it leaves a blank row behind; those are discarded when you
@@ -178,15 +177,11 @@ export function isBlankStub(task: TaskDTO, tasks: TaskDTO[]): boolean {
   return (
     task.title.trim() === "" &&
     task.descriptionMd.trim() === "" &&
-    task.tags.length === 0 &&
-    task.links.length === 0 &&
     task.noteCount === 0 &&
     !task.hasDescription &&
     task.deliverableUrl === null &&
     !hasOwnDate &&
-    task.pinnedAt === null &&
     task.completedAt === null &&
-    !task.gates.some((g) => g.done) &&
     !tasks.some((t) => t.parentId === task.id && t.deletedAt === null)
   );
 }
