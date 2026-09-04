@@ -1,5 +1,5 @@
-import { OrgChart } from "@/components/org-chart";
+import { PeoplePage } from "@/components/people/people-page";
 
-export default function PeoplePage() {
-  return <OrgChart />;
+export default function Page() {
+  return <PeoplePage />;
 }

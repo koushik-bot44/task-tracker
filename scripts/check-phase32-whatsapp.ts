@@ -83,7 +83,8 @@ async function main() {
 
   // Import AFTER env is set (module body reads no env; functions read lazily).
   const { sendWhatsAppToUsers } = await import("../lib/whatsapp");
-  const { notifyEvent } = await import("../lib/notify");
+  const { sendMessage } = await import("../lib/notify");
+  const { taskGivenMessage } = await import("../lib/messages");
 
   await teardown();
   const mk = async (label: string, role: "MANAGER" | "TEAM_LEAD" | "RESOURCE", opts: { phone?: string | null; whatsappOptIn?: boolean; disabled?: boolean } = {}) => {
@@ -108,40 +109,40 @@ async function main() {
   const dept = await prisma.department.create({ data: { name: "P32 Dept", color: "#475569", orderKey: "a0", createdById: M.id } });
   const project = await prisma.project.create({ data: { name: "P32 Proj", slug: `${PREFIX}proj`, color: "#2f68f0", orderKey: "a0", ownerId: M.id, departmentId: dept.id } });
 
-  const makeMeeting = async (title: string) => {
-    const ev = await prisma.calendarEvent.create({
-      data: { title, description: "d", date: new Date("2026-09-01T00:00:00Z"), startTime: "10:00", endTime: "11:00", isMeeting: true, projectId: project.id, createdById: M.id },
-    });
-    await prisma.eventAttendee.createMany({ data: [A, B, C, M].map((u) => ({ eventId: ev.id, userId: u.id })) });
-    return ev;
-  };
-  const waLogs = (eventId: string) => prisma.whatsAppLog.count({ where: { refId: eventId } });
-  const bells = (eventId: string) => prisma.notification.count({ where: { data: { path: ["eventId"], equals: eventId } } });
-  const eventRow = (ev: any) => ({ id: ev.id, title: ev.title, date: ev.date, projectId: ev.projectId, createdById: ev.createdById, isMeeting: true, startTime: ev.startTime, endTime: ev.endTime, updatedAt: ev.updatedAt, description: ev.description });
+  // Restructure: the meeting-created WhatsApp is gone by design (meetings are
+  // bell-only; the evening-before message is the reminder). The WhatsApp wiring
+  // is proven on message (a) task_given instead — same engine, same filters.
+  const makeTask = async (title: string) =>
+    prisma.task.create({ data: { title, projectId: project.id, orderKey: "a0", status: "TODO", assigneeId: A.id, givenById: M.id } });
+  const waLogs = (refId: string) => prisma.whatsAppLog.count({ where: { refId } });
+  const bells = (taskId: string) => prisma.notification.count({ where: { type: "task_given", data: { path: ["url"], string_contains: taskId } } });
+  const messageFor = (t: { id: string; title: string }) =>
+    taskGivenMessage({ taskId: t.id, taskTitle: t.title, projectName: project.name, projectSlug: project.slug, giverName: "P32 owner", dueDate: null });
 
-  console.log("\n-- Part A: sender filtering + meeting wiring (mock Twilio = ok) --");
+  console.log("\n-- Part A: sender filtering + task_given wiring (mock Twilio = ok) --");
   mockMode = "ok";
-  const ev1 = await makeMeeting("Sprint kickoff");
-  await notifyEvent(eventRow(ev1), "created", project.name);
-  rec("meeting notify sends WhatsApp to ONLY the reachable attendee (A)", await waLogs(ev1.id), 1);
-  rec("  the WhatsApp row is A's (phone + opt-in)", await prisma.whatsAppLog.count({ where: { refId: ev1.id, userId: A.id } }), 1);
-  rec("  opted-out B got NO WhatsApp", await prisma.whatsAppLog.count({ where: { refId: ev1.id, userId: B.id } }), 0);
-  rec("  no-phone C got NO WhatsApp", await prisma.whatsAppLog.count({ where: { refId: ev1.id, userId: C.id } }), 0);
-  rec("  the BELL still fires to all 3 attendees (creator excluded)", await bells(ev1.id), 3);
-  rec("  WhatsAppLog kind is event_new", (await prisma.whatsAppLog.findFirst({ where: { refId: ev1.id } }))?.kind, "event_new");
+  const t1 = await makeTask("Sprint kickoff prep");
+  const msg1 = messageFor(t1);
+  await sendMessage([A.id, B.id, C.id], msg1);
+  rec("task_given sends WhatsApp to ONLY the reachable person (A)", await waLogs(t1.id), 1);
+  rec("  the WhatsApp row is A's (phone + opt-in)", await prisma.whatsAppLog.count({ where: { refId: t1.id, userId: A.id } }), 1);
+  rec("  opted-out B got NO WhatsApp", await prisma.whatsAppLog.count({ where: { refId: t1.id, userId: B.id } }), 0);
+  rec("  no-phone C got NO WhatsApp", await prisma.whatsAppLog.count({ where: { refId: t1.id, userId: C.id } }), 0);
+  rec("  the BELL still fires to all 3 people", await bells(t1.id), 3);
+  rec("  WhatsAppLog kind is task_given", (await prisma.whatsAppLog.findFirst({ where: { refId: t1.id } }))?.kind, "task_given");
   rec("  the wire uses the ContentSid template, not freeform Body", lastReqBody.includes("ContentSid=HXtesttemplate") && !lastReqBody.includes("Body="), true);
   rec("  ...with ContentVariables + a whatsapp From/To", lastReqBody.includes("ContentVariables=") && lastReqBody.includes("From=whatsapp") && lastReqBody.includes("To=whatsapp"), true);
 
-  console.log("\n-- dedupe: re-notifying the same 'created' sends no second WhatsApp --");
-  await notifyEvent(eventRow(ev1), "created", project.name);
-  rec("re-notify is deduped (still 1 WhatsApp row)", await waLogs(ev1.id), 1);
+  console.log("\n-- dedupe: re-sending the same message sends no second WhatsApp --");
+  await sendMessage([A.id, B.id, C.id], msg1);
+  rec("re-send is deduped (still 1 WhatsApp row)", await waLogs(t1.id), 1);
 
   console.log("\n-- graceful failure: Twilio auth error releases the reservation --");
   mockMode = "auth";
-  const ev2 = await makeMeeting("Retro");
-  await notifyEvent(eventRow(ev2), "created", project.name); // must not throw
-  rec("a failed send leaves NO WhatsAppLog row (reservation released)", await waLogs(ev2.id), 0);
-  rec("  the bell still fired despite the WhatsApp failure", await bells(ev2.id), 3);
+  const t2 = await makeTask("Retro prep");
+  await sendMessage([A.id, B.id, C.id], messageFor(t2)); // must not throw
+  rec("a failed send leaves NO WhatsAppLog row (reservation released)", await waLogs(t2.id), 0);
+  rec("  the bell still fired despite the WhatsApp failure", await bells(t2.id), 3);
 
   console.log("\n-- direct sender: counts + sandbox non-join --");
   mockMode = "ok";

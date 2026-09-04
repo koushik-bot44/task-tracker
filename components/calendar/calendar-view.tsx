@@ -2,58 +2,55 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { DayPanel } from "@/components/calendar/day-panel";
-import { EventModal } from "@/components/calendar/event-modal";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DeadlineMark, EventChip, TaskChip, isReview } from "@/components/calendar/chips";
+import { DayPanel, type DayItems } from "@/components/calendar/day-panel";
 import { ProjectFilter } from "@/components/calendar/project-filter";
-import { EventChip, TaskChip } from "@/components/calendar/chips";
-import { FirstRunHint } from "@/components/first-run-hint";
+import { ScheduleMeetingSheet } from "@/components/calendar/schedule-meeting-sheet";
+import { Button, IconButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import {
-  dayHeading,
-  dayKey,
-  dayKeyOf,
-  isSameMonth,
-  isToday,
-  monthDays,
-  monthLabel,
-  monthMatrix,
-  payloadRange,
-  WEEKDAYS,
-} from "@/lib/calendar";
+import { dayKey, dayKeyOf, isSameMonth, isToday, monthDays, monthLabel, monthMatrix, payloadRange, WEEKDAYS } from "@/lib/calendar";
+import { daysUntil } from "@/lib/dates";
 import { useCalendar } from "@/lib/hooks/use-calendar";
 import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useMe } from "@/lib/hooks/use-users";
 import { isManagerRole } from "@/lib/roles";
-import type { CalendarEventDTO, CalendarTaskDTO } from "@/lib/types";
+import type { CalendarEventDTO } from "@/lib/types";
 
-type DayItems = { tasks: CalendarTaskDTO[]; events: CalendarEventDTO[] };
-const FILTER_KEY = "orbit-calendar-filter";
+const EMPTY: DayItems = { tasks: [], events: [], deadlines: [] };
+const FILTER_KEY = "orbit-calendar-projects";
+const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+type SheetState = { mode: "create"; date: string } | { mode: "edit"; event: CalendarEventDTO };
+
+/**
+ * The calendar: a month of reviews, meetings, project deadlines and task
+ * dates. A grid on a desktop; a strip of days plus the month's agenda on a
+ * phone. Tap a day for the details; managers schedule a meeting from here.
+ */
 export function CalendarView() {
   const reduce = useReducedMotion();
   const today = new Date();
   const [ym, setYm] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selected, setSelected] = useState<string[] | null>(null);
-  const [showGlobal, setShowGlobal] = useState(true);
   const [openDay, setOpenDay] = useState<string | null>(null);
-  const [modal, setModal] = useState<{ mode: "create" | "edit"; event?: CalendarEventDTO; date: string } | null>(null);
+  const [sheet, setSheet] = useState<SheetState | null>(null);
 
   const { data: projects } = useProjects();
   const { data: me } = useMe();
   const { openTask } = usePanelParams();
-  // Creating / editing events is a manager OR admin act (phase 13, peers).
   const isManager = isManagerRole(me?.role);
 
-  // Restore persisted filter once.
+  // The project filter is remembered between visits.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(FILTER_KEY);
       if (raw) {
-        const v = JSON.parse(raw) as { selected: string[] | null; showGlobal: boolean };
-        setSelected(v.selected ?? null);
-        setShowGlobal(v.showGlobal ?? true);
+        const v = JSON.parse(raw) as { selected: string[] | null };
+        setSelected(Array.isArray(v.selected) ? v.selected : null);
       }
     } catch {
       /* ignore */
@@ -61,11 +58,11 @@ export function CalendarView() {
   }, []);
   useEffect(() => {
     try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify({ selected, showGlobal }));
+      localStorage.setItem(FILTER_KEY, JSON.stringify({ selected }));
     } catch {
       /* ignore */
     }
-  }, [selected, showGlobal]);
+  }, [selected]);
 
   const { from, to } = useMemo(() => payloadRange(ym.year, ym.month), [ym]);
   const { data, isLoading } = useCalendar(from, to, selected);
@@ -75,23 +72,35 @@ export function CalendarView() {
     const bucket = (k: string) => {
       let d = m.get(k);
       if (!d) {
-        d = { tasks: [], events: [] };
+        d = { tasks: [], events: [], deadlines: [] };
         m.set(k, d);
       }
       return d;
     };
+    for (const d of data?.deadlines ?? []) bucket(dayKey(d.deadline)).deadlines.push(d);
+    for (const e of data?.events ?? []) bucket(dayKey(e.date)).events.push(e);
     for (const t of data?.tasks ?? []) bucket(dayKey(t.dueDate)).tasks.push(t);
-    for (const e of data?.events ?? []) {
-      if (e.isGlobal && !showGlobal) continue;
-      bucket(dayKey(e.date)).events.push(e);
+    // Reviews first, then by time.
+    for (const d of m.values()) {
+      d.events.sort((a, b) => Number(isReview(b)) - Number(isReview(a)) || (a.startTime ?? "").localeCompare(b.startTime ?? ""));
     }
     return m;
-  }, [data, showGlobal]);
+  }, [data]);
+
+  const dayOf = (k: string): DayItems => buckets.get(k) ?? EMPTY;
+  const countOf = (k: string) => {
+    const d = dayOf(k);
+    return d.events.length + d.deadlines.length + d.tasks.length;
+  };
 
   const grid = useMemo(() => monthMatrix(ym.year, ym.month), [ym]);
   const strip = useMemo(() => monthDays(ym.year, ym.month), [ym]);
   const activeDays = useMemo(
-    () => strip.filter((d) => (buckets.get(dayKeyOf(d))?.tasks.length ?? 0) + (buckets.get(dayKeyOf(d))?.events.length ?? 0) > 0),
+    () =>
+      strip.filter((d) => {
+        const b = buckets.get(dayKeyOf(d));
+        return b ? b.events.length + b.deadlines.length + b.tasks.length > 0 : false;
+      }),
     [strip, buckets],
   );
 
@@ -99,67 +108,67 @@ export function CalendarView() {
     const d = new Date(ym.year, ym.month + delta, 1);
     setYm({ year: d.getFullYear(), month: d.getMonth() });
   };
+  const onThisMonth = ym.year === today.getFullYear() && ym.month === today.getMonth();
   const goToday = () => setYm({ year: today.getFullYear(), month: today.getMonth() });
 
-  const dayOf = (k: string): DayItems => buckets.get(k) ?? { tasks: [], events: [] };
+  // On a phone the strip opens with today in view.
+  const todayRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const el = todayRef.current;
+    const rail = el?.parentElement;
+    if (!el || !rail) return;
+    rail.scrollLeft = el.offsetLeft - rail.clientWidth / 2 + el.clientWidth / 2;
+  }, [ym]);
+
+  const fade = {
+    initial: reduce ? false : { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  };
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <FirstRunHint id="calendar">
-        Task due-dates and meetings, together. {isManager ? "Click a day to add an event." : "Click a day for details."}
-      </FirstRunHint>
-
-      {/* ── Controls ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => step(-1)} aria-label="Previous month" className="press grid h-9 w-9 place-items-center rounded-card text-muted hover:bg-hover hover:text-ink">
-            <ChevronLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
-          </button>
-          <h1 className="min-w-[10rem] text-center font-display text-page font-semibold text-ink sm:min-w-[12rem]">
-            {monthLabel(ym.year, ym.month)}
-          </h1>
-          <button type="button" onClick={() => step(1)} aria-label="Next month" className="press grid h-9 w-9 place-items-center rounded-card text-muted hover:bg-hover hover:text-ink">
-            <ChevronRight className="h-4 w-4" strokeWidth={2} aria-hidden />
-          </button>
+    <div className="mx-auto w-full max-w-content px-4 pb-8 pt-4 lg:max-w-[1120px]">
+      {/* ── Month, Today, Schedule ─────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center">
+          <IconButton label="Previous month" onClick={() => step(-1)}>
+            <ChevronLeft className="h-5 w-5" strokeWidth={2} aria-hidden />
+          </IconButton>
+          <h2 className="min-w-[10rem] text-center text-section font-semibold text-ink">{monthLabel(ym.year, ym.month)}</h2>
+          <IconButton label="Next month" onClick={() => step(1)}>
+            <ChevronRight className="h-5 w-5" strokeWidth={2} aria-hidden />
+          </IconButton>
         </div>
-        <button type="button" onClick={goToday} className="press h-9 rounded-card border border-line px-3 text-sm text-ink">
-          Today
-        </button>
+        {onThisMonth ? null : (
+          <Button variant="secondary" onClick={goToday}>
+            Today
+          </Button>
+        )}
         {isManager ? (
-          <button
-            type="button"
-            onClick={() => setModal({ mode: "create", date: dayKeyOf(today) })}
-            className="press ml-auto flex h-9 items-center gap-1.5 rounded-card bg-primary px-3 text-sm font-medium text-on-primary"
+          <Button
+            variant="primary"
+            icon={<Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden />}
+            className="ml-auto w-full sm:w-auto"
+            onClick={() => setSheet({ mode: "create", date: dayKeyOf(today) })}
           >
-            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            Event
-          </button>
+            Schedule meeting
+          </Button>
         ) : null}
       </div>
 
       <div className="mt-3">
-        <ProjectFilter
-          projects={projects ?? []}
-          selected={selected}
-          onSelected={setSelected}
-          showGlobal={showGlobal}
-          onShowGlobal={setShowGlobal}
-        />
+        <ProjectFilter projects={projects ?? []} selected={selected} onSelected={setSelected} />
       </div>
 
-      {/* ── Month grid (desktop) ─────────────────────────────────────────── */}
-      <div className="mt-4 hidden md:block">
-        {/* Keyed by month so a step re-mounts the grid and it fades+rises in —
-            reduced-motion falls straight to the final frame. */}
+      {/* ── Month grid (desktop; a tablet next to the rail gets the agenda) ─ */}
+      <div className="mt-4 hidden lg:block">
         <motion.div
           key={`grid-${ym.year}-${ym.month}`}
-          initial={reduce ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="grid grid-cols-7 gap-px overflow-hidden rounded-card border border-line bg-line"
+          {...fade}
+          className="grid grid-cols-7 gap-px overflow-hidden rounded-card bg-line shadow-e1"
         >
           {WEEKDAYS.map((w) => (
-            <div key={w} className="bg-surface px-2 py-2 text-center text-micro font-semibold uppercase tracking-wide text-muted">
+            <div key={w} className="bg-surface px-2 py-2 text-center text-micro font-semibold uppercase tracking-wider text-muted">
               {w}
             </div>
           ))}
@@ -167,52 +176,41 @@ export function CalendarView() {
             const k = dayKeyOf(d);
             const items = dayOf(k);
             const marks = [
-              ...items.events.map((e) => ({ kind: "event" as const, e })),
-              ...items.tasks.map((t) => ({ kind: "task" as const, t })),
+              ...items.deadlines.map((x) => ({ key: `d-${x.projectId}`, node: <DeadlineMark deadline={x} compact /> })),
+              ...items.events.map((x) => ({ key: `e-${x.id}`, node: <EventChip event={x} compact /> })),
+              ...items.tasks.map((x) => ({ key: `t-${x.id}`, node: <TaskChip task={x} compact /> })),
             ];
             const shown = marks.slice(0, 3);
             const more = marks.length - shown.length;
             const inMonth = isSameMonth(d, ym.year, ym.month);
             const todayCell = isToday(d);
-            const weekend = d.getDay() === 0 || d.getDay() === 6;
             return (
               <button
                 key={k}
                 type="button"
                 data-day={k}
                 onClick={() => setOpenDay(k)}
+                aria-label={`${WEEKDAY_LONG[d.getDay()]} ${d.getDate()}${marks.length ? ` · ${marks.length} on this day` : ""}`}
                 className={cn(
-                  "flex min-h-[7rem] flex-col gap-1 p-2 text-left align-top transition-colors duration-150 hover:bg-hover",
-                  // Today owns the cell (soft tint); out-of-month and in-month
-                  // weekends recede to the page bg; ordinary weekdays are white.
-                  todayCell
-                    ? "bg-primary-soft"
-                    : !inMonth
-                      ? "bg-bg text-muted"
-                      : weekend
-                        ? "bg-bg"
-                        : "bg-surface",
+                  "press flex min-h-[7.5rem] flex-col items-start gap-1 p-2 text-left",
+                  inMonth ? "bg-surface" : "bg-bg",
                 )}
               >
                 <span
                   className={cn(
-                    "grid h-6 w-6 shrink-0 place-items-center rounded-full text-micro font-semibold tabular-nums",
+                    "grid h-7 w-7 shrink-0 place-items-center rounded-full text-micro font-semibold tabular-nums",
                     todayCell ? "bg-primary text-on-primary" : inMonth ? "text-ink" : "text-muted",
                   )}
                 >
                   {d.getDate()}
                 </span>
-                <span className="flex min-w-0 flex-col gap-1">
-                  {shown.map((m, i) => (
-                    <span key={i} className="pointer-events-none flex min-w-0">
-                      {m.kind === "event" ? <EventChip event={m.e} compact /> : <TaskChip task={m.t} compact />}
+                <span className="flex w-full min-w-0 flex-col gap-1">
+                  {shown.map((m) => (
+                    <span key={m.key} className="pointer-events-none flex min-w-0">
+                      {m.node}
                     </span>
                   ))}
-                  {more > 0 ? (
-                    <span className="w-fit rounded-chip bg-hover px-1.5 py-0.5 text-[11px] font-medium text-muted">
-                      +{more} more
-                    </span>
-                  ) : null}
+                  {more > 0 ? <span className="px-1 text-micro font-medium text-muted">+{more} more</span> : null}
                 </span>
               </button>
             );
@@ -220,70 +218,63 @@ export function CalendarView() {
         </motion.div>
       </div>
 
-      {/* ── Agenda (mobile) ──────────────────────────────────────────────── */}
-      <div className="mt-4 md:hidden">
-        <div className="flex gap-1 overflow-x-auto pb-2">
+      {/* ── Strip + agenda (phone and tablet) ──────────────────────────── */}
+      <div className="mt-4 lg:hidden">
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
           {strip.map((d) => {
             const k = dayKeyOf(d);
-            const items = dayOf(k);
-            const n = items.tasks.length + items.events.length;
+            const n = countOf(k);
+            const todayCell = isToday(d);
             return (
               <button
                 key={k}
+                ref={todayCell ? todayRef : undefined}
                 type="button"
+                data-day={k}
                 onClick={() => setOpenDay(k)}
+                aria-label={`${WEEKDAY_LONG[d.getDay()]} ${d.getDate()}${n ? ` · ${n} on this day` : ""}`}
                 className={cn(
-                  "flex h-14 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-card border text-center",
-                  isToday(d) ? "border-primary bg-primary-soft" : "border-line bg-surface",
+                  "press flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-card",
+                  todayCell ? "bg-primary text-on-primary" : "bg-surface text-ink shadow-e1",
                 )}
               >
-                <span className="text-[10px] uppercase text-muted">{WEEKDAYS[(d.getDay() + 6) % 7]}</span>
-                <span className={cn("text-sm font-semibold tabular-nums", isToday(d) ? "text-primary-ink" : "text-ink")}>
-                  {d.getDate()}
-                </span>
-                <span className={cn("h-1.5 w-1.5 rounded-full", n > 0 ? "bg-primary" : "bg-transparent")} aria-hidden />
+                <span className={cn("text-micro", todayCell ? "text-on-primary" : "text-muted")}>{WEEKDAYS[(d.getDay() + 6) % 7]}</span>
+                <span className="text-row font-semibold tabular-nums">{d.getDate()}</span>
+                <span className={cn("h-1.5 w-1.5 rounded-full", n > 0 ? (todayCell ? "bg-on-primary" : "bg-primary") : "bg-transparent")} aria-hidden />
               </button>
             );
           })}
         </div>
 
-        <motion.div
-          key={`agenda-${ym.year}-${ym.month}`}
-          initial={reduce ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-3 space-y-2.5"
-        >
+        <motion.div key={`agenda-${ym.year}-${ym.month}`} {...fade} className="mt-3 space-y-3">
           {isLoading ? (
-            <div className="h-24 animate-pulse rounded-card bg-hover" aria-hidden />
+            <Skeleton rows={3} />
           ) : activeDays.length === 0 ? (
-            <p className="card p-8 text-center text-sm text-muted">Nothing scheduled this month.</p>
+            <EmptyState title="Nothing this month" body="Meetings, reviews, deadlines and task dates will show up here." />
           ) : (
             activeDays.map((d) => {
-              const items = dayOf(dayKeyOf(d));
-              const n = items.events.length + items.tasks.length;
+              const k = dayKeyOf(d);
+              const items = dayOf(k);
+              const ahead = daysUntil(k);
               return (
-                <button
-                  key={dayKeyOf(d)}
-                  type="button"
-                  onClick={() => setOpenDay(dayKeyOf(d))}
-                  className="block w-full rounded-card border border-line bg-surface p-3 text-left transition-colors duration-150 hover:bg-hover"
-                >
+                <button key={k} type="button" onClick={() => setOpenDay(k)} className="card press block w-full p-4 text-left">
                   <div className="mb-2 flex items-center gap-2">
-                    <p className="text-sm font-semibold text-ink">{dayHeading(d)}</p>
-                    {isToday(d) ? (
-                      <span className="rounded-chip bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-ink">
-                        Today
-                      </span>
+                    <p className="text-row font-semibold text-ink">
+                      {WEEKDAY_LONG[d.getDay()]} {d.getDate()}
+                    </p>
+                    {ahead === 0 || ahead === 1 ? (
+                      <span className="rounded-chip bg-primary-soft px-2 py-0.5 text-micro font-semibold text-primary-ink">{ahead === 0 ? "Today" : "Tomorrow"}</span>
                     ) : null}
-                    <span className="ml-auto text-micro tabular-nums text-muted">{n}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {items.events.map((e) => (
-                      <EventChip key={e.id} event={e} />
+                    {items.deadlines.map((x) => (
+                      <DeadlineMark key={x.projectId} deadline={x} />
                     ))}
-                    {items.tasks.map((t) => (
-                      <TaskChip key={t.id} task={t} />
+                    {items.events.map((x) => (
+                      <EventChip key={x.id} event={x} />
+                    ))}
+                    {items.tasks.map((x) => (
+                      <TaskChip key={x.id} task={x} />
                     ))}
                   </div>
                 </button>
@@ -293,33 +284,28 @@ export function CalendarView() {
         </motion.div>
       </div>
 
-      {openDay ? (
-        <DayPanel
-          heading={dayHeading(new Date(`${openDay}T00:00:00`))}
-          tasks={dayOf(openDay).tasks}
-          events={dayOf(openDay).events}
-          projects={projects ?? []}
-          isManager={Boolean(isManager)}
-          onClose={() => setOpenDay(null)}
-          onOpenTask={(id) => {
-            setOpenDay(null);
-            openTask(id);
-          }}
-          onCreateEvent={() => setModal({ mode: "create", date: openDay })}
-          onEditEvent={(event) => setModal({ mode: "edit", event, date: event.date.slice(0, 10) })}
-        />
-      ) : null}
+      <DayPanel
+        day={openDay}
+        items={openDay ? dayOf(openDay) : EMPTY}
+        projects={projects ?? []}
+        isManager={Boolean(isManager)}
+        onClose={() => setOpenDay(null)}
+        onOpenTask={(id) => {
+          setOpenDay(null);
+          openTask(id);
+        }}
+        onEditMeeting={(event) => {
+          setOpenDay(null);
+          setSheet({ mode: "edit", event });
+        }}
+      />
 
-      {modal ? (
-        <EventModal
-          open
-          mode={modal.mode}
-          event={modal.event}
-          defaultDate={modal.date}
-          projects={projects ?? []}
-          onClose={() => setModal(null)}
-        />
-      ) : null}
+      <ScheduleMeetingSheet
+        open={sheet !== null}
+        onClose={() => setSheet(null)}
+        meeting={sheet?.mode === "edit" ? sheet.event : undefined}
+        defaultDate={sheet?.mode === "create" ? sheet.date : undefined}
+      />
     </div>
   );
 }

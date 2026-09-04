@@ -17,7 +17,8 @@ import { generateTempPassword, hashPassword } from "../lib/password";
 
 const BASE = "http://localhost:3000";
 const PREFIX = "p23-";
-const CRON = "phase23test"; // must match the dev server's CRON_SECRET for this run
+// Must match the dev server's CRON_SECRET (.env.local carries the local one).
+const CRON = process.env.CRON_SECRET ?? "phase23test";
 const prisma = new PrismaClient();
 let pass = 0, fail = 0;
 function rec(name: string, got: unknown, want: unknown) {

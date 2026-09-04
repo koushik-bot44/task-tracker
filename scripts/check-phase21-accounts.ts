@@ -64,7 +64,8 @@ async function main() {
   console.log("── create/invite: managers AND admins create accounts ──");
   rec("manager creates a DEVELOPER -> 201", (await createUser(mgr1, "RESOURCE", "d1")).status, 201);
   rec("manager creates a TEAM_LEAD -> 201", (await createUser(mgr1, "TEAM_LEAD", "l1")).status, 201);
-  rec("manager creates a MANAGER -> 201", (await createUser(mgr1, "MANAGER", "m1")).status, 201);
+  // Phase 48 rank rule: a manager creates only BELOW their own level.
+  rec("manager creates a MANAGER -> 403 (rank rule)", (await createUser(mgr1, "MANAGER", "m1")).status, 403);
   rec("manager creates an ADMIN -> 403", (await createUser(mgr1, "ADMIN", "a1")).status, 403);
   rec("admin creates a DEVELOPER -> 201", (await createUser(admin, "RESOURCE", "d2")).status, 201);
   rec("lead creates a developer -> 403 (not an account admin)", (await createUser(lead, "RESOURCE", "d3")).status, 403);
@@ -79,12 +80,12 @@ async function main() {
   rec("manager re-enables the developer -> 200", (await call(mgr1, "PATCH", `/api/users/${dev.id}`, { disable: false })).status, 200);
   rec("manager disables a team lead -> 200", (await call(mgr1, "PATCH", `/api/users/${lead.id}`, { disable: true })).status, 200);
   await call(mgr1, "PATCH", `/api/users/${lead.id}`, { disable: false });
-  rec("manager disables ANOTHER manager -> 200 (not last)", (await call(mgr1, "PATCH", `/api/users/${mgr2.id}`, { disable: true })).status, 200);
+  rec("manager disables ANOTHER manager -> 403 (rank rule: peers are managed from HOD up)", (await call(mgr1, "PATCH", `/api/users/${mgr2.id}`, { disable: true })).status, 403);
   await call(mgr1, "PATCH", `/api/users/${mgr2.id}`, { disable: false });
   const rd = await call(mgr1, "PATCH", `/api/users/${dev.id}`, { reset: true });
   rec("manager resets a developer password -> 200 + tempPassword", rd.status === 200 && Boolean(rd.json?.tempPassword), true);
   rec("manager resets a lead password -> 200", (await call(mgr1, "PATCH", `/api/users/${lead.id}`, { reset: true })).status, 200);
-  rec("manager resets a manager password -> 200", (await call(mgr1, "PATCH", `/api/users/${mgr2.id}`, { reset: true })).status, 200);
+  rec("manager resets a manager password -> 403 (rank rule)", (await call(mgr1, "PATCH", `/api/users/${mgr2.id}`, { reset: true })).status, 403);
   rec("manager changes a dev's role dev->lead -> 200", (await call(mgr1, "PATCH", `/api/users/${dev.id}`, { role: "TEAM_LEAD" })).status, 200);
   await call(mgr1, "PATCH", `/api/users/${dev.id}`, { role: "RESOURCE" });
 

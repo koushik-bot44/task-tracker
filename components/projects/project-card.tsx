@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { DeadlineChip } from "@/components/ui/chip";
+import { Chip, DeadlineChip } from "@/components/ui/chip";
 import { Faces } from "@/components/ui/face";
 import { cn } from "@/lib/cn";
 import { dateWord } from "@/lib/dates";
@@ -61,7 +61,7 @@ export function ProjectCard({ project }: { project: ProjectDTO }) {
           </div>
 
           <div className="mt-3 flex items-center gap-3">
-            <DeadlineChip deadline={project.deadline} done={done} />
+            {done && !project.deadline ? <Chip tone="ok">Done</Chip> : <DeadlineChip deadline={project.deadline} done={done} />}
             <span className="min-w-0 flex-1 truncate text-micro text-muted">
               {project.nextMilestone
                 ? `Next: ${project.nextMilestone.name} · ${dateWord(project.nextMilestone.reviewDate)}`

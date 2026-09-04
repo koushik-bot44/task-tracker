@@ -25,8 +25,8 @@ export function TodayPage() {
   const [giving, setGiving] = useState(false);
   const canGive = Boolean(me) && !isAdminRole(me?.role);
 
+  // Bottom padding keeps the last card clear of the floating + button.
   return (
-    {/* Bottom padding keeps the last card clear of the floating + button. */}
     <div className="mx-auto w-full max-w-content px-4 pb-20 pt-4 md:pb-24">
       {isLoading ? (
         <div className="space-y-6" aria-busy>

@@ -1,0 +1,396 @@
+=== scripts/check-phase21-accounts.ts
+── create/invite: managers AND admins create accounts ──
+PASS  manager creates a DEVELOPER -> 201                       got 201, want 201
+PASS  manager creates a TEAM_LEAD -> 201                       got 201, want 201
+FAIL  manager creates a MANAGER -> 201                         got 403, want 201
+PASS  manager creates an ADMIN -> 403                          got 403, want 403
+PASS  admin creates a DEVELOPER -> 201                         got 201, want 201
+PASS  lead creates a developer -> 403 (not an account admin)   got 403, want 403
+
+── single-admin cap: exactly one admin ──
+PASS  admin creates a 2nd ADMIN -> 409 (cap)                   got 409, want 409
+PASS  manager promotes a dev TO admin -> 403 (only admin grants admin) got 403, want 403
+PASS  admin promotes a dev TO admin -> 409 (cap)               got 409, want 409
+
+── manager disable / enable / reset / role (non-admin targets) ──
+PASS  manager disables a developer -> 200                      got 200, want 200
+PASS  manager re-enables the developer -> 200                  got 200, want 200
+PASS  manager disables a team lead -> 200                      got 200, want 200
+FAIL  manager disables ANOTHER manager -> 200 (not last)       got 403, want 200
+PASS  manager resets a developer password -> 200 + tempPassword got true, want true
+PASS  manager resets a lead password -> 200                    got 200, want 200
+FAIL  manager resets a manager password -> 200                 got 403, want 200
+PASS  manager changes a dev's role dev->lead -> 200            got 200, want 200
+
+── the admin account is off-limits to a manager ──
+PASS  manager disables the admin -> 403                        got 403, want 403
+PASS  manager resets the admin -> 403                          got 403, want 403
+PASS  manager re-roles the admin -> 403                        got 403, want 403
+PASS  manager deletes the admin -> 403                         got 403, want 403
+
+── self / sole-admin guards ──
+PASS  manager disables self -> 403                             got 403, want 403
+PASS  manager deletes self -> 403                              got 403, want 403
+PASS  admin disables self -> 403 (no one disables their own account) got 403, want 403
+
+── the cap predicate: COUNT(role=ADMIN, any status) >= 1 ──
+PASS  an admin already exists, so the cap is active            got true, want true
+PASS  teardown: no p21- residue                                got 0, want 0
+FAIL  teardown: admin count restored (no stray admin)          got 4, want 5
+
+23 passed, 4 failed
+exit 1
+=== scripts/check-last-manager-guard.ts
+PASS  admin disables self -> 403 (pre-flight)              got 403, want 403
+SKIP destructive last-manager assertions: 5 active managers present (need exactly 1 to be sure it's the last).
+
+1 passed, 0 failed
+exit 0
+=== scripts/check-password-change.ts
+PASS  wrong current password -> 403 (not 401)              got 403, want 403
+PASS    message is preserved (not 'Unauthorized')          got "That is not your current password.", want "That is not your current password."
+PASS  new password < 8 chars -> 400                        got 400, want 400
+PASS  correct current + valid new -> 200                   got 200, want 200
+PASS  old password no longer signs in -> 401               got 401, want 401
+PASS  new password signs in -> 200                         got 200, want 200
+PASS  no session -> 401 (real auth failure unchanged)      got 401, want 401
+PASS  teardown: no pw- residue                             got 0, want 0
+
+8 passed, 0 failed
+exit 0
+=== scripts/check-phase23-snooze.ts
+PASS  n1 in active items                                       got true, want true
+PASS  n1 counted in unread                                     got true, want true
+PASS  snoozed section empty                                    got 0, want 0
+PASS  B snoozes A's notification -> 404                        got 404, want 404
+PASS  A snoozes to a PAST time -> 400                          got 400, want 400
+PASS  A snoozes n1 to +1h -> 200                               got 200, want 200
+PASS  n1 gone from active items                                got false, want false
+PASS  n1 no longer counted in unread                           got 0, want 0
+PASS  n1 present in snoozed section                            got true, want true
+PASS  A unsnoozes n1 (until:null) -> 200                       got 200, want 200
+PASS  n1 back in active items                                  got true, want true
+PASS  snoozed empty again                                      got 0, want 0
+PASS  past-snoozed n1 is active again in items                 got true, want true
+PASS  past-snoozed n1 not in the snoozed section               got false, want false
+PASS  cron with no auth -> 401                                 got 401, want 401
+PASS  cron with wrong secret -> 401                            got 401, want 401
+FAIL  cron with correct secret -> 200                          got 401, want 200
+FAIL  cron reports at least one woken                          got false, want true
+FAIL  woken n2: snoozedUntil cleared                           got "2026-09-04T08:18:55.434Z", want null
+FAIL  woken n2: readAt reset (unread again)                    got "2026-09-04T08:19:55.434Z", want null
+PASS  future n3: NOT woken (still snoozed)                     got true, want true
+FAIL  second cron pass wakes 0 (no repeat)                     got undefined, want 0
+FAIL  n2 remains cleared after 2nd pass                        got "2026-09-04T08:18:55.434Z", want null
+PASS  teardown: no p23- residue                                got 0, want 0
+
+18 passed, 6 failed
+exit 1
+=== scripts/check-phase32-whatsapp.ts
+
+-- Part A: sender filtering + meeting wiring (mock Twilio = ok) --
+FAIL  meeting notify sends WhatsApp to ONLY the reachable attendee (A) got 0
+FAIL    the WhatsApp row is A's (phone + opt-in)                   got 0
+PASS    opted-out B got NO WhatsApp                                got 0
+PASS    no-phone C got NO WhatsApp                                 got 0
+PASS    the BELL still fires to all 3 attendees (creator excluded) got 3
+FAIL    WhatsAppLog kind is event_new                              got undefined
+FAIL    the wire uses the ContentSid template, not freeform Body   got false
+FAIL    ...with ContentVariables + a whatsapp From/To              got false
+
+-- dedupe: re-notifying the same 'created' sends no second WhatsApp --
+FAIL  re-notify is deduped (still 1 WhatsApp row)                  got 0
+
+-- graceful failure: Twilio auth error releases the reservation --
+PASS  a failed send leaves NO WhatsAppLog row (reservation released) got 0
+PASS    the bell still fired despite the WhatsApp failure          got 3
+
+-- direct sender: counts + sandbox non-join --
+PASS  sendWhatsAppToUsers filters to reachable only: {sent:1,skipped:0,failed:0} got {"sent":1,"skipped":0,"failed":0}
+prisma:error 
+Invalid `prisma.whatsAppLog.create()` invocation in
+/Users/saigogineni/Documents/spire/Task_Tracker-main/lib/whatsapp.ts:167:30
+
+  164 ): Promise<{ sent: boolean; reason?: WhatsAppReason; code?: number; detail?: string }> {
+  165   const dedupeKey = `${opts.kind}:${opts.refId}:${userId}${opts.keyExtra ? `:${opts.keyExtra}` : ""}`;
+  166   try {
+→ 167     await prisma.whatsAppLog.create(
+Unique constraint failed on the fields: (`dedupeKey`)
+PASS    a repeat is skipped (dedupe): {sent:0,skipped:1,failed:0}  got {"sent":0,"skipped":1,"failed":0}
+[whatsapp] recipient hasn't joined the WhatsApp sandbox (Twilio 63015): whatsapp:+911111111111
+PASS    sandbox non-join is a graceful failure: {sent:0,skipped:0,failed:1} got {"sent":0,"skipped":0,"failed":1}
+PASS    ...and its reservation was released                        got 0
+
+-- Part B: self phone/opt-in PATCH + endpoint gating (TWILIO unset on the app) --
+PASS  dev sets OWN phone -> 200                                    got 200
+PASS    it was stored                                              got "+919876500000"
+PASS  dev sets an INVALID phone -> 400                             got 400
+PASS  dev toggles OWN whatsappOptIn -> 200                         got 200
+PASS    it was stored                                              got false
+PASS  dev sets ANOTHER user's phone -> 403 (not an account admin)  got 403
+PASS  manager sets another user's phone -> 200                     got 200
+PASS    it was stored                                              got "+919000000000"
+PASS  dev hits the WhatsApp test endpoint -> 403 (manager-only)    got 403
+PASS  manager hits it, but TWILIO unset on the app -> 503 (config-gated) got 503
+PASS  teardown: no p32- residue                                    got 0
+
+20 passed, 6 failed
+exit 1
+=== scripts/check-phase33-personal.ts
+
+-- owner builds their private structure --
+PASS  dev A creates a personal department -> 201                     got 201
+PASS  dev A creates a personal project -> 201                        got 201
+PASS  dev A creates a private task -> 201                            got 201
+PASS    it is private, owned by A, in A's personal project           got [true,"cmtmoo9nx00000d7fyv50u8av","cmtmooa5v004f0dusjn52bfns"]
+PASS    a subtask inherits the project + owner, no label             got [true,"cmtmoo9nx00000d7fyv50u8av","cmtmooa5v004f0dusjn52bfns"]
+PASS  dev A sees both in their private list                          got 2
+PASS  dev A renames their department -> 200                          got 200
+
+-- ISOLATION: no other role can see or touch A's personal space --
+PASS    RESOURCE does NOT see A's dept in their own list             got false
+PASS    RESOURCE PATCH A's dept -> 404                               got 404
+PASS    RESOURCE DELETE A's dept -> 404                              got 404
+PASS    RESOURCE PATCH A's project -> 404                            got 404
+PASS    RESOURCE DELETE A's project -> 404                           got 404
+PASS    RESOURCE GET A's private task -> 404                         got 404
+PASS    RESOURCE PATCH A's private task -> 404                       got 404
+PASS    RESOURCE private list excludes A's task                      got false
+PASS    TEAM_LEAD does NOT see A's dept in their own list            got false
+PASS    TEAM_LEAD PATCH A's dept -> 404                              got 404
+PASS    TEAM_LEAD DELETE A's dept -> 404                             got 404
+PASS    TEAM_LEAD PATCH A's project -> 404                           got 404
+PASS    TEAM_LEAD DELETE A's project -> 404                          got 404
+PASS    TEAM_LEAD GET A's private task -> 404                        got 404
+PASS    TEAM_LEAD PATCH A's private task -> 404                      got 404
+PASS    TEAM_LEAD private list excludes A's task                     got false
+PASS    MANAGER does NOT see A's dept in their own list              got false
+PASS    MANAGER PATCH A's dept -> 404                                got 404
+PASS    MANAGER DELETE A's dept -> 404                               got 404
+PASS    MANAGER PATCH A's project -> 404                             got 404
+PASS    MANAGER DELETE A's project -> 404                            got 404
+PASS    MANAGER GET A's private task -> 404                          got 404
+PASS    MANAGER PATCH A's private task -> 404                        got 404
+PASS    MANAGER private list excludes A's task                       got false
+PASS    ADMIN does NOT see A's dept in their own list                got false
+PASS    ADMIN PATCH A's dept -> 404                                  got 404
+PASS    ADMIN DELETE A's dept -> 404                                 got 404
+PASS    ADMIN PATCH A's project -> 404                               got 404
+PASS    ADMIN DELETE A's project -> 404                              got 404
+PASS    ADMIN GET A's private task -> 404                            got 404
+PASS    ADMIN PATCH A's private task -> 404                          got 404
+PASS    ADMIN private list excludes A's task                         got false
+
+-- NO leakage into any project query / aggregate --
+PASS  project-task count (isPrivate=false) unchanged by the private tasks got 148
+PASS  dev A's ?view=all excludes their own private task              got false
+PASS  lead's ?view=all excludes A's private task                     got false
+
+-- Prompt endpoint: DEVELOPER-only + caller-scoped --
+PASS  developer A prompts into their own project -> 201              got 201
+PASS  lead prompts -> 403                                            got 403
+PASS  manager prompts -> 403                                         got 403
+PASS  admin prompts -> 403                                           got 403
+PASS  developer B prompts into A's project -> 404 (not B's)          got 404
+
+-- delete rules --
+PASS  delete a NON-EMPTY department -> 409 (blocked)                 got 409
+PASS  delete the project -> 200                                      got 200
+PASS    the project's tasks went with it                             got false
+PASS    no orphan private tasks left for A                           got 0
+PASS  delete the now-empty department -> 200                         got 200
+PASS  teardown: no p33- residue                                      got 0
+
+53 passed, 0 failed
+exit 0
+=== scripts/check-phase35-routine.ts
+
+-- Routine flow (manager sets up the segmented grid) --
+PASS  manager creates a person -> 201                              got 201
+PASS  one person per manager (2nd -> 409)                          got 409
+PASS  GET overview -> 200 with a seeded grid (4 default segments)  got [200,4]
+PASS    the week has 7 day-keys (Mon..Sun)                         got 7
+PASS  add a segment -> 201                                         got 201
+PASS  add a habit (target 3) -> 201                                got [201,3]
+PASS  set the habit target to 5 -> 200                             got 200
+PASS  mark a habit cell MET -> 200                                 got 200
+PASS  mark another cell MISSED -> 200                              got 200
+PASS  mark a cell NA -> 200                                        got 200
+PASS    overview reflects the MET mark + weekly tally              got ["MET",1]
+PASS  clear a cell (value null) -> 200                             got 200
+PASS  add a non-negotiable -> 201                                  got 201
+PASS  manager schedules it required today -> 200                   got 200
+PASS  log a weight entry -> 201                                    got [201,42.5]
+PASS  edit the weight entry -> 200                                 got 200
+PASS  assign a task -> 201                                         got 201
+PASS  overview shows the rule scheduled today (required, not done) + weight + task got [1,false,43,true]
+
+-- PERSON login: sees ONLY tasks, checks one off --
+PASS  person GET their own screen -> 200                           got 200
+PASS    it shows their name + the assigned task                    got ["Aarav",1,"Finish homework"]
+PASS    person sees grid + scheduled rule's day (required, not done), no weight/score got [true,null,false,false,false]
+PASS    person side carries NO score / missed count (manager-only) got [false,false]
+PASS  person checks the task done -> 200                           got 200
+PASS  manager sees the person's check in the overview              got true
+
+-- THE PERSON WALL: every work API -> 403 (and pages redirect) --
+PASS  person is 403 on ALL 52 non-person API probes                got true
+PASS  person hitting a work PAGE (/) is redirected (not 200)       got true
+PASS  person CAN reach its own routine API -> 200                  got 200
+PASS  person touching ANOTHER task -> 404                          got 404
+
+-- PERSON excluded from every work surface --
+PASS  the person account is ABSENT from People                     got false
+PASS  People cannot mint a PERSON (role PERSON -> 403)             got 403
+
+-- Routine is MANAGER-only + each manager sees only THEIR person --
+PASS  lead GET /api/routine -> 403                                 got 403
+PASS  developer GET /api/routine -> 403                            got 403
+PASS  admin GET /api/routine -> 403                                got 403
+PASS  another manager (no person) -> 200 with person:null          got [200,null]
+PASS    ...and cannot see M's habit (mark it) -> 404               got 404
+PASS    ...and cannot log weight (no person of their own) -> 404   got 404
+
+-- person edit + remove (cascade) --
+PASS  manager resets the person's password -> 200                  got 200
+PASS    the person can log in with the new password                got true
+PASS  manager removes the person -> 200                            got 200
+PASS    the person login account is gone                           got true
+PASS    ALL routine data cascaded (segments/weight/tasks 0)        got [0,0,0]
+PASS  teardown: no p35- residue                                    got 0
+
+42 passed, 0 failed
+exit 0
+=== scripts/check-phase36-weight.ts
+PASS  manager creates person -> 201                                  got 201
+
+-- Monthly aggregation (latest-in-month per IST month) --
+PASS  overview returns monthlyWeights                                got true
+PASS    one point per month, ascending                               got ["2026-06","2026-07","2026-08"]
+PASS    representative = latest-in-month                             got [60.5,61.2,60.8]
+PASS    recent `weights` still lists every entry                     got 6
+
+-- Weight endpoints: MANAGER-only + own-person-scoped --
+PASS  own manager logs weight -> 201                                 got 201
+PASS  own manager edits it -> 200                                    got 200
+PASS  PERSON POST /api/routine/weight -> 403                         got 403
+PASS  PERSON DELETE /api/routine/weight/:id -> 403                   got 403
+PASS  lead POST weight -> 403                                        got 403
+PASS  developer POST weight -> 403                                   got 403
+PASS  admin POST weight -> 403                                       got 403
+PASS  another manager DELETE M's weight entry -> 404                 got 404
+PASS  another manager PATCH M's weight entry -> 404                  got 404
+
+-- Weight is ABSENT from the person login + non-routine surfaces --
+PASS  person login endpoint omits weight (no weightKg / weights key) got [false,false,false]
+PASS    /api/overview returns no weight                              got false
+PASS    /api/users returns no weight                                 got false
+PASS    /api/users/me returns no weight                              got false
+PASS    /api/calendar returns no weight                              got false
+PASS    /api/meetings returns no weight                              got false
+PASS    /api/review returns no weight                                got false
+PASS  teardown: no p36- residue                                      got 0
+
+22 passed, 0 failed
+exit 0
+=== scripts/check-phase37-person-habits.ts
+
+-- The person's /kid view: grid + scheduled rules to mark, NO score/weight/missed --
+PASS  kid GET -> 200 with segments + week + tasks                      got [200,true,true,true]
+PASS    segments carry habits with marks                               got [true,true]
+PASS    NO score/targets in the person payload                         got [false,false,false]
+PASS    NO weight in the person payload                                got [false,false,false]
+PASS    scheduled rule present with its required day (not done), NO missed count got [true,true,false,false]
+
+-- Person marks their OWN habit (tap-to-cycle) --
+PASS  person marks own habit MET -> 200                                got 200
+PASS    manager sees the person's MET mark                             got "MET"
+PASS  person cycles to MISSED -> 200                                   got 200
+PASS  person cycles to NA -> 200                                       got 200
+PASS  person clears (null) -> 200                                      got 200
+PASS    ...cleared: manager sees no mark today                         got "none"
+
+-- Person mark: scoping + rules --
+PASS  person marks ANOTHER person's habit -> 404                       got 404
+PASS  person marks a FUTURE day -> 400                                 got 400
+PASS  person marks a non-existent habit -> 404                         got 404
+PASS  a MANAGER hitting the kid mark endpoint -> 403                   got 403
+
+-- Person marks their OWN SCHEDULED non-negotiable done (phase 42) --
+PASS  person marks the scheduled day done -> 200                       got 200
+PASS    manager sees the day done + doneThisWeek                       got [true,1]
+PASS    the person's OWN view shows it done                            got true
+PASS  person un-marks (done:false) -> 200                              got 200
+PASS    ...manager sees it not-done again (day still required)         got false
+PASS  person marks a NON-scheduled day -> 404 (can't add a day)        got 404
+PASS  person marks ANOTHER person's rule -> 404                        got 404
+PASS  person marks a FUTURE day -> 400                                 got 400
+PASS  a MANAGER hitting the kid rule-mark endpoint -> 403              got 403
+
+-- Manager un-schedules the day (only the manager sets days) --
+PASS  manager un-schedules the day -> 200                              got 200
+PASS    ...the day is gone from the overview                           got 0
+PASS    ...and the person no longer sees the rule (nothing scheduled)  got 0
+
+-- Person is STILL walled off everything but mark + tasks --
+PASS  person 403 on ALL 15 non-(kid-mark/kid-task) surfaces            got true
+
+-- Last-write-wins on ONE shared HabitMark row --
+PASS  person MET then manager MISSED -> manager value wins             got "MISSED"
+PASS  manager MET then person NA -> person value wins                  got "NA"
+PASS  exactly ONE HabitMark row for (habit, day) — no duplicate        got 1
+PASS  manager habit-mark still works -> 200                            got 200
+PASS  teardown: no p37- residue                                        got 0
+
+33 passed, 0 failed
+exit 0
+=== scripts/check-phase38-summary.ts
+
+-- Seed a KNOWN set of marks in THIS week + a scheduled non-negotiable --
+
+-- Summary matches the seeded marks + is CONSISTENT with the grid tally --
+PASS  summary present with per-segment rows                          got [true,4]
+PASS  segment0 daysMet/target = seeded 5 / 14                        got [5,14]
+PASS    ...and MATCHES the grid tally (segment.metThisWeek/targetThisWeek) got [true,true]
+PASS  overall daysMet/target = sum of segment tallies                got [5,63]
+PASS  overall daysMet = seeded 5                                     got 5
+PASS  missed = 4 (scheduled past days left undone)                   got 4
+
+-- PER-WEEK recalculation: a PAST week has its OWN summary --
+PASS  this-week overall vs prev-week overall differ                  got true
+PASS  this week overall = 5 (unchanged)                              got 5
+PASS  prev week segment0 daysMet = 7 (that week's marks)             got 7
+PASS  prev week missed = 0 (nothing scheduled then)                  got 0
+
+-- Summary endpoint is MANAGER-only + own-person-scoped --
+PASS  PERSON GET /api/routine (summary) -> 403                       got 403
+PASS  lead GET /api/routine -> 403                                   got 403
+PASS  developer GET /api/routine -> 403                              got 403
+PASS  admin GET /api/routine -> 403                                  got 403
+PASS  another manager sees ONLY their own (person:null, empty summary) got [200,null,0,0]
+
+-- The person /kid carries NO summary --
+PASS  kid view has no summary / score                                got [false,false,false]
+PASS  teardown: no p38- residue                                      got 0
+
+17 passed, 0 failed
+exit 0
+=== scripts/invite-lifecycle.ts
+PASS  existing ACTIVE user still logs in (no migration regression)
+[email] SMTP env not set (SMTP_HOST/PORT/USER/PASS, EMAIL_FROM) — email disabled
+PASS  created PENDING invitee with no password
+PASS  validate -> valid + details
+PASS  accept -> 200
+PASS  signed in as the invitee, now ACTIVE
+PASS  user ACTIVE + passwordHash set
+PASS  invite consumed (single-use)
+PASS  reuse consumed token -> 410
+PASS  consumed token validate -> 410
+PASS  invitee logs in with new password -> 200
+PASS  resend: old token now dead (unknown)
+PASS  resend: new token valid
+PASS  expired token validate -> 410 expired
+PASS  pending user login -> 401 (non-disclosed)
+
+all invite-lifecycle checks passed
+exit 0

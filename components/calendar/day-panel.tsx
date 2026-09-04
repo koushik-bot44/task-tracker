@@ -1,296 +1,329 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, CalendarClock, Clock, Pencil, Plus, Users, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
-import { OverlayPortal } from "@/components/overlay-portal";
-import { TaskChip } from "@/components/calendar/chips";
+import { TaskChip, isReview } from "@/components/calendar/chips";
+import { useToast } from "@/components/toast";
+import { Button } from "@/components/ui/button";
+import { DeadlineChip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
+import { Face } from "@/components/ui/face";
+import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
-import { formatDMY } from "@/lib/dates";
-import type { CalendarEventDTO, CalendarTaskDTO, ProjectDTO } from "@/lib/types";
+import { dateWord, shortDate } from "@/lib/dates";
+import { useMeetingReply } from "@/lib/hooks/use-today";
+import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDTO, MeetingResponse, ProjectDTO } from "@/lib/types";
 
+export type DayItems = { tasks: CalendarTaskDTO[]; events: CalendarEventDTO[]; deadlines: CalendarDeadlineDTO[] };
+
+/**
+ * One day, opened from the grid or the strip: its reviews and meetings (with
+ * everyone's replies and your own), its project deadlines, and its task
+ * dates. A bottom sheet on a phone, a right-hand panel on a desktop.
+ */
 export function DayPanel({
-  heading,
-  tasks,
-  events,
+  day,
+  items,
   projects,
   isManager,
   onClose,
   onOpenTask,
-  onCreateEvent,
-  onEditEvent,
+  onEditMeeting,
 }: {
-  heading: string;
-  tasks: CalendarTaskDTO[];
-  events: CalendarEventDTO[];
+  /** "YYYY-MM-DD", or null when closed. */
+  day: string | null;
+  items: DayItems;
   projects: ProjectDTO[];
   isManager: boolean;
   onClose: () => void;
   onOpenTask: (id: string) => void;
-  onCreateEvent: () => void;
-  onEditEvent: (event: CalendarEventDTO) => void;
+  onEditMeeting: (event: CalendarEventDTO) => void;
 }) {
-  const reduce = useReducedMotion();
-  const [selected, setSelected] = useState<CalendarEventDTO | null>(null);
+  const iso = day ? `${day}T00:00:00` : null;
+  const meetings = [...items.events].sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
 
-  const byTool = new Map<string, { name: string; color: string; tasks: CalendarTaskDTO[] }>();
-  for (const t of tasks) {
+  const byProject = new Map<string, { name: string; color: string; tasks: CalendarTaskDTO[] }>();
+  for (const t of items.tasks) {
     const p = projects.find((x) => x.id === t.projectId);
-    const g = byTool.get(t.projectId) ?? {
-      name: p?.name ?? "Unknown",
-      color: p?.color ?? "var(--muted)",
-      tasks: [],
-    };
+    const g = byProject.get(t.projectId) ?? { name: p?.name ?? "Project", color: p?.color ?? "var(--muted)", tasks: [] };
     g.tasks.push(t);
-    byTool.set(t.projectId, g);
+    byProject.set(t.projectId, g);
   }
 
-  const subtitle =
-    [
-      events.length > 0 ? `${events.length} event${events.length === 1 ? "" : "s"}` : null,
-      tasks.length > 0 ? `${tasks.length} task date${tasks.length === 1 ? "" : "s"}` : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "Nothing scheduled";
+  const empty = meetings.length === 0 && items.deadlines.length === 0 && items.tasks.length === 0;
 
   return (
-    <OverlayPortal>
-      <AnimatePresence>
-        <motion.div
-          key="scrim"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduce ? 0 : 0.16 }}
-          onClick={onClose}
-          className="fixed inset-0 z-drawer bg-black/40"
-          aria-hidden
-        />
-        <motion.aside
-          key="panel"
-          role="dialog"
-          aria-label={`${heading} — day details`}
-          initial={reduce ? { opacity: 0 } : { y: "100%" }}
-          animate={reduce ? { opacity: 1 } : { y: 0 }}
-          exit={reduce ? { opacity: 0 } : { y: "100%" }}
-          transition={{ duration: reduce ? 0 : 0.24, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-x-0 bottom-0 z-drawer flex max-h-[88dvh] flex-col rounded-t-sheet border-t border-line bg-surface shadow-lift md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[26rem] md:max-w-[92vw] md:rounded-t-none md:border-l md:border-t-0"
-        >
-          <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-line md:hidden" />
-          <div className="flex shrink-0 items-center gap-2 px-4 py-3">
-            {selected ? (
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                aria-label="Back"
-                className="press grid h-9 w-9 place-items-center rounded-card text-muted hover:text-ink"
-              >
-                <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-              </button>
-            ) : null}
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate font-display text-section font-semibold text-ink">
-                {selected ? "Event" : heading}
-              </h2>
-              {selected ? null : (
-                <p className="truncate text-micro text-muted">{subtitle}</p>
-              )}
-            </div>
-            {!selected && isManager ? (
-              <button
-                type="button"
-                onClick={onCreateEvent}
-                className="press flex h-8 items-center gap-1.5 rounded-chip bg-primary px-2.5 text-micro font-medium text-on-primary"
-              >
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-                Event
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="press grid h-9 w-9 place-items-center rounded-card text-muted hover:text-ink"
-            >
-              <X className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            </button>
+    <Drawer
+      open={Boolean(day)}
+      onClose={onClose}
+      label={iso ? `${dateWord(iso)} — what's on` : "Day"}
+      header={
+        iso ? (
+          <div className="min-w-0 pl-1">
+            <p className="truncate text-row font-semibold text-ink">{dateWord(iso)}</p>
+            <p className="truncate text-micro text-muted">
+              {new Date(iso).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+            </p>
           </div>
+        ) : null
+      }
+    >
+      {iso ? (
+        <div className="space-y-6 px-4 pb-4 pt-1">
+          {empty ? <p className="py-10 text-center text-sm text-muted">Nothing on this day.</p> : null}
 
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            {selected ? (
-              <EventDetail event={selected} isManager={isManager} onEdit={() => onEditEvent(selected)} />
-            ) : (
-              <>
-                {events.length === 0 && tasks.length === 0 ? (
-                  <p className="py-10 text-center text-sm text-muted">Nothing on this day.</p>
-                ) : null}
+          {meetings.length > 0 ? (
+            <section>
+              <SectionLabel>Meetings</SectionLabel>
+              <div className="space-y-3">
+                {meetings.map((e) => (
+                  <MeetingCard key={e.id} event={e} isManager={isManager} onEdit={() => onEditMeeting(e)} />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-                {events.length > 0 ? (
-                  <section className="space-y-2">
-                    <h3 className="text-micro font-medium uppercase tracking-widest text-muted">
-                      Events
-                    </h3>
-                    {events.map((e) => (
-                      <button
-                        key={e.id}
-                        type="button"
-                        onClick={() => setSelected(e)}
-                        className="press flex w-full items-center gap-2 rounded-card bg-primary px-3 py-2 text-left text-on-primary transition-opacity duration-150 ease-out hover:opacity-95"
-                      >
-                        {e.isMeeting ? (
-                          <CalendarClock className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                        ) : e.isGlobal ? (
-                          <Users className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                        ) : (
-                          <span
-                            className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-surface"
-                            style={{ background: e.projectColor ?? "var(--on-primary)" }}
-                            aria-hidden
-                          />
-                        )}
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{e.title}</span>
-                          <span className="block truncate text-micro opacity-90">
-                            {e.isMeeting && e.startTime
-                              ? `${e.startTime}${e.endTime ? `–${e.endTime}` : ""} · `
-                              : ""}
-                            {e.isGlobal ? "All-hands" : e.projectName}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
-                  </section>
-                ) : null}
+          {items.deadlines.length > 0 ? (
+            <section>
+              <SectionLabel>Deadlines</SectionLabel>
+              <div className="space-y-2">
+                {items.deadlines.map((d) => (
+                  <Link
+                    key={d.projectId}
+                    href={`/project/${d.slug}`}
+                    className="press flex min-h-[56px] items-center gap-3 rounded-card bg-bg px-4"
+                  >
+                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: d.color }} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-row text-ink">{d.name}</span>
+                      <span className="block text-micro text-muted">Project deadline</span>
+                    </span>
+                    <DeadlineChip deadline={d.deadline} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-                {byTool.size > 0 ? (
-                  <section className="space-y-3">
-                    <h3 className="text-micro font-medium uppercase tracking-widest text-muted">
-                      Task dates
-                    </h3>
-                    {[...byTool.values()].map((group) => (
-                      <div key={group.name} className="space-y-1.5">
-                        <p className="flex items-center gap-1.5 text-micro font-medium text-ink">
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ background: group.color }}
-                            aria-hidden
-                          />
-                          {group.name}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {group.tasks.map((t) => (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => onOpenTask(t.id)}
-                              className="press rounded-chip transition-transform duration-150 ease-out hover:-translate-y-px"
-                            >
-                              <TaskChip task={t} />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </section>
-                ) : null}
-              </>
-            )}
-          </div>
-        </motion.aside>
-      </AnimatePresence>
-    </OverlayPortal>
+          {byProject.size > 0 ? (
+            <section>
+              <SectionLabel>Task dates</SectionLabel>
+              <div className="space-y-3">
+                {[...byProject.entries()].map(([id, group]) => (
+                  <div key={id}>
+                    <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-ink">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: group.color }} aria-hidden />
+                      {group.name}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.tasks.map((t) => (
+                        <button key={t.id} type="button" onClick={() => onOpenTask(t.id)} className="press hit-40 rounded-chip" aria-label={`Open ${t.title}`}>
+                          <TaskChip task={t} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+    </Drawer>
   );
 }
 
-function EventDetail({
-  event,
-  isManager,
-  onEdit,
-}: {
-  event: CalendarEventDTO;
-  isManager: boolean;
-  onEdit: () => void;
-}) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-2 text-micro font-semibold uppercase tracking-wider text-muted">{children}</h3>;
+}
+
+const REPLY_WORD: Record<"YES" | "NO" | "none", string> = { YES: "coming", NO: "can't", none: "no reply yet" };
+
+/**
+ * A meeting on the day: when and what, everyone's faces with a green (coming)
+ * / red (can't) / grey (no reply) dot, your own reply, and — for the person
+ * who can move it — Reschedule once somebody can't make it.
+ */
+function MeetingCard({ event, isManager, onEdit }: { event: CalendarEventDTO; isManager: boolean; onEdit: () => void }) {
+  const { reply } = useMeetingReply();
+  const { show: toast } = useToast();
+  const [changing, setChanging] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [sending, setSending] = useState<MeetingResponse | null>(null);
+
+  const review = isReview(event);
+  const yes = event.attendees.filter((a) => a.response === "YES").length;
+  const no = event.attendees.filter((a) => a.response === "NO").length;
+  const quiet = event.attendees.length - yes - no;
+  const summary =
+    event.attendees.length === 0
+      ? "Nobody invited yet"
+      : [yes > 0 ? `${yes} coming` : null, no > 0 ? `${no} can't` : null, quiet > 0 ? `${quiet} no reply yet` : null].filter(Boolean).join(" · ");
+
+  const answer = (response: MeetingResponse) => {
+    setSending(response);
+    reply.mutate(
+      { eventId: event.id, response },
+      {
+        onSuccess: () => {
+          setChanging(false);
+          toast({ message: response === "YES" ? "Told them you'll be there" : "Told them you can't" });
+        },
+        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+        onSettled: () => setSending(null),
+      },
+    );
+  };
+
+  const showButtons = event.isAttendee && (event.myResponse === null || changing);
+
   return (
-    <div className="space-y-4 pt-1">
-      <div className="flex items-start gap-2">
-        <h3 className="min-w-0 flex-1 text-lg font-semibold text-ink">{event.title}</h3>
-        {isManager && event.isMeeting && event.projectId ? (
-          // A meeting is scheduled/edited in the Meetings tab, not the plain
-          // event modal — so its detail links there.
-          <Link
-            href={`/meetings/project/${event.projectId}`}
-            className="press flex h-8 shrink-0 items-center gap-1.5 rounded-chip bg-hover px-2.5 text-micro font-medium text-ink"
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            Manage
-          </Link>
-        ) : isManager && !event.isMeeting ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="press flex h-8 shrink-0 items-center gap-1.5 rounded-chip bg-hover px-2.5 text-micro font-medium text-ink"
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            Edit
-          </button>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-chip bg-hover px-2.5 py-1 text-micro font-medium text-ink">
-          {formatDMY(event.date)}
+    <div className="space-y-3 rounded-card bg-bg p-4">
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            "inline-flex h-7 shrink-0 items-center rounded-chip px-2.5 text-micro font-semibold tabular-nums",
+            review ? "bg-primary text-on-primary" : "bg-primary-soft text-primary-ink",
+          )}
+        >
+          {event.startTime ?? (review ? "Review" : "Meeting")}
         </span>
-        {event.isMeeting && event.startTime ? (
-          <span className="flex items-center gap-1 rounded-chip bg-hover px-2.5 py-1 text-micro font-medium text-ink">
-            <Clock className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            {event.startTime}
-            {event.endTime ? `–${event.endTime}` : ""}
-          </span>
-        ) : null}
-        {event.isGlobal ? (
-          <span className="flex items-center gap-1 rounded-chip bg-primary-soft px-2.5 py-1 text-micro font-medium text-primary-ink">
-            <Users className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            All-hands
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5 rounded-chip bg-hover px-2.5 py-1 text-micro font-medium text-ink">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: event.projectColor ?? "var(--muted)" }}
-              aria-hidden
-            />
-            {event.projectName}
-          </span>
-        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-row font-semibold text-ink">{review && event.milestoneName ? `${event.milestoneName} review` : event.title}</p>
+          <p className="text-micro text-muted">
+            {event.projectSlug ? (
+              <Link href={`/project/${event.projectSlug}`} className="hover:underline">
+                {event.projectName}
+              </Link>
+            ) : (
+              event.projectName
+            )}
+            {event.endTime ? ` · until ${event.endTime}` : ""}
+          </p>
+        </div>
       </div>
 
-      {event.description.trim().length > 0 ? (
-        <p className="whitespace-pre-wrap text-sm text-ink">{event.description}</p>
-      ) : (
-        <p className="text-sm italic text-muted">No details added.</p>
-      )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {event.attendees.length > 0 ? (
+          <span className="flex items-center gap-1.5">
+            {event.attendees.map((a) => {
+              const word = REPLY_WORD[a.response ?? "none"];
+              return (
+                <span key={a.userId} className="relative" title={`${a.name} · ${word}`}>
+                  <Face name={a.name} title={`${a.name} · ${word}`} />
+                  <span
+                    className={cn(
+                      "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-bg",
+                      a.response === "YES" ? "bg-ok" : a.response === "NO" ? "bg-danger" : "bg-guide",
+                    )}
+                    aria-hidden
+                  />
+                </span>
+              );
+            })}
+          </span>
+        ) : null}
+        <span className="text-micro text-muted">{summary}</span>
+      </div>
 
-      {event.isMeeting && event.attendees.length > 0 ? (
-        <div>
-          <p className="mb-1.5 flex items-center gap-1.5 text-micro font-medium uppercase tracking-widest text-muted">
-            <Users className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            {event.attendees.length} attendee{event.attendees.length === 1 ? "" : "s"}
-          </p>
-          <ul className="flex flex-wrap gap-1.5">
-            {event.attendees.map((a) => (
-              <li key={a.userId} className="rounded-chip bg-hover px-2 py-0.5 text-micro text-ink">
-                {a.name}
-              </li>
-            ))}
-          </ul>
+      {showButtons ? (
+        <div className="flex gap-2">
+          <Button variant="primary" className="flex-1" onClick={() => answer("YES")} loading={sending === "YES"} disabled={reply.isPending}>
+            I&apos;ll be there
+          </Button>
+          <Button variant="secondary" className="flex-1" onClick={() => answer("NO")} loading={sending === "NO"} disabled={reply.isPending}>
+            Can&apos;t
+          </Button>
+        </div>
+      ) : event.isAttendee ? (
+        <p className="flex items-center gap-1 text-sm text-ink">
+          {event.myResponse === "YES" ? "You said you'll be there." : "You said you can't."}
+          <button type="button" onClick={() => setChanging(true)} className="press h-11 rounded-input px-2 text-sm font-medium text-primary-ink">
+            Change
+          </button>
+        </p>
+      ) : null}
+
+      {(event.canReschedule && no > 0) || isManager ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {event.canReschedule && no > 0 ? (
+            <Button variant="secondary" onClick={() => setMoving(true)}>
+              Reschedule
+            </Button>
+          ) : null}
+          {isManager ? (
+            review ? (
+              <Link href={`/project/${event.projectSlug ?? ""}`} className="press inline-flex h-11 items-center rounded-input px-2 text-sm text-muted hover:text-ink">
+                Move it from the project page
+              </Link>
+            ) : (
+              <Button variant="quiet" onClick={onEdit}>
+                Edit or cancel
+              </Button>
+            )
+          ) : null}
         </div>
       ) : null}
 
-      <p className={cn("border-t border-line pt-3 text-micro text-muted")}>
-        Created by {event.createdByName} · {formatDMY(event.createdAt)}
-      </p>
+      {event.canReschedule ? <RescheduleSheet open={moving} event={event} onClose={() => setMoving(false)} /> : null}
     </div>
+  );
+}
+
+/** Three working days as words; one tap moves the meeting and re-asks everyone. */
+function RescheduleSheet({ open, event, onClose }: { open: boolean; event: CalendarEventDTO; onClose: () => void }) {
+  const { slots, reschedule } = useMeetingReply();
+  const { show: toast } = useToast();
+  const [picked, setPicked] = useState<string | null>(null);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["meeting-slots", event.id],
+    queryFn: () => slots(event.id),
+    enabled: open,
+  });
+
+  const move = (iso: string) => {
+    setPicked(iso);
+    reschedule.mutate(
+      { eventId: event.id, date: iso.slice(0, 10) },
+      {
+        onSuccess: () => {
+          toast({ message: "Moved · everyone will get a new message" });
+          onClose();
+        },
+        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+        onSettled: () => setPicked(null),
+      },
+    );
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Move this meeting" subtitle={`${event.title} · ${dateWord(event.date)}`}>
+      <p className="pt-1 text-sm text-muted">Pick a new day. Everyone on it gets a new message and can reply again.</p>
+      <div className="mt-4 space-y-2">
+        {isLoading ? (
+          <div className="space-y-2" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-11 animate-pulse rounded-input bg-hover" />
+            ))}
+          </div>
+        ) : isError ? (
+          <p className="text-sm text-danger-ink">Couldn&apos;t load the days. Close this and try again.</p>
+        ) : (
+          (data?.slots ?? []).map((iso) => (
+            <button
+              key={iso}
+              type="button"
+              onClick={() => move(iso)}
+              disabled={reschedule.isPending}
+              className="press flex h-11 w-full items-center justify-between rounded-input bg-hover px-4 text-sm font-semibold text-ink disabled:opacity-40"
+            >
+              <span>{dateWord(iso)}</span>
+              <span className="font-normal text-muted">{picked === iso ? "Moving…" : shortDate(iso)}</span>
+            </button>
+          ))
+        )}
+      </div>
+    </Sheet>
   );
 }
