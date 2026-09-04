@@ -1,0 +1,20 @@
+[
+  {
+    "id": "cmthd2fu4000fl404lax61fip",
+    "nonNegotiableId": "cmthd291p0007l4048zzvhdzr",
+    "date": "2026-09-01T00:00:00.000Z",
+    "crossed": true
+  },
+  {
+    "id": "cmthd2gf8000hl40498mbuxdf",
+    "nonNegotiableId": "cmthd291p0007l4048zzvhdzr",
+    "date": "2026-09-02T00:00:00.000Z",
+    "crossed": true
+  },
+  {
+    "id": "cmthd2irv000jl40464hrgskf",
+    "nonNegotiableId": "cmthd291p0007l4048zzvhdzr",
+    "date": "2026-09-04T00:00:00.000Z",
+    "crossed": true
+  }
+]

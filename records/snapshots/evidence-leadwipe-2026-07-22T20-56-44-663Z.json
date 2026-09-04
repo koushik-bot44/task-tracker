@@ -1,0 +1,58 @@
+{
+  "note": "state AFTER perm-matrix cleared leadId on projects[0]; before repair",
+  "projects": [
+    {
+      "id": "cmru9bcml0000j464n329w96d",
+      "slug": "skyzen-webhooks",
+      "name": "Skyzen Webhooks",
+      "leadId": "cmrw6nu0p0000jw04uyss26mg",
+      "description": "",
+      "orderKey": "a0",
+      "createdAt": "2026-07-21T06:12:44.589Z"
+    },
+    {
+      "id": "cmru9bhne000xj464ico7jgcg",
+      "slug": "recruiter-dashboard",
+      "name": "Recruiter Dashboard",
+      "leadId": "cmrw6nu0p0000jw04uyss26mg",
+      "description": "",
+      "orderKey": "a1",
+      "createdAt": "2026-07-21T06:12:51.098Z"
+    },
+    {
+      "id": "cmruag12b0000l104gt41suoo",
+      "slug": "ihrms",
+      "name": "IHRMS",
+      "leadId": null,
+      "description": "",
+      "orderKey": "a2",
+      "createdAt": "2026-07-21T06:44:22.500Z"
+    },
+    {
+      "id": "cmrwis5gd0001jv04zg0pntjm",
+      "slug": "anvi-careers",
+      "name": "Anvi Careers",
+      "leadId": null,
+      "description": "dfgbh",
+      "orderKey": "a4",
+      "createdAt": "2026-07-22T20:13:17.341Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "cmrw6nu0p0000jw04uyss26mg",
+      "email": "sudeep@gmail.com",
+      "role": "TEAM_LEAD"
+    },
+    {
+      "id": "cmruqvqr70002j4jopbt36uap",
+      "email": "test-dev@orbit.local",
+      "role": "DEVELOPER"
+    },
+    {
+      "id": "cmruqvoou0001j4jodpwz4nzt",
+      "email": "test-manager@orbit.local",
+      "role": "MANAGER"
+    }
+  ]
+}

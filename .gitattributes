@@ -1,0 +1,8 @@
+# Normalise to LF in the repository; check out as-is.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

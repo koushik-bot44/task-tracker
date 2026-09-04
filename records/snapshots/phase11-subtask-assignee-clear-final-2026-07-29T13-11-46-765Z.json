@@ -1,0 +1,47 @@
+{
+  "takenAt": "2026-07-29T13:11:49.585Z",
+  "note": "CHANGE 4 final data step: assignees on subtasks cleared post-deploy. Prior state below for full reversibility.",
+  "count": 5,
+  "rows": [
+    {
+      "id": "0e131e97-ba7f-4d8f-a123-dd8c122bf6ae",
+      "projectId": "cmrwis5gd0001jv04zg0pntjm",
+      "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+      "title": "Adding Time ZOnes while Scheduling sessions ",
+      "assigneeId": "cms5viumr0005jr048aoqrc63",
+      "deletedAt": null
+    },
+    {
+      "id": "35e672c4-cdfa-4b6e-985c-8af46737243d",
+      "projectId": "cmrwis5gd0001jv04zg0pntjm",
+      "parentId": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+      "title": "Per Project Cards",
+      "assigneeId": "cms5viumr0005jr048aoqrc63",
+      "deletedAt": null
+    },
+    {
+      "id": "64548963-c584-4eb1-ba26-b0bc49c3bbd6",
+      "projectId": "cmrwis5gd0001jv04zg0pntjm",
+      "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+      "title": "",
+      "assigneeId": "cms5viumr0005jr048aoqrc63",
+      "deletedAt": "2026-07-29T10:49:33.543Z"
+    },
+    {
+      "id": "7ebb818d-6a60-449c-9a2e-c0fbc02f4197",
+      "projectId": "cmrwis5gd0001jv04zg0pntjm",
+      "parentId": "333cd138-ee2d-467d-bda3-914569128b9f",
+      "title": "",
+      "assigneeId": "cms5viumr0005jr048aoqrc63",
+      "deletedAt": "2026-07-29T09:43:50.742Z"
+    },
+    {
+      "id": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+      "projectId": "cmrwis5gd0001jv04zg0pntjm",
+      "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+      "title": "Active Evaluess Section",
+      "assigneeId": "cms5viumr0005jr048aoqrc63",
+      "deletedAt": null
+    }
+  ]
+}

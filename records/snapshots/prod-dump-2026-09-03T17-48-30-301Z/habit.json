@@ -1,0 +1,98 @@
+[
+ {
+  "id": "cmtemtqeq0001kw04m5lx8ihe",
+  "segmentId": "cmtemspzk0001l404pat6jpmp",
+  "name": "In bed / phone away by 10:30 PM (school night)",
+  "targetPerWeek": 4,
+  "orderKey": "a0",
+  "active": true
+ },
+ {
+  "id": "cmtemutga000yli04vzr0v6h0",
+  "segmentId": "cmtemspzk0001l404pat6jpmp",
+  "name": "Up by 6:15 AM without repeated wake-up calls",
+  "targetPerWeek": 7,
+  "orderKey": "a1",
+  "active": true
+ },
+ {
+  "id": "cmtemv3hf0010li04w59waaui",
+  "segmentId": "cmtemspzk0001l404pat6jpmp",
+  "name": "Leave phone outside bedroom overnight",
+  "targetPerWeek": 3,
+  "orderKey": "a2",
+  "active": true
+ },
+ {
+  "id": "cmtemw6er0005l404iocr849i",
+  "segmentId": "cmtemvw0q0003l404yuyoiun9",
+  "name": "Recreational screen time ≤ 90 mins",
+  "targetPerWeek": 7,
+  "orderKey": "a0",
+  "active": true
+ },
+ {
+  "id": "cmtemwe4l0012li04x608eila",
+  "segmentId": "cmtemvw0q0003l404yuyoiun9",
+  "name": "No phone at the dinner table",
+  "targetPerWeek": 7,
+  "orderKey": "a1",
+  "active": true
+ },
+ {
+  "id": "cmtemxjfr0003ic04krvrgbcm",
+  "segmentId": "cmtemxbb80001ic04etlq40uf",
+  "name": "Checked grade portal / knew what was due",
+  "targetPerWeek": 7,
+  "orderKey": "a0",
+  "active": true
+ },
+ {
+  "id": "cmtemxqo90005ic04e3brzimw",
+  "segmentId": "cmtemxbb80001ic04etlq40uf",
+  "name": "Completed daily study block (min 2 hrs, school nights)",
+  "targetPerWeek": 5,
+  "orderKey": "a1",
+  "active": true
+ },
+ {
+  "id": "cmtemyp3u0007kw04yn8do36h",
+  "segmentId": "cmtemy65w0003kw048jya0wv2",
+  "name": "No Diet Cokes",
+  "targetPerWeek": 7,
+  "orderKey": "a1",
+  "active": true
+ },
+ {
+  "id": "cmtemyhm90005kw04ssu0729x",
+  "segmentId": "cmtemy65w0003kw048jya0wv2",
+  "name": "No outside food ordered (or within 2x/week plan)",
+  "targetPerWeek": 5,
+  "orderKey": "a0",
+  "active": true
+ },
+ {
+  "id": "cmten032v0009l404d8c0ecbc",
+  "segmentId": "cmtemzu9z0007l4045b1umwmb",
+  "name": "Worked out / gym session completed",
+  "targetPerWeek": 4,
+  "orderKey": "a0",
+  "active": true
+ },
+ {
+  "id": "cmten10kk0009ic04j0laqbd1",
+  "segmentId": "cmten0i500007ic04iwrztmtg",
+  "name": "2 driving sessions over the weekend (not school days",
+  "targetPerWeek": 7,
+  "orderKey": "a0",
+  "active": true
+ },
+ {
+  "id": "cmten25jx000bic040x1xbtyd",
+  "segmentId": "cmten0i500007ic04iwrztmtg",
+  "name": "Study block done before hanging out with friends",
+  "targetPerWeek": 7,
+  "orderKey": "a1",
+  "active": true
+ }
+]

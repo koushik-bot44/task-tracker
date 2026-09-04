@@ -1,0 +1,473 @@
+{
+  "tasks": [
+    {
+      "id": "0f4b6f28-3e52-4d3f-bc88-0cfe6d0d7659",
+      "parentId": "767187c4-ceee-40aa-9598-2b37168873e7",
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": "2026-07-21T14:16:57.428Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "16358516-5d57-4484-8f44-a439cc9910dd",
+      "parentId": "cmru9bdue0004j46435d0euoy",
+      "status": "BACKLOG",
+      "orderKey": "a3",
+      "completedById": null,
+      "deletedAt": "2026-07-22T09:00:48.142Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "1b74e2f4-8f3d-4fb6-9d8b-087573d4956a",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": "2026-07-21T06:47:36.709Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "1cc2274e-5d4b-42f3-b58f-62a2eae382e3",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": "2026-07-21T06:45:40.760Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "46b80f7c-0e66-48e6-9a8f-5ca2287989d9",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": "2026-07-21T14:17:25.739Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "631a0d41-88e7-4568-b57e-9e1cae4e7f0b",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a4",
+      "completedById": null,
+      "deletedAt": "2026-07-22T13:57:41.313Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "6d2fa91a-aa65-4549-bf5d-5353ce2bcf4b",
+      "parentId": "767187c4-ceee-40aa-9598-2b37168873e7",
+      "status": "BACKLOG",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "71bc5e8e-9b30-4862-b537-4e400dac68d1",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-28T18:30:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "767187c4-ceee-40aa-9598-2b37168873e7",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a0V",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "818fee93-19e2-4acb-ac6b-399ef00902a1",
+      "parentId": "767187c4-ceee-40aa-9598-2b37168873e7",
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "a7b11849-4db1-4a71-a22d-27835948bd33",
+      "parentId": "71bc5e8e-9b30-4862-b537-4e400dac68d1",
+      "status": "BACKLOG",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-31T00:00:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "a8cc54b4-6c95-4a01-9df9-2a5484a7b7ed",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": "2026-07-21T06:44:47.958Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "afde3fd7-24fb-4677-a756-6e781f8bf182",
+      "parentId": "6d2fa91a-aa65-4549-bf5d-5353ce2bcf4b",
+      "status": "BACKLOG",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bdc70002j464xx9x1dtd",
+      "parentId": null,
+      "status": "IN_PROGRESS",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bdue0004j46435d0euoy",
+      "parentId": null,
+      "status": "IN_PROGRESS",
+      "orderKey": "Zz",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9be4f0006j464uxdwlz1k",
+      "parentId": "cmru9bdue0004j46435d0euoy",
+      "status": "DONE",
+      "orderKey": "a0",
+      "completedById": "cmruqvoou0001j4jodpwz4nzt",
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bed00008j464f13hh7nm",
+      "parentId": "cmru9be4f0006j464uxdwlz1k",
+      "status": "DONE",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bell000aj464580q1rab",
+      "parentId": "cmru9be4f0006j464uxdwlz1k",
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-07T00:00:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9beu0000cj464vbgmz60c",
+      "parentId": "cmru9be4f0006j464uxdwlz1k",
+      "status": "PLANNED",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bf17000ej464palxsbft",
+      "parentId": "cmru9bdue0004j46435d0euoy",
+      "status": "DONE",
+      "orderKey": "a1",
+      "completedById": "cmruqvqr70002j4jopbt36uap",
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-19T06:30:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bf8f000gj464tf55a5m4",
+      "parentId": "cmru9bdue0004j46435d0euoy",
+      "status": "IN_PROGRESS",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bfgy000ij464k2i2l7nz",
+      "parentId": "cmru9bdc70002j464xx9x1dtd",
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bfpb000kj46461dkxd2m",
+      "parentId": "cmru9bfgy000ij464k2i2l7nz",
+      "status": "BACKLOG",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bfxy000mj464inhrpvp1",
+      "parentId": "cmru9bfgy000ij464k2i2l7nz",
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bg9a000oj4642hgvaq7v",
+      "parentId": "cmru9bfgy000ij464k2i2l7nz",
+      "status": "DONE",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-25T00:00:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bgkn000qj464av84au3y",
+      "parentId": null,
+      "status": "DONE",
+      "orderKey": "a1",
+      "completedById": "cmruqvoou0001j4jodpwz4nzt",
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bgus000sj464pds7d5xe",
+      "parentId": "cmru9bgkn000qj464av84au3y",
+      "status": "DONE",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bh4j000uj464tovywwq5",
+      "parentId": "cmru9bgkn000qj464av84au3y",
+      "status": "DONE",
+      "orderKey": "a1",
+      "completedById": "cmruqvoou0001j4jodpwz4nzt",
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-30T06:30:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bhd3000wj464i1yno61l",
+      "parentId": null,
+      "status": "CANCELLED",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bhwz000zj4648o58soi8",
+      "parentId": null,
+      "status": "DONE",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bi5i0011j464dmxvp4jk",
+      "parentId": "cmru9bhwz000zj4648o58soi8",
+      "status": "DONE",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9biil0013j464lzvxhamd",
+      "parentId": "cmru9bhwz000zj4648o58soi8",
+      "status": "DONE",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bipq0015j46432kkpaqd",
+      "parentId": null,
+      "status": "IN_PROGRESS",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": "2026-07-22T06:30:00.000Z",
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bj130017j464mq9zlpce",
+      "parentId": "cmru9bipq0015j46432kkpaqd",
+      "status": "PLANNED",
+      "orderKey": "a0",
+      "completedById": null,
+      "deletedAt": "2026-07-21T17:10:48.820Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bj8n0019j464nim3co1z",
+      "parentId": "cmru9bipq0015j46432kkpaqd",
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "cmru9bjfs001bj464ou9ohc8i",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a2",
+      "completedById": null,
+      "deletedAt": null,
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "e3f79f00-c4e0-4da1-8f2b-415e20ea0b3b",
+      "parentId": null,
+      "status": "BACKLOG",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": "2026-07-21T09:50:19.049Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "ed1fcffa-f1b4-4305-ad0e-83a411dc8422",
+      "parentId": null,
+      "status": "PLANNED",
+      "orderKey": "a3",
+      "completedById": null,
+      "deletedAt": "2026-07-22T09:00:48.142Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    },
+    {
+      "id": "ff79b04b-9695-47f3-8454-43b81dc3337f",
+      "parentId": "6d2fa91a-aa65-4549-bf5d-5353ce2bcf4b",
+      "status": "DONE",
+      "orderKey": "a1",
+      "completedById": null,
+      "deletedAt": "2026-07-21T07:07:00.029Z",
+      "assigneeId": null,
+      "dueDate": null,
+      "dueProvisional": false
+    }
+  ],
+  "tools": [
+    {
+      "id": "cmru9bcml0000j464n329w96d",
+      "slug": "skyzen-webhooks",
+      "description": "",
+      "leadId": "cmrw6nu0p0000jw04uyss26mg"
+    },
+    {
+      "id": "cmru9bhne000xj464ico7jgcg",
+      "slug": "recruiter-dashboard",
+      "description": "",
+      "leadId": "cmrw6nu0p0000jw04uyss26mg"
+    },
+    {
+      "id": "cmruag12b0000l104gt41suoo",
+      "slug": "ihrms",
+      "description": "",
+      "leadId": null
+    },
+    {
+      "id": "cmrwis5gd0001jv04zg0pntjm",
+      "slug": "anvi-careers",
+      "description": "dfgbh",
+      "leadId": null
+    }
+  ],
+  "projectNotes": [
+    {
+      "id": "cmrwcznuj0001jo043xbe74be",
+      "projectId": "cmru9bcml0000j464n329w96d",
+      "authorId": "cmruqvoou0001j4jodpwz4nzt",
+      "body": "N/A"
+    },
+    {
+      "id": "cmrwd03270003jo04h7tcpv6h",
+      "projectId": "cmru9bhne000xj464ico7jgcg",
+      "authorId": "cmruqvoou0001j4jodpwz4nzt",
+      "body": "N/A"
+    }
+  ]
+}

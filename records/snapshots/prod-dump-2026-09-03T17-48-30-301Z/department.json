@@ -1,0 +1,47 @@
+[
+ {
+  "id": "cms7m9aw00001jx044lefa0sb",
+  "name": "Accounts",
+  "color": "#0d9488",
+  "icon": null,
+  "orderKey": "a5",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-30T14:36:04.321Z"
+ },
+ {
+  "id": "cms7m9onu0003jx04jpund0hi",
+  "name": "Operations",
+  "color": "#be123c",
+  "icon": null,
+  "orderKey": "a6",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-30T14:36:22.171Z"
+ },
+ {
+  "id": "cms7maowa0005jx04bbpqnsas",
+  "name": "Research and Development",
+  "color": "#a16207",
+  "icon": null,
+  "orderKey": "a7",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-30T14:37:09.130Z"
+ },
+ {
+  "id": "cms7m5r7b0001id04f4opjvq4",
+  "name": "Administration",
+  "color": "#7c3aed",
+  "icon": null,
+  "orderKey": "a4",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-30T14:33:18.839Z"
+ },
+ {
+  "id": "cms7evm8s0001j4ecrr28gs15",
+  "name": "Development",
+  "color": "#475569",
+  "icon": null,
+  "orderKey": "a3",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-30T11:09:28.530Z"
+ }
+]

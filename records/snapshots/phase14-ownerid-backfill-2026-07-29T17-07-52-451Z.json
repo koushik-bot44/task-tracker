@@ -1,0 +1,35 @@
+{
+  "takenAt": "2026-07-29T17:07:54.925Z",
+  "note": "Project has no createdById; the sole active manager owns all legacy tools. Before-state below; ownerId set to the manager for every null-owner project.",
+  "chosenOwner": {
+    "id": "cmruqvoou0001j4jodpwz4nzt",
+    "name": "Test Manager"
+  },
+  "projectsBefore": [
+    {
+      "id": "cmru9bcml0000j464n329w96d",
+      "name": "Skyzen Webhooks",
+      "slug": "skyzen-webhooks",
+      "ownerId": null
+    },
+    {
+      "id": "cmru9bhne000xj464ico7jgcg",
+      "name": "Recruiter Dashboard",
+      "slug": "recruiter-dashboard",
+      "ownerId": null
+    },
+    {
+      "id": "cmruag12b0000l104gt41suoo",
+      "name": "IHRMS",
+      "slug": "ihrms",
+      "ownerId": null
+    },
+    {
+      "id": "cmrwis5gd0001jv04zg0pntjm",
+      "name": "Anvi Careers",
+      "slug": "anvi-careers",
+      "ownerId": null
+    }
+  ],
+  "backfilledCount": 4
+}

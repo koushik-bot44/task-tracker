@@ -1,0 +1,47 @@
+[
+ {
+  "id": "cmteo0a9a000hic04g6va6j34",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "title": "Practice programs on c",
+  "dueDate": "2026-08-29T00:00:00.000Z",
+  "done": false,
+  "doneAt": null,
+  "createdAt": "2026-08-29T17:39:08.398Z"
+ },
+ {
+  "id": "cmtlkuvs60007ju04sgym29qj",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "title": "Practice object oriented programming",
+  "dueDate": "2026-09-03T00:00:00.000Z",
+  "done": true,
+  "doneAt": "2026-09-03T14:02:17.519Z",
+  "createdAt": "2026-09-03T13:45:20.742Z"
+ },
+ {
+  "id": "cmtllgy8d0001ju04zo69kwgk",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "title": "Practice java",
+  "dueDate": "2026-09-03T00:00:00.000Z",
+  "done": false,
+  "doneAt": null,
+  "createdAt": "2026-09-03T14:02:30.349Z"
+ },
+ {
+  "id": "cmtfuzp780001jx04bgol5jta",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "title": "Lear Python basics",
+  "dueDate": "2026-08-30T00:00:00.000Z",
+  "done": false,
+  "doneAt": null,
+  "createdAt": "2026-08-30T13:42:24.596Z"
+ },
+ {
+  "id": "cmtenwajc000dic04s5njctx1",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "title": "Complete Learning C this week.",
+  "dueDate": "2026-08-29T00:00:00.000Z",
+  "done": true,
+  "doneAt": "2026-08-29T17:36:25.707Z",
+  "createdAt": "2026-08-29T17:36:02.136Z"
+ }
+]

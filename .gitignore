@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Environment — the passcode and signing secret live here. Never commit.
+.env
+.env.local
+.env*.local
+
+# Testing
+/coverage
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Screenshot matrix — for looking at, not for committing
+# Capture output only — regenerate with any rig script. Nothing of record
+# lives here; the integrity ledger and review verdicts are in records/.
+screenshots/
+
+# Certificates
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+.localdb/

@@ -1,0 +1,38 @@
+[
+ {
+  "id": "cms69yzka0002kz0443jamsf6",
+  "userId": "cms69yzjx0000kz04izgk3cnb",
+  "tokenHash": "fdba770e0c3a2e0fb794aae3fbb499b9e51a847fcfbf0123bee782b697d42a7a",
+  "expiresAt": "2026-08-01T16:04:21.513Z",
+  "consumedAt": "2026-07-29T16:09:53.722Z",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-29T16:04:21.514Z"
+ },
+ {
+  "id": "cms967g2z0002l504vw3ce39b",
+  "userId": "cms967g1x0000l504s3jaf36i",
+  "tokenHash": "76634a763b7aebf00a7a46cf37857afa8b24c87a06a3f93cca140fb49061d139",
+  "expiresAt": "2026-08-13T13:39:08.505Z",
+  "consumedAt": "2026-08-10T13:40:14.646Z",
+  "createdById": "cms69yzjx0000kz04izgk3cnb",
+  "createdAt": "2026-07-31T16:42:16.236Z"
+ },
+ {
+  "id": "cmsngwtj80006l704wqp3yzla",
+  "userId": "cmsngwtiv0002l704z9ymekyu",
+  "tokenHash": "4c3a51bd399be617e68eb3696bfc453b898e9fafbae38fa33074c28a1f0a615c",
+  "expiresAt": "2026-08-13T16:50:42.691Z",
+  "consumedAt": null,
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-08-10T16:50:42.693Z"
+ },
+ {
+  "id": "cms5viumw0007jr04exnjd5t8",
+  "userId": "cms5viumr0005jr048aoqrc63",
+  "tokenHash": "3fc2ae9297224ef55e70b588214333948919d2578b3d832687b824de757de77f",
+  "expiresAt": "2026-08-01T09:19:54.008Z",
+  "consumedAt": "2026-07-29T09:21:02.174Z",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-07-29T09:19:54.009Z"
+ }
+]

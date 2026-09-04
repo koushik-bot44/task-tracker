@@ -1,0 +1,43 @@
+{
+  "at": "2026-07-30T11-08-04-000Z",
+  "note": "phase16 pre-rename dump (Folder->Department). Data-preserving rename + General backfill follows.",
+  "folders": [
+    {
+      "id": "cms676xvy0001k004urfdmg8f",
+      "name": "Internal Tools",
+      "createdById": "cmruqvoou0001j4jodpwz4nzt"
+    },
+    {
+      "id": "cms6qvpcm0001jl04ds8xgju9",
+      "name": "Dashboard's",
+      "createdById": "cmruqvoou0001j4jodpwz4nzt"
+    },
+    {
+      "id": "cms6qwy8s0003jl04p6f5udzy",
+      "name": "Dashboard's",
+      "createdById": "cmruqvoou0001j4jodpwz4nzt"
+    }
+  ],
+  "projects": [
+    {
+      "id": "cmrwis5gd0001jv04zg0pntjm",
+      "name": "Anvi Careers",
+      "folderId": null
+    },
+    {
+      "id": "cmruag12b0000l104gt41suoo",
+      "name": "IHRMS",
+      "folderId": "cms676xvy0001k004urfdmg8f"
+    },
+    {
+      "id": "cmru9bhne000xj464ico7jgcg",
+      "name": "Recruiter Dashboard",
+      "folderId": null
+    },
+    {
+      "id": "cmru9bcml0000j464n329w96d",
+      "name": "Skyzen Webhooks",
+      "folderId": null
+    }
+  ]
+}

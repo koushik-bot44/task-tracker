@@ -1,0 +1,28 @@
+[
+ {
+  "id": "cmsdc0h9l0007l804aybokon6",
+  "title": "Anvi Careers meeting",
+  "description": "",
+  "date": "2026-08-04T00:00:00.000Z",
+  "startTime": "10:00",
+  "endTime": null,
+  "isMeeting": true,
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-08-03T14:35:53.577Z",
+  "updatedAt": "2026-08-03T14:35:53.577Z"
+ },
+ {
+  "id": "cmsdbgbqc0001l804tk25yxqd",
+  "title": "Recruiter Dashboard meeting",
+  "description": "asd",
+  "date": "2026-08-04T00:00:00.000Z",
+  "startTime": "18:00",
+  "endTime": null,
+  "isMeeting": true,
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "createdById": "cmruqvoou0001j4jodpwz4nzt",
+  "createdAt": "2026-08-03T14:20:13.284Z",
+  "updatedAt": "2026-08-03T14:20:13.284Z"
+ }
+]

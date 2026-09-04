@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Orbit — offline</title>
+    <style>
+      :root { color-scheme: light; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        display: grid;
+        place-items: center;
+        background: #f2f6fc;
+        color: #16255b;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+        text-align: center;
+      }
+      .card { max-width: 22rem; }
+      .mark {
+        width: 56px; height: 56px; margin: 0 auto 18px; display: block;
+      }
+      h1 { font-size: 1.15rem; margin: 0 0 8px; font-weight: 600; }
+      p { font-size: 0.95rem; line-height: 1.5; color: #4a5680; margin: 0 0 20px; }
+      button {
+        appearance: none; border: 0; cursor: pointer;
+        background: #2f68f0; color: #fff;
+        font: inherit; font-weight: 500;
+        padding: 11px 18px; border-radius: 12px; min-height: 44px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
+        <g transform="translate(256,256)">
+          <ellipse rx="150" ry="135" fill="none" stroke="#2f68f0" stroke-width="20" transform="rotate(-20)" opacity="0.92" />
+          <circle r="54" fill="#2f68f0" />
+          <circle cx="115" cy="-96" r="34" fill="#2f68f0" />
+        </g>
+      </svg>
+      <h1>You're offline</h1>
+      <p>Orbit needs a connection to load your projects. Your work is safe — reconnect and try again.</p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>

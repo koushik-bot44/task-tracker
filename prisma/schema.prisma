@@ -1,0 +1,663 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Pooled connection (pgbouncer) for the running app.
+  url       = env("DATABASE_URL")
+  // Migrations and introspection cannot run through the pooler, so they take
+  // the direct connection. Both names are injected by the Neon integration.
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum Status {
+  BACKLOG
+  PLANNED
+  IN_PROGRESS
+  ON_HOLD
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  P0
+  P1
+  P2
+  P3
+}
+
+enum Health {
+  ACTIVE
+  PAUSED
+  SHIPPED
+  IDEA
+}
+
+enum Role {
+  /// Phase 48: the top of the company chain. Sees and can act on everything;
+  /// capped at exactly ONE (like ADMIN) and never mintable through the UI.
+  FOUNDER
+  /// Phase 48: company-wide view and action like FOUNDER, minus founder-only
+  /// powers (touching the FOUNDER account, deleting departments).
+  DIRECTOR
+  /// Phase 48: Head of Department. Sees and acts on every project in the
+  /// department(s) whose Department.hodId points at them; nothing else beyond
+  /// what they own or collaborate on.
+  HOD
+  MANAGER
+  TEAM_LEAD
+  /// Phase 48 (renamed from DEVELOPER, data-preserving): the person doing the
+  /// work. User-facing label is "Team member".
+  RESOURCE
+  ADMIN
+  /// Phase 35 (renamed from CHILD): a walled-off LOGIN role for a manager's
+  /// tracked person. A PERSON is NOT a work role — it appears nowhere in People,
+  /// pickers, assignees, members, or any work surface. It can reach ONLY its own
+  /// routine tasks; every work endpoint 403s it (requireUser rejects PERSON) and
+  /// the middleware confines it to /kid. It exists solely so the tracked person
+  /// can check off their own routine tasks.
+  PERSON
+}
+
+/// Phase 48: project-level priority, set by the chain (founder/director
+/// anywhere, HOD in their department, owner manager on their own projects).
+/// Deliberately four plain levels; task Priority (P0-P3) is a separate,
+/// finer-grained axis that only changed its LABELS.
+enum ProjectPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model User {
+  id                 String                 @id @default(cuid())
+  email              String                 @unique
+  name               String
+  /// Null only for a PENDING invitee who has not set a password yet. Existing
+  /// accounts keep their hash; login rejects a null hash as bad credentials.
+  passwordHash       String?
+  role               Role
+  /// ACTIVE | PENDING. Existing rows default ACTIVE and are unaffected; a
+  /// PENDING user (invited, no password) cannot log in until they accept.
+  status             String                 @default("ACTIVE")
+  createdAt          DateTime               @default(now())
+  disabledAt         DateTime?
+  invite             Invite?                @relation("UserInvite")
+  createdInvites     Invite[]               @relation("InviteCreatedBy")
+  notes              TaskNote[]
+  completedTasks     Task[]                 @relation("CompletedBy")
+  assignedTasks      Task[]                 @relation("AssignedTo")
+  ledProjects        Project[]              @relation("ProjectLead")
+  projectNotes       ProjectNote[]
+  pushSubscriptions  PushSubscription[]
+  createdEvents      CalendarEvent[]
+  eventAttendances   EventAttendee[]
+  notifications      Notification[]
+  /// Per-person email toggle covering BOTH meeting and task-due emails. Push
+  /// and the in-app bell are separate and unaffected. Default on for everyone.
+  emailOptIn         Boolean                @default(true)
+  emailLogs          EmailLog[]
+  /// WhatsApp (phase 32). E.164 international number (e.g. "+916302608825");
+  /// null = no WhatsApp. whatsappOptIn mirrors emailOptIn — a per-person toggle
+  /// for the WhatsApp channel only; push/email/bell are unaffected. Default on,
+  /// harmless while phone is null (nothing is sent without a number).
+  phone              String?
+  whatsappOptIn      Boolean                @default(true)
+  whatsappLogs       WhatsAppLog[]
+  projectMemberships ProjectMember[]
+  createdDepartments Department[]           @relation("DepartmentCreatedBy")
+  /// Phase 48: the department(s) this user heads as HOD (normally at most one).
+  headedDepartments  Department[]           @relation("DepartmentHod")
+  ownedProjects      Project[]              @relation("ProjectOwner")
+  managerRoles       ProjectManager[]
+  resetRequests      PasswordResetRequest[] @relation("ResetUser")
+  resolvedResets     PasswordResetRequest[] @relation("ResetResolvedBy")
+  privateTasks       Task[]                 @relation("PrivateTaskOwner")
+  personalDepartments PersonalDepartment[]  @relation("PersonalDepartmentOwner")
+  personalProjects    PersonalProject[]     @relation("PersonalProjectOwner")
+  /// Phase 35: the Routine feature. A MANAGER may own ONE person (managedPerson);
+  /// a PERSON login account backs exactly one Person (personAccount). Both are
+  /// nullable one-to-ones (see @unique on Person.managerId / Person.userId).
+  managedPerson      Person?                @relation("PersonManager")
+  personAccount      Person?                @relation("PersonAccount")
+  /// Phase 39: routines this manager was invited to monitor (as a collaborator),
+  /// and the invites they have sent as an owner.
+  routineCollaborations RoutineCollaborator[] @relation("RoutineCollaboratorManager")
+  routineInvitesSent    RoutineCollaborator[] @relation("RoutineCollaboratorInvitedBy")
+}
+
+/// A Department (phase 16, renamed from Folder; phase 48 made them
+/// COMPANY-WIDE) — the top-level grouping every tool lives in. One shared set
+/// for the whole company, each optionally headed by an HOD (hodId). Creation
+/// and deletion are executive-only (FOUNDER/DIRECTOR); an HOD may edit their
+/// own department's description. createdById is attribution only now —
+/// nullable + SetNull so removing a user never takes a shared department with
+/// them. A department can still only be deleted once empty.
+model Department {
+  id          String    @id @default(cuid())
+  name        String
+  color       String
+  icon        String?
+  orderKey    String
+  /// Phase 48: what this department does, in plain language, shown on its page.
+  description String    @default("")
+  /// Phase 48: the Head of Department. Null = no head assigned yet. SetNull so
+  /// removing the person never removes the department.
+  hodId       String?
+  hod         User?     @relation("DepartmentHod", fields: [hodId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?     @relation("DepartmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  projects    Project[]
+}
+
+/// An explicit project membership (phase 11). A DEVELOPER sees a project iff they
+/// are a member here OR assigned to a task in it. Managers add developers to a
+/// project at creation or later, so membership need not wait for a task.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+/// Plain-text discussion on a task. Deliberately not markdown in v1.
+model TaskNote {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+model Project {
+  id            String           @id @default(cuid())
+  name          String
+  slug          String           @unique
+  color         String
+  icon          String?
+  health        Health           @default(ACTIVE)
+  gateTemplate  Json             @default("[]")
+  orderKey      String
+  /// Phase 48: how urgent this project is to the company. Company/department
+  /// dashboards sort by it (priority, then deadline, then name).
+  priority      ProjectPriority  @default(MEDIUM)
+  /// Phase 48: the date the project is expected to finish. Drives the at-risk/
+  /// overdue tint on department and company pages and surfaces on the calendar.
+  deadline      DateTime?
+  createdAt     DateTime         @default(now())
+  /// Required on new tools; "" on the three that predate phase 5.
+  description   String           @default("")
+  /// The TEAM_LEAD who owns this tool. Nullable because existing tools have
+  /// no lead until a manager assigns one — never backfilled by a migration.
+  leadId        String?
+  lead          User?            @relation("ProjectLead", fields: [leadId], references: [id], onDelete: SetNull)
+  /// The manager who OWNS this tool (phase 14). Owner-only powers: delete,
+  /// edit metadata, re-file into a folder, and manage the collaborator list.
+  /// Nullable + SetNull so an owner account can be removed without a hard FK
+  /// wall — but deleting an owner is handled as a transactional cascade of
+  /// their owned projects, so in practice this rarely goes null.
+  ownerId       String?
+  owner         User?            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  /// The department this tool lives in (phase 16, was folderId). Required at the
+  /// API layer going forward — every project sits in exactly one department;
+  /// the column stays nullable + SetNull only as a safety net (a department can
+  /// only be deleted once empty, so this rarely goes null).
+  departmentId  String?
+  department    Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  tasks         Task[]
+  projectNotes  ProjectNote[]
+  events        CalendarEvent[]
+  members       ProjectMember[]
+  collaborators ProjectManager[]
+
+  @@index([departmentId])
+  @@index([ownerId])
+}
+
+/// A manager invited to collaborate on a project they don't own (phase 14). The
+/// row IS the invite while status = PENDING, and becomes the membership once
+/// ACCEPTED — a decline just deletes the row (chosen over a separate invite
+/// table: one lifecycle, one place to look). The OWNER is Project.ownerId, not
+/// a row here; only the owner manages this list.
+model ProjectManager {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// COLLABORATOR for now; the column exists so other collab roles need no migration.
+  role      String   @default("COLLABORATOR")
+  /// PENDING | ACCEPTED. Pending = an unanswered invite; accepted = access.
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId, status])
+}
+
+/// A forgot-password request for an admin to action (phase 14). One PENDING row
+/// per user (deduped). Resolving it issues a set-password Invite token and marks
+/// the request RESOLVED — the admin never sees or sets the password.
+model PasswordResetRequest {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation("ResetUser", fields: [userId], references: [id], onDelete: Cascade)
+  status       String    @default("PENDING")
+  createdAt    DateTime  @default(now())
+  resolvedById String?
+  /// SetNull (not Restrict): a resolved request is a historical audit line; it
+  /// must never block deleting the admin who resolved it.
+  resolvedBy   User?     @relation("ResetResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+
+  @@index([status, createdAt])
+}
+
+/// Tool-level discussion — the "About & requirements" thread. Same shape and
+/// same rules as TaskNote: plain text, author-only delete.
+model ProjectNote {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  /// Nullable since phase 15: a PRIVATE task belongs to no project (projectId
+  /// null, isPrivate true, ownerId set). Every real project task still carries
+  /// its projectId — the migration only relaxed the column, it changed no data.
+  projectId      String?
+  project        Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId       String?
+  parent         Task?      @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  children       Task[]     @relation("Subtasks")
+  title          String
+  descriptionMd  String     @default("")
+  status         Status     @default(BACKLOG)
+  priority       Priority   @default(P2)
+  dueDate        DateTime?
+  /// True when the server guessed this date rather than a person choosing it.
+  /// Cleared the first time anyone edits the date.
+  dueProvisional Boolean    @default(false)
+  orderKey       String
+  gates          Json       @default("[]")
+  tags           String[]   @default([])
+  links          Json       @default("[]")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  completedAt    DateTime?
+  deletedAt      DateTime?
+  pinnedAt       DateTime?
+  deliverableUrl String?
+  completedById  String?
+  completedBy    User?      @relation("CompletedBy", fields: [completedById], references: [id])
+  assigneeId     String?
+  assignee       User?      @relation("AssignedTo", fields: [assigneeId], references: [id], onDelete: SetNull)
+  /// A personal colour a task's editor may set. Null = no personal colour; the
+  /// tool's own colour is the identity cue the dashboards key on regardless.
+  color          String?
+  /// True for a PRIVATE personal task (phase 15). Invariant: isPrivate = true
+  /// IFF projectId is null and ownerId is set. Every project-task read excludes
+  /// these so a private task never surfaces in a project tree, count, rollup,
+  /// dashboard, workload, calendar, review, or anyone else's view.
+  isPrivate      Boolean    @default(false)
+  /// The owner of a private task (phase 15). SetNull so removing a user never
+  /// hits an FK wall; only ownerId == caller may read/write the task.
+  ownerId        String?
+  owner          User?      @relation("PrivateTaskOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  /// The PersonalProject a private task lives in (phase 33 — replaces the phase-15
+  /// labelId grouping). Every private task (root AND subtask) carries it, mirroring
+  /// how a project task carries projectId. SetNull is a safety net; the project's
+  /// DELETE endpoint removes its tasks explicitly so none are orphaned.
+  personalProjectId String?
+  personalProject   PersonalProject? @relation("PersonalProjectTasks", fields: [personalProjectId], references: [id], onDelete: SetNull)
+  /// A soft LIGHT tint drawn behind a task WITH children and its whole subtree
+  /// (phase 15), so a group's extent reads at a glance. Null = no band. One of
+  /// the GROUP_TINTS token keys; a child's band overrides within its own subtree.
+  groupColor     String?
+  notes          TaskNote[]
+
+  @@index([projectId, parentId])
+  @@index([assigneeId])
+  @@index([ownerId, isPrivate])
+  @@index([personalProjectId])
+}
+
+/// A user's PRIVATE space (phase 33) — a personal Department > Project > Task
+/// hierarchy that replaces the phase-15 flat "labels" grouping. Every row is fully
+/// caller-scoped: only ownerId may read or write it (404 to everyone else, incl.
+/// admin/manager — no role override). Cascade so removing a user takes their whole
+/// personal space with them. These never appear in any project view, dashboard,
+/// aggregate, calendar, review, or another user's anything.
+model PersonalDepartment {
+  id        String            @id @default(cuid())
+  ownerId   String
+  owner     User              @relation("PersonalDepartmentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  orderKey  String
+  createdAt DateTime          @default(now())
+  projects  PersonalProject[]
+
+  @@index([ownerId])
+}
+
+model PersonalProject {
+  id           String             @id @default(cuid())
+  ownerId      String
+  owner        User               @relation("PersonalProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   PersonalDepartment @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name         String
+  orderKey     String
+  createdAt    DateTime           @default(now())
+  tasks        Task[]             @relation("PersonalProjectTasks")
+
+  @@index([ownerId, departmentId])
+}
+
+/// Sign-in failures, one row each. Lives in the database rather than in
+/// process memory so the limit holds across serverless instances.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+}
+
+/// A browser's Web Push subscription. One row per browser endpoint; a user can
+/// hold several (phone, laptop). Removed on 404/410 from the push service, and
+/// cascade-deleted with the user.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// A calendar entry a manager creates. Two shapes share this one table (phase
+/// 22): a plain EVENT (isMeeting = false — a meeting/all-hands, null projectId =
+/// global, notified to the project's broad scope) and a MEETING (isMeeting =
+/// true — always tool-scoped, with a start/optional-end time and an EXPLICIT
+/// attendee list; only those attendees are notified and can see it). The creator
+/// is kept (Restrict) so an event always has an attributable author.
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  date        DateTime
+  /// Meetings (phase 22): "HH:MM" 24h local. startTime is required for a
+  /// meeting, endTime optional; both null on a plain event.
+  startTime   String?
+  endTime     String?
+  /// True = a scheduled meeting with explicit attendees; false = a plain event
+  /// on the old broad-scope behaviour. Existing rows default false, untouched.
+  isMeeting   Boolean  @default(false)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  attendees   EventAttendee[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([projectId, date])
+}
+
+/// The SELECTED attendees of a meeting (phase 22). Present only for isMeeting
+/// events; a plain event has none and keeps its scoped-recipient behaviour. The
+/// row is the invitation: exactly these users are notified and may see the
+/// meeting. Cascades with the event and with the user.
+model EventAttendee {
+  id      String        @id @default(cuid())
+  eventId String
+  event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+/// A pending account's set-password invite (phase 10). Only a sha256 of the
+/// token is stored — the raw token lives solely in the emailed link, like a
+/// password. One live invite per user; single-use (consumedAt) and time-boxed.
+model Invite {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation("UserInvite", fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdById String
+  createdBy   User      @relation("InviteCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@index([tokenHash])
+}
+
+/// Sent-email ledger (phase 9). `dedupeKey` is unique so a message is sent at
+/// most once — e.g. a task is emailed once per due-day even if the cron runs
+/// twice, and an event reaches each recipient once. Never read on a hot path
+/// beyond the dedupe check.
+model EmailLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  refId     String
+  dedupeKey String   @unique
+  sentAt    DateTime @default(now())
+
+  @@index([userId, sentAt])
+}
+
+/// WhatsApp send-log (phase 32) — mirrors EmailLog. One row per delivered
+/// WhatsApp message, keyed by a unique dedupeKey so a re-send (overlapping cron
+/// or a retried request) never duplicates. kind/refId say what it was for
+/// (e.g. kind "event_new", refId the event id).
+model WhatsAppLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  refId     String
+  dedupeKey String   @unique
+  sentAt    DateTime @default(now())
+
+  @@index([userId, sentAt])
+}
+
+/// An in-app notification. The bell reads these; push (phase 7) mirrors them.
+/// `data` carries a url the click navigates to. `readAt` null = unread.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  data      Json      @default("{}")
+  readAt    DateTime?
+  // Snooze (phase 23). null = not snoozed. A future value hides the item from the
+  // active bell list + unread count until then; a cron wakes items whose time has
+  // passed (snoozedUntil <= now) by clearing this back to null and re-pushing.
+  // Clearing on wake IS the idempotency mechanism — a woken item (null) can't be
+  // reselected by { snoozedUntil: { lte: now } } — so no separate "rewoken" flag.
+  snoozedUntil DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  // The cron scans by due snooze time across all users.
+  @@index([snoozedUntil])
+}
+
+/// Phase 35 (renamed from Child) — the family "Routine" feature, fully isolated
+/// from all work data. A manager owns at most ONE person (managerId @unique); the
+/// person logs in with a PERSON-role account (userId @unique). Deleting either the
+/// manager or the person account cascades the whole Person + all its routine data
+/// (segments, habits, marks, non-negotiables, weight, tasks). Everything here is
+/// scoped to the owning manager (and, for the person's login, to their own tasks).
+model Person {
+  id             String          @id @default(cuid())
+  managerId      String          @unique
+  manager        User            @relation("PersonManager", fields: [managerId], references: [id], onDelete: Cascade)
+  userId         String          @unique
+  user           User            @relation("PersonAccount", fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  createdAt      DateTime        @default(now())
+  segments       HabitSegment[]
+  nonNegotiables NonNegotiable[]
+  weightEntries  WeightEntry[]
+  tasks          RoutineTask[]
+  collaborators  RoutineCollaborator[]
+}
+
+/// Phase 39: another MANAGER invited to monitor a person's routine, mirroring the
+/// per-project manager collaboration. READ_ONLY sees everything the owner sees but
+/// writes nothing; EDITABLE can do the routine writes (not owner-only actions —
+/// delete the person, manage collaborators). The invite is PENDING until the
+/// invited manager accepts. The routine is keyed by Person; the owner is
+/// Person.managerId (never a RoutineCollaborator).
+model RoutineCollaborator {
+  id          String   @id @default(cuid())
+  personId    String
+  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  managerId   String
+  manager     User     @relation("RoutineCollaboratorManager", fields: [managerId], references: [id], onDelete: Cascade)
+  permission  String   // "READ_ONLY" | "EDITABLE"
+  status      String   @default("PENDING") // "PENDING" | "ACCEPTED"
+  invitedById String
+  invitedBy   User     @relation("RoutineCollaboratorInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+
+  @@unique([personId, managerId])
+  @@index([managerId, status])
+  @@index([personId])
+}
+
+/// Phase 35: a named grouping of habits in the weekly grid (e.g. "Sleep & Wake",
+/// "Academics"). A sensible default set is seeded on person-create; fully editable.
+model HabitSegment {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  name      String
+  orderKey  String
+  createdAt DateTime @default(now())
+  habits    Habit[]
+
+  @@index([personId])
+}
+
+/// Phase 35: one checklist habit under a segment, with a weekly target (0-7 days).
+model Habit {
+  id            String       @id @default(cuid())
+  segmentId     String
+  segment       HabitSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  name          String
+  targetPerWeek Int          @default(7)
+  orderKey      String
+  active        Boolean      @default(true)
+  marks         HabitMark[]
+
+  @@index([segmentId])
+}
+
+/// Phase 35: the three-state daily mark for one habit — value is "MET" | "MISSED"
+/// | "NA", one row per habit per IST date-only day (absence = not yet marked).
+model HabitMark {
+  id      String   @id @default(cuid())
+  habitId String
+  habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date    DateTime @db.Date
+  value   String
+
+  @@unique([habitId, date])
+  @@index([habitId, date])
+}
+
+/// Phase 35: a serious fixed boundary, tracked separately from habits.
+model NonNegotiable {
+  id       String              @id @default(cuid())
+  personId String
+  person   Person              @relation(fields: [personId], references: [id], onDelete: Cascade)
+  name     String
+  orderKey String
+  active   Boolean             @default(true)
+  marks    NonNegotiableMark[]
+
+  @@index([personId])
+}
+
+/// Phase 42: a per-day mark on a non-negotiable. A row is present ONLY on the days
+/// the MANAGER scheduled the rule as required; its `done` flag is set by the PERSON
+/// when they complete it. (Absence of a row = not required that day.)
+model NonNegotiableMark {
+  id              String        @id @default(cuid())
+  nonNegotiableId String
+  nonNegotiable   NonNegotiable @relation(fields: [nonNegotiableId], references: [id], onDelete: Cascade)
+  date            DateTime      @db.Date
+  // Phase 42: the row EXISTS only when the manager marked this (rule, date) REQUIRED;
+  // `done` is what the PERSON sets when they complete it that day. (Replaces the old
+  // `crossed` violation flag — the model flipped to manager-schedules / person-does.)
+  done            Boolean       @default(false)
+
+  @@unique([nonNegotiableId, date])
+  @@index([nonNegotiableId, date])
+}
+
+/// Phase 35: the weight monitor — one logged weight (kg) per entry, IST date-only.
+/// Manager-only: the tracked person never sees weight.
+model WeightEntry {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  weightKg  Float
+  createdAt DateTime @default(now())
+
+  @@index([personId, date])
+}
+
+/// Phase 35 (kept from phase 34, childId->personId): a task the manager assigns;
+/// the PERSON checks it off (the only thing the person's login writes).
+model RoutineTask {
+  id        String    @id @default(cuid())
+  personId  String
+  person    Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  title     String
+  dueDate   DateTime? @db.Date
+  done      Boolean   @default(false)
+  doneAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([personId, dueDate])
+}

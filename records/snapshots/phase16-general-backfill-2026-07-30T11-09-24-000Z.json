@@ -1,0 +1,21 @@
+{
+  "at": "2026-07-30T11-09-24-000Z",
+  "note": "phase16 General backfill: loose projects filed into a new General department (Test Manager).",
+  "generalId": "cms7evm8s0001j4ecrr28gs15",
+  "movedCount": 3,
+  "movedProjects": [
+    {
+      "id": "cmrwis5gd0001jv04zg0pntjm",
+      "name": "Anvi Careers"
+    },
+    {
+      "id": "cmru9bhne000xj464ico7jgcg",
+      "name": "Recruiter Dashboard"
+    },
+    {
+      "id": "cmru9bcml0000j464n329w96d",
+      "name": "Skyzen Webhooks"
+    }
+  ],
+  "remainingNull": 0
+}

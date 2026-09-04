@@ -1,0 +1,16 @@
+[
+ {
+  "id": "cmtenxn7b0001l7046jhrilwc",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "date": "2026-08-29T00:00:00.000Z",
+  "weightKg": 40,
+  "createdAt": "2026-08-29T17:37:05.208Z"
+ },
+ {
+  "id": "cmtenyi730003l704z0hp26t2",
+  "personId": "cmtdbbjhm0002jn04sg8i4jn6",
+  "date": "2026-09-30T00:00:00.000Z",
+  "weightKg": 45,
+  "createdAt": "2026-08-29T17:37:45.375Z"
+ }
+]

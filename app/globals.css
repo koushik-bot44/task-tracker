@@ -1,0 +1,530 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Clinical blueprint (phase 49b) ─────────────────────────────────────────
+   One theme, light, after the "Ui" style (styles.refero.design — the
+   shadcn/Vercel monochrome): a #f5f5f5 canvas, pure-white cards on #e5e5e5
+   hairlines, near-black ink, and an ACHROMATIC primary — the filled action is
+   dark ink, not a brand blue. Red (#e7000b, "ember") is reserved for trouble:
+   overdue, destructive, error. The remaining status hues (ok/warn/info) stay
+   as MEANING, not decoration, and sit heavily desaturated so the page reads
+   monochrome at a glance. Every hue still ships twice: a fill value and a
+   darker `-ink` for that hue as text (fills clear 3:1, text clears 4.5:1).
+
+   There is no dark theme and no toggle. Nothing to flash, nothing to store,
+   nothing to desynchronise. Bringing one back is a second token block and a
+   selector — deliberately a future decision, not dormant machinery.        */
+
+:root {
+  color-scheme: light;
+
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  /* Surface-alt: the sidebar layer, one tonal step lighter than the canvas. */
+  --surface-2: #fafafa;
+  --surface-raised: #ffffff;
+
+  --ink: #0a0a0a;
+  /* Spec says #737373, nudged to keep 4.5:1 on the #f5f5f5 canvas too. */
+  --muted: #666666;
+  /* The hairline — borders do ALL the structure in this system. One shade
+     under the spec's #e5e5e5 so it stays ≥1.2 against the #f5f5f5 canvas. */
+  --line: #dedede;
+  /* Tree indent guides — a touch stronger than --line so the nesting reads at a
+     glance, still soft enough to sit behind the content, not compete with it. */
+  --guide: #d4d4d4;
+
+  /* ACHROMATIC primary: the filled action is dark ink on light — the only
+     "chromatic interaction" in the system is this tonal inversion. */
+  --primary: #171717;
+  --primary-ink: #0a0a0a;
+  /* Accent in a monochrome system is a TONAL step, not a hue: a mid-gray
+     fill that carries ink labels. */
+  --accent: #a3a3a3;
+  --accent-ink: #525252;
+  --ok: #4a8f66;
+  --ok-ink: #2f6b48;
+  --info: #6b6b74;
+  --info-ink: #4b4b52;
+  /* Ember — the one true color, reserved for overdue/destructive/error. */
+  --danger: #e7000b;
+  --danger-ink: #b50009;
+  --warn: #c08a1e;
+  --warn-ink: #7a5507;
+
+  /* Real tokens for things that used to be written as `bg-muted/45` and
+     friends. Tailwind cannot apply an alpha modifier to a variable holding a
+     hex string — it emits no rule at all — so eighteen of those across the app
+     were rendering nothing, most visibly the unpassed gate dots, which made
+     the gate cluster read as an empty input box.
+     Translucency that is genuinely needed now lives in a token instead. */
+  --dot-off: #8a8a8a;      /* a gate that has not passed: present, countable */
+  --dot-off-warn: #96772a; /* the same, for the manager's reviewed slot */
+  --scrim: rgb(245 245 245 / 0.85); /* sticky headers, over blur */
+  /* Chart fills for the two statuses that mean "not started" and "abandoned".
+     Both must recede: a donut where backlog is the heaviest wedge says a tool
+     is in trouble when it is merely new. */
+  --chart-idle: #e2e2e2;
+  /* Calm workload fills — the monochrome system lets meaning stay (done =
+     muted green) while everything else recedes to gray. */
+  --chart-done: #8fbfa2;
+  --chart-open: #b9b9c0;
+  /* The tooltip is an inverted surface. Text inside it cannot use --ink or
+     --muted, which are tuned for dark-on-light — the gate tooltip's header was
+     rendering navy on navy and reading as a clipped line rather than as an
+     invisible one. */
+  --on-ink: #ffffff;
+  --on-ink-muted: #c9c9c9;
+
+  /* Label colours for solid fills. The dark primary carries near-white; the
+     status fills carry ink. */
+  --on-primary: #fafafa;
+  --on-fill: #0a0a0a;
+
+  --primary-soft: rgb(10 10 10 / 0.06);
+  --accent-soft: rgb(10 10 10 / 0.06);
+  --ok-soft: rgb(74 143 102 / 0.13);
+  --info-soft: rgb(107 107 116 / 0.1);
+  --danger-soft: rgb(231 0 11 / 0.08);
+  --warn-soft: rgb(192 138 30 / 0.13);
+
+  --hover: rgb(10 10 10 / 0.04);
+  --pressed: rgb(10 10 10 / 0.08);
+
+  /* The spec's whisper-quiet card stack: a 1px hairline layer + two faint
+     offsets. Floating layers get slightly more; nothing gets drama. */
+  --shadow-1: 0 0 0 1px rgb(23 23 23 / 0.05), 0 1px 3px rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.08);
+  --shadow-lift: 0 12px 32px -8px rgb(0 0 0 / 0.16);
+  --drop-glow: 0 0 0 2px var(--ink), 0 0 20px -2px rgb(10 10 10 / 0.15);
+}
+
+/* Semantic z-index scale — no magic numbers anywhere else in the app. */
+:root {
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-drag: 40;
+  --z-drawer: 60;
+  --z-toast: 80;
+  --z-tooltip: 90;
+
+  /* The spec's two-radius law: 18px pills for everything interactive
+     (chips stay fully round — same capsule geometry), 24px for containers. */
+  --r-chip: 999px;
+  --r-input: 18px;
+  --r-card: 24px;
+  --r-sheet: 24px;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    /* Belt and braces: no layout mistake gets to produce a sideways scroll. */
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  /*
+   * Pressed state, globally. Applying a class to every call site meant the
+   * next new button would quietly ship without one; a base rule cannot be
+   * forgotten. Opt out with data-no-press where a sink would fight a drag
+   * or a layout.
+   */
+  button:not(:disabled):not([data-no-press]),
+  a:not([data-no-press]),
+  [role="button"]:not([aria-disabled="true"]):not([data-no-press]) {
+    transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button:not(:disabled):not([data-no-press]):active,
+    a:not([data-no-press]):active,
+    [role="button"]:not([aria-disabled="true"]):not([data-no-press]):active {
+      transform: scale(0.98);
+    }
+  }
+
+  /* One visible focus treatment, applied everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--primary-soft);
+    color: var(--ink);
+  }
+
+  ::placeholder {
+    color: var(--muted);
+    opacity: 1;
+  }
+}
+
+/* The tooltip is positioned with left/top now, not a centring transform, so
+   this keyframe must not carry one — it used to animate from translate(-50%,
+   -100%) to none, which flew the bubble in from half a width and a full
+   height away. Fade and a 3px rise, nothing else. */
+@keyframes tip {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@layer utilities {
+  /* One interaction vocabulary, applied by class rather than re-declared per
+     component: tint on hover, sink on press, primary ring on keyboard focus. */
+  .press {
+    transition:
+      background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* The tint LAYERS over the element's own fill rather than replacing it.
+
+     These used to set background-color, and `.press:hover` has specificity
+     (0,2,0) against `.bg-primary`'s (0,1,0) — so every solid button wearing
+     `press` lost its fill the instant the cursor touched it. A blue Sign in
+     button became a 4.5%-alpha ghost, which read as the button vanishing.
+
+     background-image composites on top of background-color, so a filled
+     button darkens slightly and a bare one still gets its tint. It also stops
+     `.press` from beating sibling hover utilities like hover:bg-danger-soft,
+     which were being silently overridden for the same reason. */
+  .press:not(:disabled):hover {
+    background-image: linear-gradient(var(--hover), var(--hover));
+  }
+  .press:not(:disabled):active {
+    background-image: linear-gradient(var(--pressed), var(--pressed));
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .press:not(:disabled):active {
+      transform: scale(0.98);
+    }
+  }
+
+  /* Cards and rows lift toward the cursor. Shadow does the work; the 2px is
+     just enough to feel physical without shifting the layout around it. */
+  .lift {
+    transition:
+      transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-2);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lift:hover {
+      box-shadow: var(--shadow-2);
+    }
+  }
+
+  /* The default card, per the spec: white paper, 24px radius, 1px hairline
+     AND the whisper-quiet shadow stack — both, always (the shadow alone does
+     not define the edge in this system). */
+  .card {
+    background-color: var(--surface);
+    border-radius: var(--r-card);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-1);
+  }
+
+  /* Depth guide lines for the outline — one soft vertical rail per ancestor
+     level, drawn as pseudo-elements so they never intercept pointer events. The
+     innermost level (.guide-elbow) also draws a short horizontal tick into the
+     row, so a child visibly hangs off its parent's rail (an ├ elbow). */
+  .guide-line::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--guide);
+    pointer-events: none;
+  }
+  .guide-elbow::after {
+    content: "";
+    position: absolute;
+    left: 1px;
+    top: 1.5rem;
+    width: 12px;
+    height: 1px;
+    background: var(--guide);
+    pointer-events: none;
+  }
+
+  /* Markdown preview. Hand-rolled rather than pulling in a typography plugin
+     for one panel — the token palette does the work. */
+  .prose-orbit > * + * {
+    margin-top: 0.75em;
+  }
+  .prose-orbit h1,
+  .prose-orbit h2,
+  .prose-orbit h3 {
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .prose-orbit h1 {
+    font-size: 1.25em;
+  }
+  .prose-orbit h2 {
+    font-size: 1.1em;
+  }
+  .prose-orbit h3 {
+    font-size: 1em;
+  }
+  .prose-orbit a {
+    color: var(--primary-ink);
+    text-decoration: underline;
+  }
+  .prose-orbit ul,
+  .prose-orbit ol {
+    padding-left: 1.25em;
+  }
+  .prose-orbit ul {
+    list-style: disc;
+  }
+  .prose-orbit ol {
+    list-style: decimal;
+  }
+  .prose-orbit li + li {
+    margin-top: 0.25em;
+  }
+  .prose-orbit code {
+    background: var(--hover);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+  }
+  .prose-orbit pre {
+    background: var(--hover);
+    border-radius: 8px;
+    padding: 0.75em;
+    overflow-x: auto;
+  }
+  .prose-orbit pre code {
+    background: none;
+    padding: 0;
+  }
+  .prose-orbit blockquote {
+    border-left: 2px solid var(--line);
+    padding-left: 0.75em;
+    color: var(--muted);
+  }
+  .prose-orbit table {
+    width: 100%;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+  }
+  .prose-orbit th,
+  .prose-orbit td {
+    border: 1px solid var(--line);
+    padding: 0.35em 0.6em;
+    text-align: left;
+  }
+  .prose-orbit hr {
+    border-color: var(--line);
+  }
+  .prose-orbit input[type="checkbox"] {
+    margin-right: 0.4em;
+  }
+
+  .cmdk-group [cmdk-group-heading] {
+    padding: 0.5rem 0.625rem 0.25rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  /* Small controls keep their visual size but grow an invisible 40px hit area
+     on touch pointers, so the outline stays dense without punishing thumbs. */
+  @media (pointer: coarse) {
+    .hit-40 {
+      position: relative;
+    }
+    .hit-40::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 40px);
+      height: max(100%, 40px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* Non-negotiable: every animation has a reduced-motion fallback. Framer Motion
+   handles its own via useReducedMotion(); this covers CSS transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* PWA. When the app is launched installed (standalone), the install nudge has
+   nothing to offer, so it is hidden here rather than with a JS matchMedia
+   branch. Safe-area insets keep content clear of the notch and home indicator
+   — a no-op in a normal browser tab, padding only where the OS reports insets. */
+@media (display-mode: standalone) {
+  .pwa-install {
+    display: none !important;
+  }
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Person screen: frosted-glass working UI (phase 45) ──────────────────────
+   Used ONLY on /person. Per-scene CSS custom properties drive the translucent
+   tints + text/cell colours; a fallback bumps opacity where backdrop-filter is
+   unsupported (the -webkit- prefix is included). The rgba/hex here are INTENTIONAL
+   glass tints — the translucency is the whole "frosted" point — and are derived
+   from the app's ink/surface/ok/danger palette. */
+.pk-glass {
+  background: var(--pk-bg);
+  border: 1px solid var(--pk-border);
+  box-shadow: 0 12px 36px -10px rgba(10, 16, 38, 0.3), inset 0 1px 0 var(--pk-sheen);
+  backdrop-filter: blur(17px) saturate(150%);
+  -webkit-backdrop-filter: blur(17px) saturate(150%);
+}
+.pk-day {
+  --pk-bg: rgba(255, 255, 255, 0.46);
+  --pk-border: rgba(255, 255, 255, 0.72);
+  --pk-sheen: rgba(255, 255, 255, 0.85);
+  --pk-fg: #16255b;
+  --pk-fg-soft: #44548a;
+  --pk-cell: rgba(255, 255, 255, 0.42);
+  --pk-cell-bd: rgba(22, 37, 91, 0.16);
+  --pk-active: rgba(255, 255, 255, 0.9);
+}
+.pk-night {
+  --pk-bg: rgba(19, 26, 56, 0.44);
+  --pk-border: rgba(255, 255, 255, 0.18);
+  --pk-sheen: rgba(255, 255, 255, 0.16);
+  --pk-fg: #f4f7ff;
+  --pk-fg-soft: #c6d0ee;
+  --pk-cell: rgba(255, 255, 255, 0.09);
+  --pk-cell-bd: rgba(255, 255, 255, 0.2);
+  --pk-active: rgba(255, 255, 255, 0.2);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pk-day { --pk-bg: rgba(255, 255, 255, 0.85); }
+  .pk-night { --pk-bg: rgba(19, 26, 56, 0.86); }
+}
+/* Full-screen Well Being: the page root becomes the scroll container. */
+.wb-fs:fullscreen,
+.wb-fs:-webkit-full-screen {
+  overflow-y: auto;
+  background: var(--bg);
+}
+/* Scene backdrop — a STICKY, one-viewport layer so the scene stays put while the (tall)
+   content scrolls over it. An `absolute inset-0` layer instead scrolls away after one
+   viewport, baring the light page background and turning night text unreadable on white.
+   The negative margin pulls it out of flow so the content overlays it. */
+.wb-scene {
+  position: sticky;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Manager Well Being lives inside the app chrome: pin the scene BELOW the 4rem header so
+   it never tints the header; go full-height when the tab is sent full-screen (no header). */
+.wb-scene-app {
+  top: 4rem;
+  height: calc(100dvh - 4rem);
+  margin-bottom: calc(4rem - 100dvh);
+}
+.wb-fs:fullscreen .wb-scene-app,
+.wb-fs:-webkit-full-screen .wb-scene-app {
+  top: 0;
+  height: 100dvh;
+  margin-bottom: -100dvh;
+}
+/* Person screen is standalone (no header): a full-viewport sticky scene. */
+.wb-scene-full {
+  top: 0;
+  height: 100dvh;
+  margin-bottom: -100dvh;
+}
+/* Native <select> popups render on the browser's own light background, so their options
+   must stay dark: the glass text colour (--pk-fg) is near-white at night and would be
+   invisible on that popup. (The highlighted row keeps the OS accent colours.) */
+.pk-day option,
+.pk-night option {
+  color: var(--ink);
+  background-color: var(--surface);
+}
+.pk-fg { color: var(--pk-fg); }
+.pk-fg-soft { color: var(--pk-fg-soft); }
+.pk-cell { background: var(--pk-cell); border: 1px solid var(--pk-cell-bd); color: var(--pk-fg); }
+.pk-cell-ring { border-color: var(--pk-cell-bd); }
+.pk-tab { color: var(--pk-fg-soft); background: transparent; border: 1px solid transparent; }
+.pk-tab-active {
+  color: var(--pk-fg);
+  background: var(--pk-active);
+  border: 1px solid var(--pk-border);
+  box-shadow: 0 4px 14px -4px rgba(10, 16, 38, 0.28), inset 0 1px 0 var(--pk-sheen);
+}
+.pk-met { background: rgba(46, 164, 110, 0.32); border-color: rgba(46, 164, 110, 0.55); }
+.pk-missed { background: rgba(224, 96, 96, 0.3); border-color: rgba(224, 96, 96, 0.55); }
+.pk-na { background: rgba(150, 162, 190, 0.26); border-color: rgba(150, 162, 190, 0.45); color: var(--pk-fg-soft); }
+.pk-todo { background: rgba(88, 120, 220, 0.2); border-color: rgba(120, 150, 235, 0.5); }
+.pk-done { background: rgba(46, 164, 110, 0.82); border-color: rgba(46, 164, 110, 0.9); color: #fff; }
+.pk-today { box-shadow: 0 0 0 2px var(--pk-border); }
+.pk-input { background: var(--pk-cell); border: 1px solid var(--pk-cell-bd); color: var(--pk-fg); }
+.pk-input::placeholder { color: var(--pk-fg-soft); }
+.pk-input:focus { border-color: var(--pk-border); }
+.pk-btn { background: var(--pk-active); border: 1px solid var(--pk-border); color: var(--pk-fg); box-shadow: inset 0 1px 0 var(--pk-sheen); }
+.pk-chip { background: var(--pk-cell); border: 1px solid var(--pk-cell-bd); color: var(--pk-fg); }
+.pk-press { transition: transform 150ms ease-out, background-color 150ms ease-out, box-shadow 150ms ease-out; }
+.pk-press:active { transform: scale(0.95); }
+.pk-tab-hover:hover { color: var(--pk-fg); background: var(--pk-cell); }
+.pk-row-hover:hover { box-shadow: 0 6px 18px -8px rgba(10, 16, 38, 0.35); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  .pk-press,
+  .pk-row-hover {
+    transition: none !important;
+  }
+  .pk-press:active,
+  .pk-row-hover:hover {
+    transform: none !important;
+  }
+}

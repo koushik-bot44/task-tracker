@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/task-due",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/snooze-wake",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

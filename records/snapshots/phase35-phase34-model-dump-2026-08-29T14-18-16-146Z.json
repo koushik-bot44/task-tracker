@@ -1,0 +1,45 @@
+{
+  "dumpedAt": "2026-08-29T14:18:16.144Z",
+  "purpose": "phase-35 supersede of the phase-34 simple routine model (RoutineDay/RoutineHabit/RoutineHabitLog) + child->person rename evidence",
+  "counts": {
+    "Child": 1,
+    "RoutineDay": 0,
+    "RoutineHabit": 1,
+    "RoutineHabitLog": 0,
+    "RoutineTask": 0,
+    "childRoleUsers": 1
+  },
+  "tables": {
+    "Child": [
+      {
+        "id": "cmtdbbjhm0002jn04sg8i4jn6",
+        "managerId": "cmruqvoou0001j4jodpwz4nzt",
+        "userId": "cmtdbbjhh0000jn04tw05wd6c",
+        "name": "Arjun",
+        "createdAt": "2026-08-28T18:56:12.394Z"
+      }
+    ],
+    "RoutineDay": [],
+    "RoutineHabit": [
+      {
+        "id": "cmtdbop0z0003l404hjelxe4m",
+        "childId": "cmtdbbjhm0002jn04sg8i4jn6",
+        "name": "Tution",
+        "orderKey": "a0",
+        "active": false
+      }
+    ],
+    "RoutineHabitLog": [],
+    "RoutineTask": [],
+    "childRoleUsers": [
+      {
+        "id": "cmtdbbjhh0000jn04tw05wd6c",
+        "email": "arjun@gmail.com",
+        "name": "Arjun",
+        "role": "CHILD",
+        "status": "ACTIVE",
+        "createdAt": "2026-08-28T18:56:12.389Z"
+      }
+    ]
+  }
+}
