@@ -58,12 +58,26 @@ export function Check({
   onChange,
   label,
   className,
+  readOnly = false,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   label: string;
   className?: string;
+  /** Shows the state but takes no tap — a team member sees the tick, a lead gives it (owner, 2026-09-04). */
+  readOnly?: boolean;
 }) {
+  if (readOnly) {
+    return (
+      <span role="img" aria-label={checked ? "Done" : "Not done yet"} className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-full", className)}>
+        <span className={cn("grid h-6 w-6 place-items-center rounded-full border-2", checked ? "border-ok bg-ok" : "border-line bg-transparent")}>
+          <svg viewBox="0 0 20 20" className={cn("h-3.5 w-3.5 text-on-primary", checked ? "opacity-100" : "opacity-0")} aria-hidden>
+            <path d="M4.5 10.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </span>
+    );
+  }
   return (
     <button
       type="button"

@@ -14,6 +14,8 @@ import { cn } from "@/lib/cn";
 import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useTaskMutations } from "@/lib/hooks/use-tasks";
 import { todayKey } from "@/lib/hooks/use-today";
+import { useMe } from "@/lib/hooks/use-users";
+import { isLeadOrAboveRole } from "@/lib/roles";
 import type { TodayDTO } from "@/lib/types";
 
 type TodayTask = TodayDTO["tasks"][number];
@@ -144,6 +146,9 @@ function TaskRow({
   onOpen: () => void;
 }) {
   const { show: toast } = useToast();
+  const { data: me } = useMe();
+  // The tick is a lead's to give (owner, 2026-09-04); a team member sees it.
+  const canTick = isLeadOrAboveRole(me?.role);
   const { updateTask } = useTaskMutations({ kind: "project", projectId: task.projectId ?? "" });
   const title = task.title.trim() || "Untitled";
 
@@ -163,7 +168,7 @@ function TaskRow({
 
   return (
     <div className="flex min-h-[56px] items-center gap-1 pl-2 pr-3">
-      <Check checked={checked} onChange={toggle} label={checked ? `Not done yet: ${title}` : `Done: ${title}`} />
+      <Check checked={checked} onChange={toggle} label={checked ? `Not done yet: ${title}` : `Done: ${title}`} readOnly={!canTick} />
       <button type="button" onClick={onOpen} className="press flex min-w-0 flex-1 items-center gap-3 rounded-input py-1.5 pl-1 pr-1 text-left">
         <span className="min-w-0 flex-1">
           <span className={cn("flex items-center gap-1.5 text-row", checked ? "text-muted line-through" : "text-ink")}>

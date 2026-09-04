@@ -246,7 +246,10 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   check("…and it lands on the giver", mine.json.assigneeId === dev.id, `assigneeId ${mine.json.assigneeId}`);
   record("dev reassigns it to dev2 -> 200", (await call(dev, "PATCH", `/api/tasks/${rootId}`, { assigneeId: dev2.id })).status, 200);
   record("dev3 (holds a task here) stars it -> 200", (await call(dev3, "PATCH", `/api/tasks/${rootId}`, { important: true })).status, 200);
-  record("dev2 completes it -> 200", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { status: "DONE" })).status, 200);
+  // Owner, 2026-09-04: the tick is a lead's to give.
+  record("dev2 says Doing -> 200", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { status: "DOING" })).status, 200);
+  record("dev2 ticks it done -> 403", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { status: "DONE" })).status, 403);
+  record("lead ticks it done -> 200", (await call(lead, "PATCH", `/api/tasks/${rootId}`, { status: "DONE" })).status, 200);
   record("another manager edits it -> 404", (await call(manager2, "PATCH", `/api/tasks/${rootId}`, { title: "PT nope" })).status, 404);
 
   console.log("\n── steps ─────────────────────────────────────────────────────");

@@ -54,3 +54,11 @@ progress → 403" no longer exists.
 ## Round 7 — only the CEO sees the whole company
 
 "All the department accounts see every department, even Self; the accounts line shows for everyone — only Rahul should see that." `GET /api/departments` and `GET /api/users` are scoped on the server: the CEO (and a director, and the admin for accounts) see everything; everyone else sees their own department, a department they head, a department holding a project they are on, the CEO row and themselves. "Self" (an empty department) is therefore the CEO's alone. The "Accounts are looked after by…" line shows only to the CEO and the admin. Proven by `scope-check.ts` for CEO / two heads / two managers / a lead / a team member (all passed); captures `projects-hod-390.png`, `people-hod-390.png`.
+
+## Round 8 — the tick is a lead's to give
+
+"Up to team lead only can mark the task done tick marks." `PATCH /api/tasks/:id` refuses a team member who tries to mark a project task done or undo one (403 "Only a team lead or above marks a task done."); they may still say Doing / Stuck, add tasks, comment. On screen the team member sees the tick as a read-only mark (project boxes, Today, the task drawer); leads and above get the live tick. Proven by `tick-check.ts` (5/5) and captures `project-dev-readonly-390.png` (0 tickable, 3 read-only marks) vs the lead (3 tickable).
+
+## Round 9 — a person sees their department, nothing else
+
+"If I am a department head I only see my department; someone invited into a department sees that department only." `lib/project-visibility.ts` now reads: the CEO (and a director) see everything; everyone else sees every project in their own department, any department they head, and the projects they own, lead, belong to or hold a task in — a team lead no longer sees the whole company (they did before). Departments and People follow the same rule (round 7). Proven by `visibility-check.ts` (Dev Head and a Development manager see all 6 Development projects; the Operations head sees none; a manager with no department sees none; a lead with no department who leads one project sees that one; a member sees the project they are on) and `scope-check.ts`.

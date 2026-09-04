@@ -6,6 +6,8 @@ import { Face } from "@/components/ui/face";
 import { Check } from "@/components/ui/row";
 import { cn } from "@/lib/cn";
 import { dateState, dateWord, sameDay } from "@/lib/dates";
+import { useMe } from "@/lib/hooks/use-users";
+import { isLeadOrAboveRole } from "@/lib/roles";
 import type { TaskDTO } from "@/lib/types";
 
 /** Drag ids are namespaced so a task and a box can never collide. */
@@ -56,6 +58,9 @@ export function TaskRow({
   onOpen: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: taskDragId(task.id), data: { task } });
+  const { data: me } = useMe();
+  // The tick is a lead's to give (owner, 2026-09-04); a team member sees it.
+  const canTick = isLeadOrAboveRole(me?.role);
   const done = task.status === "DONE";
   const title = task.title.trim() || "Untitled task";
   // Split the sensors: the grip listens for the pointer (desktop), the whole
@@ -83,7 +88,7 @@ export function TaskRow({
       >
         <GripVertical className="h-4 w-4" strokeWidth={1.75} aria-hidden />
       </button>
-      <Check className="-ml-2" checked={done} onChange={onToggleDone} label={done ? `Mark ${title} not done` : `Mark ${title} done`} />
+      <Check className="-ml-2" checked={done} onChange={onToggleDone} label={done ? `Mark ${title} not done` : `Mark ${title} done`} readOnly={!canTick} />
       <button type="button" onClick={onOpen} className="press flex min-h-[56px] min-w-0 flex-1 items-center gap-3 rounded-card py-1 pl-1 pr-1 text-left">
         <TitleBlock task={task} reviewDate={reviewDate} />
       </button>

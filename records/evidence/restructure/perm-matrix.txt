@@ -53,7 +53,9 @@ PASS  dev gives a task with no one named -> 201                      got 201, wa
 PASS  …and it lands on the giver
 PASS  dev reassigns it to dev2 -> 200                                got 200, want 200
 PASS  dev3 (holds a task here) stars it -> 200                       got 200, want 200
-PASS  dev2 completes it -> 200                                       got 200, want 200
+PASS  dev2 says Doing -> 200                                         got 200, want 200
+PASS  dev2 ticks it done -> 403                                      got 403, want 403
+PASS  lead ticks it done -> 200                                      got 200, want 200
 PASS  another manager edits it -> 404                                got 404, want 404
 
 ── steps ─────────────────────────────────────────────────────
@@ -149,4 +151,4 @@ PASS  director reads it -> 404 (no role override)                    got 404, wa
 removed 10 throwaway accounts (tasks 7, notes 1, events 1, projects 3, departments 1)
 remaining permtest-* accounts: 0
 
-112 passed, 0 failed
+114 passed, 0 failed

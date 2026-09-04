@@ -16,6 +16,7 @@ import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useProjectPeople, useProjects } from "@/lib/hooks/use-projects";
 import { newTaskId, useTaskMutations, useTasks } from "@/lib/hooks/use-tasks";
 import { useMe } from "@/lib/hooks/use-users";
+import { isLeadOrAboveRole } from "@/lib/roles";
 import { keyAtEnd } from "@/lib/order";
 import { STATUS_STYLE } from "@/lib/status";
 import { TASK_STATUSES, type TaskDTO, type TaskStatus } from "@/lib/types";
@@ -94,7 +95,13 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
 
       {/* Title + done */}
       <div className="flex items-start gap-2">
-        <Check checked={done} onChange={(next) => patch({ status: next ? "DONE" : "TODO" })} label={done ? "Mark not done" : "Mark done"} className="-ml-2 mt-0.5" />
+        <Check
+          checked={done}
+          onChange={(next) => patch({ status: next ? "DONE" : "TODO" })}
+          label={done ? "Mark not done" : "Mark done"}
+          className="-ml-2 mt-0.5"
+          readOnly={!task.isPrivate && !isLeadOrAboveRole(me?.role)}
+        />
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { TASK_INCLUDE, serializeTask, withCounts } from "@/lib/serialize";
-import { assertCanAssign } from "@/lib/permissions";
+import { assertCanAssign, isLeadOrAbove } from "@/lib/permissions";
 import { canAccessTask } from "@/lib/project-visibility";
 import { requireUser, route } from "@/lib/session";
 import { syncProjectReviews } from "@/lib/meetings";
@@ -142,6 +142,18 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
       }
       data.dueDate = parsedDate;
     }
+  }
+
+  // Owner, 2026-09-04: the tick is a lead's to give. A team member may change
+  // anything else about a project task, but not mark it done (or undo that).
+  if (
+    patch.status !== undefined &&
+    !existing.isPrivate &&
+    existing.parentId === null &&
+    (patch.status === "DONE") !== (existing.status === "DONE") &&
+    !isLeadOrAbove(user)
+  ) {
+    return NextResponse.json({ error: "Only a team lead or above marks a task done." }, { status: 403 });
   }
 
   if (patch.status !== undefined) {

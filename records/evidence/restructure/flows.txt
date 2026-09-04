@@ -5,7 +5,9 @@ PASS  F1 add milestone creates its review meeting  (status 201)
 PASS  F1 give a task (one request = 3 taps)  (status 201)
 PASS  F1 message (a) task_given reached the member's bell  (Flow director gave you a task)
 PASS  F1 member sees it on Today
-PASS  F1 member checks it
+PASS  F1 member says Doing  (status 200)
+PASS  F1 member cannot tick it done (403)  (status 403)
+PASS  F1 the lead ticks it done  (status 200)
 PASS  F1 % is tasks done over tasks (computed)  (1/1 → 100%, got 100)
 PASS  F1 a director cannot set the % by hand (403, count stands)  (status 403, progress 100 (computed 100))
 PASS  F1 manager who runs it can rename it  (status 200)
@@ -51,4 +53,4 @@ PASS  F5 placed on People under the department  (ACTIVE · Development)
 removed 6 throwaway accounts and their artefacts
 remaining flow-* accounts: 0, FLOW projects: 0
 
-37 passed, 0 failed
+39 passed, 0 failed

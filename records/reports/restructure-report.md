@@ -73,6 +73,20 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   on, the CEO row and themselves. "Self" is the CEO's alone. The accounts line
   on People shows only to the CEO and the admin.
 
+## Owner feedback, round 8 — the tick is a lead's to give
+
+- A team member cannot mark a project task done (or undo one): the server
+  refuses it, and on screen they see the tick as a read-only mark on project
+  boxes, Today and the task drawer. Team leads and above tick. Members can
+  still say Doing / Stuck, add tasks and comment.
+
+## Owner feedback, round 9 — a person sees their department, nothing else
+
+- Project visibility follows the department: the CEO sees everything; everyone
+  else sees every project in their own department, any department they head,
+  and what they own, lead, belong to or hold a task in. A team lead no longer
+  sees the whole company. Departments and People follow the same rule.
+
 ## Where things stand
 
 | landing | what | state |

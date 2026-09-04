@@ -102,8 +102,13 @@ async function main() {
   record("F1 message (a) task_given reached the member's bell", Boolean(bellA), bellA?.title ?? "");
   const today = await call(member, "GET", "/api/today");
   record("F1 member sees it on Today", today.status === 200 && (today.json?.tasks ?? []).some((x: any) => x.id === taskId));
-  const done = await call(member, "PATCH", `/api/tasks/${taskId}`, { status: "DONE" });
-  record("F1 member checks it", done.status === 200 && done.json?.status === "DONE");
+  // Owner, 2026-09-04: the tick is a lead's to give — a member says Doing, the lead marks it done.
+  const doing = await call(member, "PATCH", `/api/tasks/${taskId}`, { status: "DOING" });
+  record("F1 member says Doing", doing.status === 200 && doing.json?.status === "DOING", `status ${doing.status}`);
+  const memberTick = await call(member, "PATCH", `/api/tasks/${taskId}`, { status: "DONE" });
+  record("F1 member cannot tick it done (403)", memberTick.status === 403, `status ${memberTick.status}`);
+  const done = await call(lead, "PATCH", `/api/tasks/${taskId}`, { status: "DONE" });
+  record("F1 the lead ticks it done", done.status === 200 && done.json?.status === "DONE", `status ${done.status}`);
   // How far along = tasks done over the project's tasks (root tasks, not archived,
   // not deleted — the same rows the server counts in lib/projects.ts). Nobody types it.
   const computedProgress = async () => {

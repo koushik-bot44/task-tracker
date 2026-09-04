@@ -8,12 +8,12 @@ import { HttpError } from "@/lib/session";
  * Which projects a user may see — the single source of truth.
  *
  *   ADMIN      → NONE (403). PERSON → NONE (403) — the two walls.
- *   FOUNDER / DIRECTOR / TEAM_LEAD → all (null).
- *   HOD        → the projects filed in the department(s) they head, plus
- *               anything they own or are a member of.
- *   MANAGER    → the projects they OWN or are a MEMBER of (a member who may
- *               manage is what the old accepted collaboration meant).
- *   RESOURCE   → projects they are a member of OR hold a task in.
+ *   FOUNDER / DIRECTOR → all (null): only the CEO sees the whole company.
+ *   Everyone else (HOD, MANAGER, TEAM_LEAD, RESOURCE) → their own department
+ *   — every project filed there — plus any department they head, plus the
+ *   projects they own, lead, belong to or hold a task in anywhere else.
+ *   (Owner, 2026-09-04: "if I'm a department head I only see my department;
+ *   someone invited into a department sees that department only.")
  *
  * Returns null when the user sees everything, or a Set of project ids.
  */
@@ -25,38 +25,29 @@ export async function visibleProjectIds(user: { id: string; role: Role }): Promi
     throw new HttpError(403, "Admins don't have project access");
   }
   if (isExecutiveRole(user.role)) return null;
-  if (user.role === "TEAM_LEAD") return null;
 
-  const ids = new Set<string>();
-  if (user.role === "HOD") {
-    const headed = await prisma.project.findMany({ where: { department: { hodId: user.id } }, select: { id: true } });
-    for (const p of headed) ids.add(p.id);
-  }
-  if (user.role === "HOD" || user.role === "MANAGER") {
-    const [owned, member] = await Promise.all([
-      prisma.project.findMany({ where: { ownerId: user.id }, select: { id: true } }),
-      prisma.projectMember.findMany({ where: { userId: user.id }, select: { projectId: true } }),
-    ]);
-    for (const p of owned) ids.add(p.id);
-    for (const m of member) ids.add(m.projectId);
-    const led = await prisma.project.findMany({ where: { leadId: user.id }, select: { id: true } });
-    for (const p of led) ids.add(p.id);
-    return ids;
-  }
+  const me = await prisma.user.findUnique({ where: { id: user.id }, select: { departmentId: true } });
+  const departmentWhere: { departmentId?: string; department?: { hodId: string } }[] = [];
+  if (me?.departmentId) departmentWhere.push({ departmentId: me.departmentId });
+  if (user.role === "HOD") departmentWhere.push({ department: { hodId: user.id } });
 
-  // RESOURCE
-  const [members, assigned, led] = await Promise.all([
+  const [inDepartment, owned, led, members, assigned] = await Promise.all([
+    departmentWhere.length ? prisma.project.findMany({ where: { OR: departmentWhere }, select: { id: true } }) : Promise.resolve([]),
+    prisma.project.findMany({ where: { ownerId: user.id }, select: { id: true } }),
+    prisma.project.findMany({ where: { leadId: user.id }, select: { id: true } }),
     prisma.projectMember.findMany({ where: { userId: user.id }, select: { projectId: true } }),
     prisma.task.findMany({
       where: { assigneeId: user.id, deletedAt: null, isPrivate: false },
       select: { projectId: true },
       distinct: ["projectId"],
     }),
-    prisma.project.findMany({ where: { leadId: user.id }, select: { id: true } }),
   ]);
+  const ids = new Set<string>();
+  for (const p of inDepartment) ids.add(p.id);
+  for (const p of owned) ids.add(p.id);
+  for (const p of led) ids.add(p.id);
   for (const m of members) ids.add(m.projectId);
   for (const t of assigned) if (t.projectId) ids.add(t.projectId);
-  for (const p of led) ids.add(p.id);
   return ids;
 }
 
