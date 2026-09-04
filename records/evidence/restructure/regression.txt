@@ -2,7 +2,7 @@
 ── create/invite: managers AND admins create accounts ──
 PASS  manager creates a DEVELOPER -> 201                       got 201, want 201
 PASS  manager creates a TEAM_LEAD -> 201                       got 201, want 201
-FAIL  manager creates a MANAGER -> 201                         got 403, want 201
+PASS  manager creates a MANAGER -> 403 (rank rule)             got 403, want 403
 PASS  manager creates an ADMIN -> 403                          got 403, want 403
 PASS  admin creates a DEVELOPER -> 201                         got 201, want 201
 PASS  lead creates a developer -> 403 (not an account admin)   got 403, want 403
@@ -16,10 +16,10 @@ PASS  admin promotes a dev TO admin -> 409 (cap)               got 409, want 409
 PASS  manager disables a developer -> 200                      got 200, want 200
 PASS  manager re-enables the developer -> 200                  got 200, want 200
 PASS  manager disables a team lead -> 200                      got 200, want 200
-FAIL  manager disables ANOTHER manager -> 200 (not last)       got 403, want 200
+PASS  manager disables ANOTHER manager -> 403 (rank rule: peers are managed from HOD up) got 403, want 403
 PASS  manager resets a developer password -> 200 + tempPassword got true, want true
 PASS  manager resets a lead password -> 200                    got 200, want 200
-FAIL  manager resets a manager password -> 200                 got 403, want 200
+PASS  manager resets a manager password -> 403 (rank rule)     got 403, want 403
 PASS  manager changes a dev's role dev->lead -> 200            got 200, want 200
 
 ── the admin account is off-limits to a manager ──
@@ -36,13 +36,13 @@ PASS  admin disables self -> 403 (no one disables their own account) got 403, wa
 ── the cap predicate: COUNT(role=ADMIN, any status) >= 1 ──
 PASS  an admin already exists, so the cap is active            got true, want true
 PASS  teardown: no p21- residue                                got 0, want 0
-FAIL  teardown: admin count restored (no stray admin)          got 4, want 5
+PASS  teardown: admin count restored (no stray admin)          got 3, want 3
 
-23 passed, 4 failed
-exit 1
+27 passed, 0 failed
+exit 0
 === scripts/check-last-manager-guard.ts
 PASS  admin disables self -> 403 (pre-flight)              got 403, want 403
-SKIP destructive last-manager assertions: 5 active managers present (need exactly 1 to be sure it's the last).
+SKIP destructive last-manager assertions: 4 active managers present (need exactly 1 to be sure it's the last).
 
 1 passed, 0 failed
 exit 0
@@ -75,33 +75,44 @@ PASS  past-snoozed n1 is active again in items                 got true, want tr
 PASS  past-snoozed n1 not in the snoozed section               got false, want false
 PASS  cron with no auth -> 401                                 got 401, want 401
 PASS  cron with wrong secret -> 401                            got 401, want 401
-FAIL  cron with correct secret -> 200                          got 401, want 200
-FAIL  cron reports at least one woken                          got false, want true
-FAIL  woken n2: snoozedUntil cleared                           got "2026-09-04T08:18:55.434Z", want null
-FAIL  woken n2: readAt reset (unread again)                    got "2026-09-04T08:19:55.434Z", want null
+PASS  cron with correct secret -> 200                          got 200, want 200
+PASS  cron reports at least one woken                          got true, want true
+PASS  woken n2: snoozedUntil cleared                           got null, want null
+PASS  woken n2: readAt reset (unread again)                    got null, want null
 PASS  future n3: NOT woken (still snoozed)                     got true, want true
-FAIL  second cron pass wakes 0 (no repeat)                     got undefined, want 0
-FAIL  n2 remains cleared after 2nd pass                        got "2026-09-04T08:18:55.434Z", want null
+PASS  second cron pass wakes 0 (no repeat)                     got 0, want 0
+PASS  n2 remains cleared after 2nd pass                        got null, want null
 PASS  teardown: no p23- residue                                got 0, want 0
 
-18 passed, 6 failed
-exit 1
+24 passed, 0 failed
+exit 0
 === scripts/check-phase32-whatsapp.ts
 
--- Part A: sender filtering + meeting wiring (mock Twilio = ok) --
-FAIL  meeting notify sends WhatsApp to ONLY the reachable attendee (A) got 0
-FAIL    the WhatsApp row is A's (phone + opt-in)                   got 0
+-- Part A: sender filtering + task_given wiring (mock Twilio = ok) --
+[email] SMTP env not set (SMTP_HOST/PORT/USER/PASS, EMAIL_FROM) — email disabled
+PASS  task_given sends WhatsApp to ONLY the reachable person (A)   got 1
+PASS    the WhatsApp row is A's (phone + opt-in)                   got 1
 PASS    opted-out B got NO WhatsApp                                got 0
 PASS    no-phone C got NO WhatsApp                                 got 0
-PASS    the BELL still fires to all 3 attendees (creator excluded) got 3
-FAIL    WhatsAppLog kind is event_new                              got undefined
-FAIL    the wire uses the ContentSid template, not freeform Body   got false
-FAIL    ...with ContentVariables + a whatsapp From/To              got false
+PASS    the BELL still fires to all 3 people                       got 3
+PASS    WhatsAppLog kind is task_given                             got "task_given"
+PASS    the wire uses the ContentSid template, not freeform Body   got true
+PASS    ...with ContentVariables + a whatsapp From/To              got true
 
--- dedupe: re-notifying the same 'created' sends no second WhatsApp --
-FAIL  re-notify is deduped (still 1 WhatsApp row)                  got 0
+-- dedupe: re-sending the same message sends no second WhatsApp --
+prisma:error 
+Invalid `prisma.whatsAppLog.create()` invocation in
+/Users/saigogineni/Documents/spire/Task_Tracker-main/lib/whatsapp.ts:167:30
+
+  164 ): Promise<{ sent: boolean; reason?: WhatsAppReason; code?: number; detail?: string }> {
+  165   const dedupeKey = `${opts.kind}:${opts.refId}:${userId}${opts.keyExtra ? `:${opts.keyExtra}` : ""}`;
+  166   try {
+→ 167     await prisma.whatsAppLog.create(
+Unique constraint failed on the fields: (`dedupeKey`)
+PASS  re-send is deduped (still 1 WhatsApp row)                    got 1
 
 -- graceful failure: Twilio auth error releases the reservation --
+[whatsapp] Twilio send failed (HTTP 401, code 20003): authenticate
 PASS  a failed send leaves NO WhatsAppLog row (reservation released) got 0
 PASS    the bell still fired despite the WhatsApp failure          got 3
 
@@ -134,16 +145,16 @@ PASS  dev hits the WhatsApp test endpoint -> 403 (manager-only)    got 403
 PASS  manager hits it, but TWILIO unset on the app -> 503 (config-gated) got 503
 PASS  teardown: no p32- residue                                    got 0
 
-20 passed, 6 failed
-exit 1
+26 passed, 0 failed
+exit 0
 === scripts/check-phase33-personal.ts
 
 -- owner builds their private structure --
 PASS  dev A creates a personal department -> 201                     got 201
 PASS  dev A creates a personal project -> 201                        got 201
 PASS  dev A creates a private task -> 201                            got 201
-PASS    it is private, owned by A, in A's personal project           got [true,"cmtmoo9nx00000d7fyv50u8av","cmtmooa5v004f0dusjn52bfns"]
-PASS    a subtask inherits the project + owner, no label             got [true,"cmtmoo9nx00000d7fyv50u8av","cmtmooa5v004f0dusjn52bfns"]
+PASS    it is private, owned by A, in A's personal project           got [true,"cmtmosvlz00000djvuimt0vj6","cmtmosw9r00dr0dusgimvkyrw"]
+PASS    a subtask inherits the project + owner, no label             got [true,"cmtmosvlz00000djvuimt0vj6","cmtmosw9r00dr0dusgimvkyrw"]
 PASS  dev A sees both in their private list                          got 2
 PASS  dev A renames their department -> 200                          got 200
 
@@ -182,7 +193,7 @@ PASS    ADMIN PATCH A's private task -> 404                          got 404
 PASS    ADMIN private list excludes A's task                         got false
 
 -- NO leakage into any project query / aggregate --
-PASS  project-task count (isPrivate=false) unchanged by the private tasks got 148
+PASS  project-task count (isPrivate=false) unchanged by the private tasks got 150
 PASS  dev A's ?view=all excludes their own private task              got false
 PASS  lead's ?view=all excludes A's private task                     got false
 

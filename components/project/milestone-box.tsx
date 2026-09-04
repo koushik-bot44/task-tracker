@@ -65,11 +65,12 @@ export function MilestoneBox({
 
   return (
     <div ref={setNodeRef} data-box={milestone?.id ?? "none"} className="rounded-card">
-      <Card
-        as="section"
-        accent={state === "current"}
-        className={cn("px-4 pb-2 pt-3 transition-colors duration-150", isOver && "bg-primary-soft")}
-      >
+      <Card as="section" accent={state === "current"} className="relative px-4 pb-2 pt-3">
+        {/* The drop tint sits in its own layer so the card's white never wins over it. */}
+        <span
+          aria-hidden
+          className={cn("pointer-events-none absolute inset-0 rounded-card bg-primary-soft transition-opacity duration-150", isOver ? "opacity-100" : "opacity-0")}
+        />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {milestone ? <p className="smallcaps text-muted">Milestone {index}</p> : null}
