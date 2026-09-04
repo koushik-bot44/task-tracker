@@ -2,102 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Clinical blueprint (phase 49b) ─────────────────────────────────────────
-   One theme, light, after the "Ui" style (styles.refero.design — the
-   shadcn/Vercel monochrome): a #f5f5f5 canvas, pure-white cards on #e5e5e5
-   hairlines, near-black ink, and an ACHROMATIC primary — the filled action is
-   dark ink, not a brand blue. Red (#e7000b, "ember") is reserved for trouble:
-   overdue, destructive, error. The remaining status hues (ok/warn/info) stay
-   as MEANING, not decoration, and sit heavily desaturated so the page reads
-   monochrome at a glance. Every hue still ships twice: a fill value and a
-   darker `-ink` for that hue as text (fills clear 3:1, text clears 4.5:1).
-
-   There is no dark theme and no toggle. Nothing to flash, nothing to store,
-   nothing to desynchronise. Bringing one back is a second token block and a
-   selector — deliberately a future decision, not dormant machinery.        */
+/* ── Restructure look (2026-09-04) ─────────────────────────────────────────
+   Things 3 / Apple Reminders / WhatsApp feel: a warm off-white page, pure
+   white cards with ONE soft shadow and no borders (the only border in the
+   app is the current milestone box's accent), radius 16, gutters 16, content
+   max 760. One accent (a friendly blue) for the one primary action per
+   screen; the status hues are soft tints with a darker ink for text, and
+   every text/background pair clears 4.5:1 (scripts/contrast.ts). Light only.
+   Every hue ships twice: a fill value and a darker `-ink` for text.         */
 
 :root {
   color-scheme: light;
 
-  --bg: #f5f5f5;
+  --bg: #f6f4ef;
   --surface: #ffffff;
-  /* Surface-alt: the sidebar layer, one tonal step lighter than the canvas. */
-  --surface-2: #fafafa;
+  /* The rail's layer — one tonal step off the canvas. */
+  --surface-2: #fbfaf7;
   --surface-raised: #ffffff;
 
-  --ink: #0a0a0a;
-  /* Spec says #737373, nudged to keep 4.5:1 on the #f5f5f5 canvas too. */
-  --muted: #666666;
-  /* The hairline — borders do ALL the structure in this system. One shade
-     under the spec's #e5e5e5 so it stays ≥1.2 against the #f5f5f5 canvas. */
-  --line: #dedede;
-  /* Tree indent guides — a touch stronger than --line so the nesting reads at a
-     glance, still soft enough to sit behind the content, not compete with it. */
-  --guide: #d4d4d4;
+  --ink: #1c1b18;
+  --muted: #6b6862;
+  /* Hairline: dividers inside a card and input edges only. */
+  --line: #e8e4dc;
+  --guide: #ddd8cf;
 
-  /* ACHROMATIC primary: the filled action is dark ink on light — the only
-     "chromatic interaction" in the system is this tonal inversion. */
-  --primary: #171717;
-  --primary-ink: #0a0a0a;
-  /* Accent in a monochrome system is a TONAL step, not a hue: a mid-gray
-     fill that carries ink labels. */
-  --accent: #a3a3a3;
-  --accent-ink: #525252;
-  --ok: #4a8f66;
-  --ok-ink: #2f6b48;
-  --info: #6b6b74;
-  --info-ink: #4b4b52;
-  /* Ember — the one true color, reserved for overdue/destructive/error. */
-  --danger: #e7000b;
-  --danger-ink: #b50009;
-  --warn: #c08a1e;
-  --warn-ink: #7a5507;
+  /* The one accent. */
+  --primary: #2563eb;
+  --primary-ink: #1d4ed8;
+  --accent: #2563eb;
+  --accent-ink: #1d4ed8;
+  --ok: #16a34a;
+  --ok-ink: #166534;
+  --info: #64748b;
+  --info-ink: #475569;
+  --danger: #dc2626;
+  --danger-ink: #b91c1c;
+  --warn: #d97706;
+  --warn-ink: #92400e;
 
-  /* Real tokens for things that used to be written as `bg-muted/45` and
-     friends. Tailwind cannot apply an alpha modifier to a variable holding a
-     hex string — it emits no rule at all — so eighteen of those across the app
-     were rendering nothing, most visibly the unpassed gate dots, which made
-     the gate cluster read as an empty input box.
-     Translucency that is genuinely needed now lives in a token instead. */
-  --dot-off: #8a8a8a;      /* a gate that has not passed: present, countable */
-  --dot-off-warn: #96772a; /* the same, for the manager's reviewed slot */
-  --scrim: rgb(245 245 245 / 0.85); /* sticky headers, over blur */
-  /* Chart fills for the two statuses that mean "not started" and "abandoned".
-     Both must recede: a donut where backlog is the heaviest wedge says a tool
-     is in trouble when it is merely new. */
-  --chart-idle: #e2e2e2;
-  /* Calm workload fills — the monochrome system lets meaning stay (done =
-     muted green) while everything else recedes to gray. */
-  --chart-done: #8fbfa2;
-  --chart-open: #b9b9c0;
-  /* The tooltip is an inverted surface. Text inside it cannot use --ink or
-     --muted, which are tuned for dark-on-light — the gate tooltip's header was
-     rendering navy on navy and reading as a clipped line rather than as an
-     invisible one. */
+  --scrim: rgb(246 244 239 / 0.88);
+  /* The tooltip is an inverted surface; its text cannot use --ink/--muted. */
   --on-ink: #ffffff;
-  --on-ink-muted: #c9c9c9;
+  --on-ink-muted: #d6d3cc;
 
-  /* Label colours for solid fills. The dark primary carries near-white; the
-     status fills carry ink. */
-  --on-primary: #fafafa;
-  --on-fill: #0a0a0a;
+  /* Label colours for solid fills. */
+  --on-primary: #ffffff;
+  --on-fill: #1c1b18;
 
-  --primary-soft: rgb(10 10 10 / 0.06);
-  --accent-soft: rgb(10 10 10 / 0.06);
-  --ok-soft: rgb(74 143 102 / 0.13);
-  --info-soft: rgb(107 107 116 / 0.1);
-  --danger-soft: rgb(231 0 11 / 0.08);
-  --warn-soft: rgb(192 138 30 / 0.13);
+  --primary-soft: rgb(37 99 235 / 0.1);
+  --accent-soft: rgb(37 99 235 / 0.1);
+  --ok-soft: rgb(22 163 74 / 0.12);
+  --info-soft: rgb(100 116 139 / 0.12);
+  --danger-soft: rgb(220 38 38 / 0.1);
+  --warn-soft: rgb(217 119 6 / 0.14);
 
-  --hover: rgb(10 10 10 / 0.04);
-  --pressed: rgb(10 10 10 / 0.08);
+  --hover: rgb(28 27 24 / 0.04);
+  --pressed: rgb(28 27 24 / 0.08);
 
-  /* The spec's whisper-quiet card stack: a 1px hairline layer + two faint
-     offsets. Floating layers get slightly more; nothing gets drama. */
-  --shadow-1: 0 0 0 1px rgb(23 23 23 / 0.05), 0 1px 3px rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.08);
-  --shadow-lift: 0 12px 32px -8px rgb(0 0 0 / 0.16);
-  --drop-glow: 0 0 0 2px var(--ink), 0 0 20px -2px rgb(10 10 10 / 0.15);
+  /* ONE soft shadow for cards; a little more for floating layers. */
+  --shadow-1: 0 1px 2px rgb(28 27 24 / 0.05), 0 2px 8px rgb(28 27 24 / 0.05);
+  --shadow-2: 0 4px 14px rgb(28 27 24 / 0.1);
+  --shadow-lift: 0 12px 32px -8px rgb(28 27 24 / 0.2);
+  --drop-glow: 0 0 0 2px var(--primary);
 }
 
 /* Semantic z-index scale — no magic numbers anywhere else in the app. */
@@ -109,12 +75,11 @@
   --z-toast: 80;
   --z-tooltip: 90;
 
-  /* The spec's two-radius law: 18px pills for everything interactive
-     (chips stay fully round — same capsule geometry), 24px for containers. */
+  /* Radius 16 for cards and sheets; 12 for inputs; capsules for chips. */
   --r-chip: 999px;
-  --r-input: 18px;
-  --r-card: 24px;
-  --r-sheet: 24px;
+  --r-input: 12px;
+  --r-card: 16px;
+  --r-sheet: 20px;
 }
 
 @layer base {
@@ -134,10 +99,8 @@
   }
 
   /*
-   * Pressed state, globally. Applying a class to every call site meant the
-   * next new button would quietly ship without one; a base rule cannot be
-   * forgotten. Opt out with data-no-press where a sink would fight a drag
-   * or a layout.
+   * Pressed state, globally. Opt out with data-no-press where a sink would
+   * fight a drag or a layout.
    */
   button:not(:disabled):not([data-no-press]),
   a:not([data-no-press]),
@@ -157,7 +120,7 @@
   :focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   ::selection {
@@ -171,10 +134,6 @@
   }
 }
 
-/* The tooltip is positioned with left/top now, not a centring transform, so
-   this keyframe must not carry one — it used to animate from translate(-50%,
-   -100%) to none, which flew the bubble in from half a width and a full
-   height away. Fade and a 3px rise, nothing else. */
 @keyframes tip {
   from {
     opacity: 0;
@@ -183,8 +142,7 @@
 }
 
 @layer utilities {
-  /* One interaction vocabulary, applied by class rather than re-declared per
-     component: tint on hover, sink on press, primary ring on keyboard focus. */
+  /* One interaction vocabulary: tint on hover, sink on press. */
   .press {
     transition:
       background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -193,17 +151,7 @@
       box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
       border-color 160ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  /* The tint LAYERS over the element's own fill rather than replacing it.
-
-     These used to set background-color, and `.press:hover` has specificity
-     (0,2,0) against `.bg-primary`'s (0,1,0) — so every solid button wearing
-     `press` lost its fill the instant the cursor touched it. A blue Sign in
-     button became a 4.5%-alpha ghost, which read as the button vanishing.
-
-     background-image composites on top of background-color, so a filled
-     button darkens slightly and a bare one still gets its tint. It also stops
-     `.press` from beating sibling hover utilities like hover:bg-danger-soft,
-     which were being silently overridden for the same reason. */
+  /* The tint LAYERS over the element's own fill rather than replacing it. */
   .press:not(:disabled):hover {
     background-image: linear-gradient(var(--hover), var(--hover));
   }
@@ -216,8 +164,6 @@
     }
   }
 
-  /* Cards and rows lift toward the cursor. Shadow does the work; the 2px is
-     just enough to feel physical without shifting the layout around it. */
   .lift {
     transition:
       transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -236,20 +182,22 @@
     }
   }
 
-  /* The default card, per the spec: white paper, 24px radius, 1px hairline
-     AND the whisper-quiet shadow stack — both, always (the shadow alone does
-     not define the edge in this system). */
+  /* The card: white, radius 16, one soft shadow, NO border. */
   .card {
     background-color: var(--surface);
     border-radius: var(--r-card);
-    border: 1px solid var(--line);
     box-shadow: var(--shadow-1);
   }
 
-  /* Depth guide lines for the outline — one soft vertical rail per ancestor
-     level, drawn as pseudo-elements so they never intercept pointer events. The
-     innermost level (.guide-elbow) also draws a short horizontal tick into the
-     row, so a child visibly hangs off its parent's rail (an ├ elbow). */
+  /* Small caps for exactly two labels: "MILESTONE n" and "REVIEW". */
+  .smallcaps {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  /* Depth guide lines for My notes' outline (the only tree left). */
   .guide-line::before {
     content: "";
     position: absolute;
@@ -271,8 +219,7 @@
     pointer-events: none;
   }
 
-  /* Markdown preview. Hand-rolled rather than pulling in a typography plugin
-     for one panel — the token palette does the work. */
+  /* Markdown preview (My notes). */
   .prose-orbit > * + * {
     margin-top: 0.75em;
   }
@@ -351,8 +298,8 @@
 
   .cmdk-group [cmdk-group-heading] {
     padding: 0.5rem 0.625rem 0.25rem;
-    font-size: 0.6875rem;
-    letter-spacing: 0.08em;
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
   }
@@ -364,8 +311,7 @@
     scrollbar-width: none;
   }
 
-  /* Small controls keep their visual size but grow an invisible 40px hit area
-     on touch pointers, so the outline stays dense without punishing thumbs. */
+  /* Small controls grow an invisible 44px hit area on touch pointers. */
   @media (pointer: coarse) {
     .hit-40 {
       position: relative;
@@ -375,15 +321,14 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: max(100%, 40px);
-      height: max(100%, 40px);
+      width: max(100%, 44px);
+      height: max(100%, 44px);
       transform: translate(-50%, -50%);
     }
   }
 }
 
-/* Non-negotiable: every animation has a reduced-motion fallback. Framer Motion
-   handles its own via useReducedMotion(); this covers CSS transitions. */
+/* Non-negotiable: every animation has a reduced-motion fallback. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -395,10 +340,7 @@
   }
 }
 
-/* PWA. When the app is launched installed (standalone), the install nudge has
-   nothing to offer, so it is hidden here rather than with a JS matchMedia
-   branch. Safe-area insets keep content clear of the notch and home indicator
-   — a no-op in a normal browser tab, padding only where the OS reports insets. */
+/* PWA. */
 @media (display-mode: standalone) {
   .pwa-install {
     display: none !important;
@@ -413,11 +355,8 @@
 }
 
 /* ── Person screen: frosted-glass working UI (phase 45) ──────────────────────
-   Used ONLY on /person. Per-scene CSS custom properties drive the translucent
-   tints + text/cell colours; a fallback bumps opacity where backdrop-filter is
-   unsupported (the -webkit- prefix is included). The rgba/hex here are INTENTIONAL
-   glass tints — the translucency is the whole "frosted" point — and are derived
-   from the app's ink/surface/ok/danger palette. */
+   Used ONLY on /person and the Family (Well Being) tab. Untouched by the
+   restructure. */
 .pk-glass {
   background: var(--pk-bg);
   border: 1px solid var(--pk-border);
@@ -456,9 +395,7 @@
   background: var(--bg);
 }
 /* Scene backdrop — a STICKY, one-viewport layer so the scene stays put while the (tall)
-   content scrolls over it. An `absolute inset-0` layer instead scrolls away after one
-   viewport, baring the light page background and turning night text unreadable on white.
-   The negative margin pulls it out of flow so the content overlays it. */
+   content scrolls over it. */
 .wb-scene {
   position: sticky;
   z-index: 0;
@@ -484,9 +421,6 @@
   height: 100dvh;
   margin-bottom: -100dvh;
 }
-/* Native <select> popups render on the browser's own light background, so their options
-   must stay dark: the glass text colour (--pk-fg) is near-white at night and would be
-   invisible on that popup. (The highlighted row keeps the OS accent colours.) */
 .pk-day option,
 .pk-night option {
   color: var(--ink);

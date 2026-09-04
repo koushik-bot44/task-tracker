@@ -1,57 +1,69 @@
 import { NextResponse } from "next/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
-import { freshGatesFromTemplate } from "@/lib/gates";
-import { COMPLETED_BY_SELECT, serializeTask } from "@/lib/serialize";
-import { isLeadOrAbove } from "@/lib/permissions";
-import { HttpError, requireUser, route } from "@/lib/session";
+import { TASK_INCLUDE, serializeTask, withCounts, type TaskRow } from "@/lib/serialize";
+import { assertCanAssign } from "@/lib/permissions";
+import { requireUser, route } from "@/lib/session";
 import { visibleProjectIds } from "@/lib/project-visibility";
+import { flattenToOneLevel } from "@/lib/steps";
+import { syncProjectReviews } from "@/lib/meetings";
+import { sendMessage } from "@/lib/notify";
+import { taskGivenMessage } from "@/lib/messages";
 import { badRequest, createTaskSchema, parseBody } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Note counts for a set of tasks, in one grouped query. */
+async function noteCountsFor(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const grouped = await prisma.comment.groupBy({
+    by: ["targetId"],
+    where: { targetType: "TASK", targetId: { in: ids } },
+    _count: { _all: true },
+  });
+  return new Map(grouped.map((g) => [g.targetId, g._count._all]));
+}
+
+async function finish(rows: TaskRow[], flatten: boolean) {
+  const flat = flatten ? flattenToOneLevel(rows) : rows;
+  const counts = await noteCountsFor(flat.map((r) => r.id));
+  return withCounts(flat, counts).map(serializeTask);
+}
+
 /**
- * Flat list for one project; the client assembles the tree. `?view=all` widens
- * that to every project, which is what Focus and the Changelog need — both
- * span tools, and both have to walk ancestors to build a path.
+ * Flat list for one project (steps carry parentId = their root task). `?view=all`
+ * widens that to every visible project — what Today needs. `?scope=private`
+ * is the caller's My notes.
  */
 export const GET = route(async (req: Request) => {
   const user = await requireUser();
   const params = new URL(req.url).searchParams;
 
-  // Personal private space (phase 15): the caller's own private tasks and
-  // nothing else. Checked before visibleProjectIds — which throws for an admin —
-  // because every role, admin included, has their own isolated private space.
   if (params.get("scope") === "private") {
     const rows = await prisma.task.findMany({
       where: { ownerId: user.id, isPrivate: true, deletedAt: null },
       orderBy: { orderKey: "asc" },
-      include: COMPLETED_BY_SELECT,
+      include: TASK_INCLUDE,
     });
-    return NextResponse.json(rows.map(serializeTask));
+    return NextResponse.json(await finish(rows, false));
   }
 
   const visible = await visibleProjectIds(user);
 
   if (params.get("view") === "all") {
     const all = await prisma.task.findMany({
-      // A developer's cross-project view is limited to projects they can see.
-      // isPrivate:false keeps personal private tasks (phase 15) out of this
-      // all-projects list — for a lead the projectId clause is empty, so this
-      // guard is what excludes them from Focus and the Changelog.
-      where: { deletedAt: null, isPrivate: false, ...(visible ? { projectId: { in: [...visible] } } : {}) },
+      where: { deletedAt: null, isPrivate: false, archived: false, ...(visible ? { projectId: { in: [...visible] } } : {}) },
       orderBy: { orderKey: "asc" },
-      include: COMPLETED_BY_SELECT,
+      include: TASK_INCLUDE,
     });
-    return NextResponse.json(all.map(serializeTask));
+    return NextResponse.json(await finish(all, true));
   }
 
   const projectId = params.get("projectId");
   if (!projectId) {
     return NextResponse.json({ error: "projectId is required" }, { status: 400 });
   }
-  // Don't disclose a project a developer isn't a member of.
   if (visible && !visible.has(projectId)) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
@@ -59,46 +71,46 @@ export const GET = route(async (req: Request) => {
   const tasks = await prisma.task.findMany({
     where: { projectId, deletedAt: null },
     orderBy: { orderKey: "asc" },
-    include: COMPLETED_BY_SELECT,
+    include: TASK_INCLUDE,
   });
-
-  return NextResponse.json(tasks.map(serializeTask));
+  return NextResponse.json(await finish(tasks, true));
 });
 
+/**
+ * Give a task (restructure). Anyone on the project gives a task to anyone on
+ * it; the chain and leads may name someone not yet on it (they are added).
+ * A root task carries the assignee, the date (default: its milestone's review
+ * date) and who gave it; a step carries neither an assignee nor a message.
+ */
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
 
   const parsed = await parseBody(req, createTaskSchema);
   if (!parsed.ok) return parsed.response;
 
-  // PRIVATE personal task (phase 15): owned by the caller, filed under no
-  // project, never assigned. Its own pipeline so none of the project rules
-  // (visibility, gate template, assignment, required date) apply.
   if (parsed.data.isPrivate) {
     return createPrivateTask(user.id, parsed.data);
   }
 
-  const {
-    id,
-    projectId,
-    parentId,
-    title,
-    orderKey,
-    status,
-    priority,
-    dueDate,
-    tags,
-    assigneeId,
-    dueProvisional,
-  } = parsed.data;
+  const { id, projectId, parentId, milestoneId, title, orderKey, status, dueDate, assigneeId, dueProvisional, important } = parsed.data;
 
   if (!projectId) {
     return badRequest([{ path: ["projectId"], message: "A projectId is required" }]);
   }
-
-  // Only root tasks carry an assignee (phase 11); a subtask never does.
+  const visible = await visibleProjectIds(user);
+  if (visible && !visible.has(projectId)) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
   if (parentId && assigneeId) {
-    return NextResponse.json({ error: "Subtasks can't be assigned" }, { status: 400 });
+    return NextResponse.json({ error: "A step belongs to its task's person" }, { status: 400 });
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, name: true, slug: true },
+  });
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
   let due: Date | null = null;
@@ -108,78 +120,45 @@ export const POST = route(async (req: Request) => {
       return NextResponse.json({ error: "dueDate is not a date" }, { status: 400 });
     }
   }
-
-  /* Provisional means "the server picked this, nobody confirmed it". The
-     client says so when Enter or the board's + supplies a default; inheritance
-     carries the parent's own answer. It is never inferred from the value. */
   let guessed = dueProvisional === true;
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { gateTemplate: true },
-  });
-  if (!project) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-
+  let effectiveMilestoneId: string | null = milestoneId ?? null;
+  let parentRoot: string | null = null;
   if (parentId) {
     const parent = await prisma.task.findFirst({
       where: { id: parentId, projectId, deletedAt: null },
-      select: { id: true, dueDate: true, dueProvisional: true },
+      select: { id: true, parentId: true, dueDate: true, dueProvisional: true, milestoneId: true },
     });
     if (!parent) {
       return NextResponse.json({ error: "Parent not found" }, { status: 400 });
     }
-    // A subtask inherits its parent's date when none is given. Sub-work lands
-    // by the time the parent is due unless someone says otherwise — and an
-    // inherited date is only as confirmed as the one it came from.
+    // One level deep: a step of a step is a step of the root task.
+    parentRoot = parent.parentId ?? parent.id;
+    effectiveMilestoneId = parent.milestoneId;
     if (!due) {
       due = parent.dueDate;
       if (due) guessed = parent.dueProvisional;
     }
-  } else if (!due) {
-    // Root tasks must be scheduled. "When do you think this lands?" is the one
-    // question that makes the rest of the tracker mean anything, and a root
-    // task with no answer quietly becomes work nobody is counting.
-    return badRequest([
-      { path: ["dueDate"], message: "An estimated completion date is required" },
-    ]);
+  } else if (effectiveMilestoneId) {
+    const m = await prisma.milestone.findFirst({ where: { id: effectiveMilestoneId, projectId }, select: { reviewDate: true } });
+    if (!m) return NextResponse.json({ error: "Milestone not found" }, { status: 400 });
+    // "By when?" defaults to the box's review date.
+    if (!due) {
+      due = m.reviewDate;
+      guessed = true;
+    }
   }
 
-  /* Assignment on creation. Only root tasks carry one (phase 11): a subtask is
-     a step of the work its parent owns, so it is never assigned — not even the
-     auto-assign-to-creator below, which is why this whole block is skipped when
-     there is a parent. For a root task, a developer's own task is theirs by
-     default — they are the one making it — and they cannot hand it to anybody
-     else. Leads and managers may name anyone active. */
   let assignTo: string | null = null;
   if (!parentId) {
-    if (isLeadOrAbove(user)) {
-      assignTo = assigneeId ?? null;
-    } else {
-      assignTo = assigneeId === undefined ? user.id : assigneeId;
-      if (assignTo !== null && assignTo !== user.id) {
-        throw new HttpError(403, "Only a team lead can assign work to someone else");
-      }
-    }
-  }
-  if (assignTo) {
-    const target = await prisma.user.findUnique({
-      where: { id: assignTo },
-      select: { disabledAt: true, role: true },
-    });
-    // Phase 35: a PERSON is not a work account and can never be assigned work.
-    if (!target || target.disabledAt || target.role === "PERSON") {
-      return badRequest([{ path: ["assigneeId"], message: "Must be an active user" }]);
-    }
+    assignTo = assigneeId === undefined ? user.id : assigneeId;
+    await assertCanAssign(user, projectId, assignTo);
   }
 
-  // The client normally supplies orderKey so its optimistic ordering matches
-  // ours exactly; falling back to "append last" keeps the endpoint usable alone.
   let key = orderKey;
   if (!key) {
     const last = await prisma.task.findFirst({
-      where: { projectId, parentId: parentId ?? null, deletedAt: null },
+      where: { projectId, parentId: parentRoot ?? null, deletedAt: null },
       orderBy: { orderKey: "desc" },
       select: { orderKey: true },
     });
@@ -190,34 +169,51 @@ export const POST = route(async (req: Request) => {
     data: {
       ...(id ? { id } : {}),
       projectId,
-      parentId: parentId ?? null,
+      parentId: parentRoot,
+      milestoneId: effectiveMilestoneId,
       title: title ?? "",
       orderKey: key,
-      status: status ?? "BACKLOG",
-      priority: priority ?? "P2",
+      status: status ?? "TODO",
       dueDate: due,
       dueProvisional: due ? guessed : false,
-      tags: tags ?? [],
+      important: important ?? false,
       assigneeId: assignTo,
-      gates: freshGatesFromTemplate(project.gateTemplate),
-      ...(status === "DONE"
-        ? { completedAt: new Date(), completedById: user.id }
-        : {}),
+      givenById: user.id,
+      ...(status === "DONE" ? { completedAt: new Date(), completedById: user.id } : {}),
     },
-    include: COMPLETED_BY_SELECT,
+    include: TASK_INCLUDE,
   });
 
-  return NextResponse.json(serializeTask(task), { status: 201 });
+  // (a) task_given — instant, to the person it was given to (never to yourself).
+  if (assignTo && assignTo !== user.id && (title ?? "").trim().length > 0) {
+    try {
+      await sendMessage(
+        [assignTo],
+        taskGivenMessage({
+          taskId: task.id,
+          taskTitle: task.title,
+          projectName: project.name,
+          projectSlug: project.slug,
+          giverName: user.name,
+          dueDate: task.dueDate,
+        }),
+      );
+    } catch (err) {
+      console.error("[tasks] task_given failed:", (err as Error).message);
+    }
+  }
+  // The milestone's review meeting invites everyone holding a task in it.
+  if (assignTo && effectiveMilestoneId) {
+    syncProjectReviews(projectId, user.id).catch(() => undefined);
+  }
+
+  return NextResponse.json(serializeTask({ ...task, stepCount: 0, stepsDone: 0, noteCount: 0 }), { status: 201 });
 });
 
 /**
- * Create a PRIVATE personal task (phase 33 — was phase 15). It belongs to the
- * caller and to no real project (projectId null, isPrivate true, ownerId the
- * caller); it is never assigned, carries no gate template, and needs no estimated
- * date. Every private task — root AND subtask — lives in one of the caller's own
- * PersonalProjects (personalProjectId), mirroring how a project task carries
- * projectId; a subtask inherits its parent's PersonalProject. Ordering and
- * identity mirror the project path.
+ * Create a PRIVATE task (My notes). It belongs to the caller and to no
+ * project; it is never assigned and needs no date. Every private task lives
+ * in one of the caller's own PersonalProjects; a subtask inherits its parent's.
  */
 async function createPrivateTask(
   ownerId: string,
@@ -228,13 +224,11 @@ async function createPrivateTask(
     title?: string;
     descriptionMd?: string;
     orderKey?: string;
-    status?: "BACKLOG" | "PLANNED" | "IN_PROGRESS" | "ON_HOLD" | "BLOCKED" | "DONE" | "CANCELLED";
-    priority?: "P0" | "P1" | "P2" | "P3";
+    status?: "TODO" | "DOING" | "STUCK" | "DONE";
     dueDate?: string | null;
-    tags?: string[];
   },
 ) {
-  const { id, personalProjectId, parentId, title, descriptionMd, orderKey, status, priority, dueDate, tags } = data;
+  const { id, personalProjectId, parentId, title, descriptionMd, orderKey, status, dueDate } = data;
 
   let due: Date | null = null;
   if (dueDate) {
@@ -244,8 +238,6 @@ async function createPrivateTask(
     }
   }
 
-  // The PersonalProject the task lands in: a subtask inherits its parent's; a root
-  // must name one of the caller's own personal projects.
   let effectivePpid: string;
   if (parentId) {
     const parent = await prisma.task.findFirst({
@@ -260,10 +252,7 @@ async function createPrivateTask(
     if (!personalProjectId) {
       return badRequest([{ path: ["personalProjectId"], message: "A personalProjectId is required" }]);
     }
-    const pp = await prisma.personalProject.findFirst({
-      where: { id: personalProjectId, ownerId },
-      select: { id: true },
-    });
+    const pp = await prisma.personalProject.findFirst({ where: { id: personalProjectId, ownerId }, select: { id: true } });
     if (!pp) {
       return badRequest([{ path: ["personalProjectId"], message: "Unknown personal project" }]);
     }
@@ -273,13 +262,7 @@ async function createPrivateTask(
   let key = orderKey;
   if (!key) {
     const last = await prisma.task.findFirst({
-      where: {
-        ownerId,
-        isPrivate: true,
-        personalProjectId: effectivePpid,
-        parentId: parentId ?? null,
-        deletedAt: null,
-      },
+      where: { ownerId, isPrivate: true, personalProjectId: effectivePpid, parentId: parentId ?? null, deletedAt: null },
       orderBy: { orderKey: "desc" },
       select: { orderKey: true },
     });
@@ -297,18 +280,14 @@ async function createPrivateTask(
       title: title ?? "",
       descriptionMd: descriptionMd ?? "",
       orderKey: key,
-      status: status ?? "BACKLOG",
-      priority: priority ?? "P2",
+      status: status ?? "TODO",
       dueDate: due,
       dueProvisional: false,
-      tags: tags ?? [],
       assigneeId: null,
       ...(status === "DONE" ? { completedAt: new Date(), completedById: ownerId } : {}),
     },
-    include: COMPLETED_BY_SELECT,
+    include: TASK_INCLUDE,
   });
 
   return NextResponse.json(serializeTask(task), { status: 201 });
 }
-
-

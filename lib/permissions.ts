@@ -5,26 +5,20 @@
  * server inside a route handler, and the client is free to be wrong — hiding a
  * button is a courtesy, not a control.
  *
- * Roles (phase 14 walls + the phase 48 chain):
+ * Roles (phase 14 walls + the phase 48 chain + the 2026-09 restructure):
  *
- *   FOUNDER    the top of the chain. Sees and acts on everything, administers
- *              every account below it. Exactly one; never mintable in the UI.
- *   DIRECTOR   company-wide like FOUNDER, but cannot touch the FOUNDER account
- *              or delete departments (founder-only powers).
- *   HOD        head of a department: full authority over the projects filed in
- *              the department(s) they head, nothing beyond it.
- *   MANAGER    runs projects, SILOED to the ones they own or collaborate on.
- *              The OWNER of a project may delete it, edit its metadata, re-file
- *              it into a department, and manage its collaborator managers; a
- *              COLLABORATOR works inside it (tasks, gates, members, events,
- *              notes) but cannot delete it or manage ownership/collaborators.
- *   ADMIN      runs ACCOUNTS only — creates and manages every account and
- *              actions password-reset requests. Sees NO project, task, department,
- *              dashboard, calendar or review.
- *   TEAM_LEAD  owns delivery inside tools. Creates and edits tasks, assigns
- *              anyone, sets any status. Not siloed. Cannot sign off review.
- *   RESOURCE   (was DEVELOPER; shown as "Team member") does the work; may only
- *              move the assignee on tasks that are unassigned or already their own.
+ *   FOUNDER    the top of the chain. Sees and acts on everything; sets the
+ *              project % by hand; records review outcomes. Exactly one.
+ *   DIRECTOR   company-wide like FOUNDER, minus founder-only account powers.
+ *   HOD        full authority over the projects filed in the department(s)
+ *              they head, nothing beyond it.
+ *   MANAGER    runs projects, SILOED to the ones they own or may manage.
+ *   TEAM_LEAD  sees every project; gives tasks to anyone.
+ *   RESOURCE   ("Team member") does the work; gives tasks to anyone on the
+ *              projects they are on.
+ *   ADMIN      runs ACCOUNTS only. Sees NO project, task, calendar or people
+ *              placement.
+ *   PERSON     the Well Being wall. Touches nothing here.
  */
 import type { Role, User } from "@prisma/client";
 import { HttpError } from "@/lib/session";
@@ -36,6 +30,8 @@ import {
   isLeadOrAboveRole,
   isManagerRole,
 } from "@/lib/roles";
+import { prisma } from "@/lib/prisma";
+import { ensureMember, isOnProject } from "@/lib/project-people";
 
 export const CAN_LEAD: Role[] = ["FOUNDER", "DIRECTOR", "HOD", "MANAGER", "TEAM_LEAD"];
 
@@ -47,8 +43,7 @@ export function isAdmin(user: { role: Role }): boolean {
   return isAdminRole(user.role);
 }
 
-/** Managers and leads share every task-level power except Verified. Admin is
-    NOT here (phase 14 — no project access). */
+/** The chain and leads. Admin is NOT here (phase 14 — no project access). */
 export function isLeadOrAbove(user: { role: Role }): boolean {
   return isLeadOrAboveRole(user.role);
 }
@@ -62,50 +57,50 @@ export function assertAdmin(user: { role: Role }, what = "Admins only") {
 }
 
 /**
- * Who may set `assigneeId` to a given value on a given task.
+ * ONE assignment rule (restructure): anyone on a project may give a task to
+ * anyone on it. The chain and leads may also give one to someone not yet on
+ * the project — that person is added to it in the same breath. A team member
+ * naming someone outside the project gets a plain answer, not a 403.
  *
- * Leads and managers assign anybody. A developer may only claim an unassigned
- * task or let go of one that is already theirs.
+ * Returns nothing; throws 400/403 with copy the founder would use. The caller
+ * has already checked that the actor can SEE the project.
  */
-export function assertCanSetAssignee(
-  actor: User,
-  task: { assigneeId: string | null },
+export async function assertCanAssign(
+  actor: Pick<User, "id" | "role">,
+  projectId: string,
   nextAssigneeId: string | null,
-) {
-  if (isLeadOrAbove(actor)) return;
+): Promise<void> {
+  const actorOn = isLeadOrAbove(actor) || (await isOnProject(actor.id, projectId));
+  if (!actorOn) throw new HttpError(403, "You're not on this project.");
+  if (nextAssigneeId === null) return;
 
-  const current = task.assigneeId;
-  const ownsIt = current === actor.id;
-  const unassigned = current === null;
-  if (!ownsIt && !unassigned) {
-    throw new HttpError(403, "Only a team lead can reassign someone else's task");
+  const target = await prisma.user.findUnique({
+    where: { id: nextAssigneeId },
+    select: { id: true, role: true, disabledAt: true, status: true },
+  });
+  // Phase 35: a PERSON is not a work account and can never be assigned work.
+  if (!target || target.disabledAt || target.status !== "ACTIVE" || target.role === "PERSON" || target.role === "ADMIN") {
+    throw new HttpError(400, "Pick someone who is active on Orbit.");
   }
-  if (nextAssigneeId !== null && nextAssigneeId !== actor.id) {
-    throw new HttpError(403, "Only a team lead can assign work to someone else");
+  if (await isOnProject(target.id, projectId)) return;
+  if (isLeadOrAbove(actor)) {
+    await ensureMember(projectId, target.id);
+    return;
   }
+  throw new HttpError(400, "Pick someone on this project, or ask a manager to add them.");
 }
 
-/**
- * Who may READ the people list. Managers and leads need it to assign work and
- * invite collaborators; admins run accounts. Creating and changing accounts is
- * admin-only (phase 14) and enforced separately.
- */
+/** Who may READ the people list. */
 export function assertCanListUsers(user: { role: Role }) {
   if (!canSeeUserListRole(user.role)) throw new HttpError(403, "Not allowed");
 }
 
 /**
  * Who may create/invite an account, and with which role (phase 21; phase 48
- * adds the rank rule).
- *
- * Chain actors (FOUNDER/DIRECTOR/HOD/MANAGER) may create only accounts of
- * STRICTLY LOWER rank — a founder can mint directors, a director can mint
- * HODs, an HOD can mint managers, a manager can mint leads and team members.
- * The ADMIN actor keeps its phase-21 scope: manager-and-below. The ADMIN role
- * is special: only an admin could mint one, and admins are capped at exactly
- * one — the caller ALSO checks `adminAlreadyExists()` and 409s when a second
- * admin is attempted (see lib/account-guards.ts). FOUNDER is capped the same
- * way and is never mintable through the UI at all.
+ * adds the rank rule). Chain actors create strictly below their own rank —
+ * except directors, the top of the working chain, who may mint fellow
+ * directors. The ADMIN actor keeps manager-and-below. FOUNDER and PERSON are
+ * never mintable here.
  */
 export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role) {
   if (!canAdministerAccountsRole(actor.role)) {
@@ -117,15 +112,9 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
   if (newRole === "ADMIN" && !isAdmin(actor)) {
     throw new HttpError(403, "Only an admin can create an admin account.");
   }
-  // Phase 35: a PERSON is never created through People — it is created only by the
-  // Routine flow (which sets up the Person link + login together).
   if (newRole === "PERSON") {
-    throw new HttpError(403, "A person account is created from the Well Being tab.");
+    throw new HttpError(403, "A person account is created from the Family tab.");
   }
-  // Phase 48 rank rule for the chain roles. The admin actor keeps its phase-21
-  // scope (manager-and-below); chain actors create strictly below themselves —
-  // EXCEPT directors, who are the top of the chain (the owner folded FOUNDER
-  // away) and so may mint fellow directors, or nobody could.
   if (newRole === "DIRECTOR" || newRole === "HOD" || newRole === "MANAGER" || newRole === "TEAM_LEAD" || newRole === "RESOURCE") {
     const ceiling = isAdmin(actor)
       ? ROLE_RANK.MANAGER
@@ -139,14 +128,10 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
 }
 
 /**
- * Who may disable/enable, reset, re-role or delete a GIVEN account (phase 21;
- * phase 48 adds the rank rule). Only an ADMIN may touch the ADMIN account;
- * only the FOUNDER may touch the FOUNDER account; chain actors administer
- * strictly lower ranks (a manager no longer administers a fellow manager —
- * that moved up to HOD and above); the admin keeps manager-and-below. The
- * remaining safety guards — no self-disable, the last-authority rule, the
- * sole-admin rule, and the caps on role-change — are applied in the route,
- * which has the DB counts.
+ * Who may disable/enable, reset, re-role, place or delete a GIVEN account.
+ * Only an ADMIN may touch the ADMIN account; only the FOUNDER the FOUNDER
+ * account; chain actors administer strictly lower ranks (directors are peers);
+ * the admin keeps manager-and-below.
  */
 export function assertCanAdministerTarget(actor: { role: Role }, target: { role: Role }) {
   if (!canAdministerAccountsRole(actor.role)) {
@@ -161,8 +146,6 @@ export function assertCanAdministerTarget(actor: { role: Role }, target: { role:
   if (!isAdminRole(target.role) && target.role !== "PERSON" && !isAdmin(actor)) {
     const actorRank = ROLE_RANK[actor.role];
     const targetRank = ROLE_RANK[target.role];
-    // Directors are peers at the top (FOUNDER folded away): they administer
-    // each other; the route's self-disable and last-authority guards still hold.
     const directorPeer = actor.role === "DIRECTOR" && target.role === "DIRECTOR";
     if (targetRank >= actorRank && target.role !== "FOUNDER" && !directorPeer) {
       throw new HttpError(403, "You can only manage accounts below your own level.");
@@ -172,24 +155,5 @@ export function assertCanAdministerTarget(actor: { role: Role }, target: { role:
     if (ROLE_RANK[target.role] > ROLE_RANK.MANAGER) {
       throw new HttpError(403, "Director and department head accounts are managed by the founder.");
     }
-  }
-}
-
-/**
- * Gate toggles by role. Verified is the manager's sign-off (a manager who can
- * see the project — owner or collaborator); the other four are the team's build
- * checklist and a manager does not act on them. (Admins never reach gates.)
- */
-export function assertCanToggleGates(
-  user: { role: Role },
-  changedKeys: string[],
-) {
-  const touchedVerified = changedKeys.includes("verified");
-  const touchedTeamGate = changedKeys.some((k) => k !== "verified");
-  if (touchedVerified && !isManager(user)) {
-    throw new HttpError(403, "Only a manager can move the Verified gate");
-  }
-  if (touchedTeamGate && isManager(user)) {
-    throw new HttpError(403, "A manager doesn't move the build gates — that's the team's");
   }
 }

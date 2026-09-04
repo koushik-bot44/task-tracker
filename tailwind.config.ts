@@ -31,6 +31,7 @@ const config: Config = {
         warn: "var(--warn)",
         "warn-ink": "var(--warn-ink)",
         line: "var(--line)",
+        guide: "var(--guide)",
         "surface-2": "var(--surface-2)",
         "primary-soft": "var(--primary-soft)",
         "accent-soft": "var(--accent-soft)",
@@ -40,33 +41,25 @@ const config: Config = {
         "warn-soft": "var(--warn-soft)",
         hover: "var(--hover)",
         pressed: "var(--pressed)",
-        "chart-idle": "var(--chart-idle)",
-        "chart-done": "var(--chart-done)",
-        "chart-open": "var(--chart-open)",
-        "dot-off": "var(--dot-off)",
-        "dot-off-warn": "var(--dot-off-warn)",
         scrim: "var(--scrim)",
       },
       fontFamily: {
-        /* Phase 49b (clinical blueprint): ONE family — Geist — for everything.
-           `display` stays as an alias so font-display call sites keep
-           compiling; it is the same family, just heavier where it is used. */
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         display: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
-      /* One scale, applied everywhere: 12 meta, 14 UI, 15 row titles,
-         18 section heads, 22-24 page titles, 36-44 dashboard numbers. */
+      /* The restructure scale: 17 for rows and body, 15 for secondary, 13 for
+         meta — nothing under 13px anywhere. Headings 20 / 24. */
       fontSize: {
-        micro: ["0.75rem", { lineHeight: "1.125rem", letterSpacing: "0.01em" }],
-        xs: ["0.75rem", { lineHeight: "1.125rem" }],
-        sm: ["0.875rem", { lineHeight: "1.3125rem" }],
-        row: ["0.9375rem", { lineHeight: "1.4rem" }],
-        base: ["1rem", { lineHeight: "1.5rem" }],
-        section: ["1.125rem", { lineHeight: "1.35rem", letterSpacing: "-0.01em" }],
-        page: ["1.375rem", { lineHeight: "1.65rem", letterSpacing: "-0.015em" }],
-        "page-lg": ["1.5rem", { lineHeight: "1.8rem", letterSpacing: "-0.015em" }],
+        micro: ["0.8125rem", { lineHeight: "1.125rem" }],
+        xs: ["0.8125rem", { lineHeight: "1.125rem" }],
+        sm: ["0.9375rem", { lineHeight: "1.375rem" }],
+        row: ["1.0625rem", { lineHeight: "1.5rem" }],
+        base: ["1.0625rem", { lineHeight: "1.5rem" }],
+        lg: ["1.0625rem", { lineHeight: "1.5rem" }],
+        section: ["1.25rem", { lineHeight: "1.6rem", letterSpacing: "-0.01em" }],
+        page: ["1.5rem", { lineHeight: "1.85rem", letterSpacing: "-0.015em" }],
+        "page-lg": ["1.75rem", { lineHeight: "2.1rem", letterSpacing: "-0.015em" }],
         display: ["2.25rem", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
-        "display-lg": ["2.75rem", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
       },
       borderRadius: {
         chip: "var(--r-chip)",
@@ -79,6 +72,9 @@ const config: Config = {
         e2: "var(--shadow-2)",
         lift: "var(--shadow-lift)",
         drop: "var(--drop-glow)",
+      },
+      maxWidth: {
+        content: "760px",
       },
       zIndex: {
         sticky: "10",

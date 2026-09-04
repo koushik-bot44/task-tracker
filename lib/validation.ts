@@ -1,24 +1,10 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { HEALTHS, PRIORITIES, PROJECT_PRIORITIES, ROLES, STATUSES } from "@/lib/types";
-
-export const gateSchema = z.object({
-  key: z.string().min(1),
-  label: z.string().min(1),
-  done: z.boolean(),
-  at: z.string().nullable().optional(),
-});
-
-export const linkSchema = z.object({
-  label: z.string(),
-  url: z.string().min(1),
-});
+import { COMMENT_TARGETS, MILESTONE_OUTCOMES, PROJECT_PRIORITIES, PROJECT_STATUSES, ROLES, TASK_STATUSES } from "@/lib/types";
 
 /**
- * A phone number in E.164 international format (phase 32): a leading "+", then a
- * non-zero country digit and 6–14 more digits (e.g. "+916302608825"). Used for
- * the WhatsApp channel. Accepts "" or null as "clear it" — both normalize to
- * null so a blank field means "no WhatsApp number".
+ * A phone number in E.164 international format (phase 32). Accepts "" or null
+ * as "clear it" — both normalize to null.
  */
 export const E164_RE = /^\+[1-9]\d{6,14}$/;
 export const phoneInput = z
@@ -32,68 +18,60 @@ export const phoneInput = z
   )
   .transform((v) => (v ? (v as string) : null));
 
-/* Derived, never re-typed. These used to be four more hand-written copies of
-   sets that already exist in lib/types.ts — the same shape as the bug that
-   left TEAM_LEAD unable to sign in. Adding a status or a role now reaches the
-   type, the UI list and the request validator in one edit. */
-export const statusSchema = z.enum(STATUSES);
+/* Derived, never re-typed — one array per set lives in lib/types.ts. */
+export const statusSchema = z.enum(TASK_STATUSES);
 export const roleSchema = z.enum(ROLES);
-export const prioritySchema = z.enum(PRIORITIES);
-export const healthSchema = z.enum(HEALTHS);
-/** Phase 48: PROJECT priority (Critical/High/Medium/Low) — coarser than task P0-P3. */
+export const projectStatusSchema = z.enum(PROJECT_STATUSES);
 export const projectPrioritySchema = z.enum(PROJECT_PRIORITIES);
+export const milestoneOutcomeSchema = z.enum(MILESTONE_OUTCOMES);
+export const commentTargetSchema = z.enum(COMMENT_TARGETS);
 
-/** Phase 48: a project deadline — an ISO date(-time) string, "" or null to clear. */
-export const deadlineInput = z
+/** A date input — an ISO date(-time) string; "" or null clears it. */
+export const dateInput = z
   .union([z.literal(""), z.null(), z.string().min(4).max(40)])
   .transform((v) => (v ? v : null));
 
-/* Phase 5: a tool without a description and an owning lead is the kind of
-   half-created thing nobody can act on later, so both are required at the
-   door. Existing tools keep description "" and leadId null — the requirement
-   is on creation, never retroactive. */
+/** Restructure: "+ New project" asks Name · Lead · Start · Deadline. People
+    are added afterwards from "Add people". */
 export const createProjectSchema = z.object({
   name: z.string().trim().min(1).max(80),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   icon: z.string().max(40).nullable().optional(),
-  health: healthSchema.optional(),
-  gateTemplate: z.array(gateSchema).optional(),
-  description: z.string().trim().min(1, "A description is required").max(4000),
-  /** Optional (phase 31): a project can start without a lead and get one later. */
-  leadId: z.string().min(1).optional(),
-  /** Optional initial developer members (phase 11). */
-  developerIds: z.array(z.string().min(1)).max(100).optional(),
-  /** Phase 29/31: invite brand-new people straight into the project. Each entry
-      carries a role — a new DEVELOPER is invited AND added to this project as a
-      member; a new TEAM_LEAD account is created + invited (so a manager can make a
-      lead here) but not added as a member. An existing email is added only if it's
-      a developer. Role defaults to DEVELOPER. */
-  inviteNew: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(80),
-        email: z.string().trim().min(3).max(320),
-        role: z.enum(["RESOURCE", "TEAM_LEAD"]).optional(),
-      }),
-    )
-    .max(50)
-    .optional(),
-  /** REQUIRED since phase 16: every project lives in exactly one department. */
+  description: z.string().trim().max(4000).optional(),
+  leadId: z.string().min(1).nullable().optional(),
+  /** REQUIRED: every project lives in exactly one department. */
   departmentId: z.string().min(1, "A department is required"),
-  /** Phase 48: priority + deadline, settable at creation. */
+  startDate: dateInput.optional(),
+  deadline: dateInput.optional(),
+  status: projectStatusSchema.optional(),
   priority: projectPrioritySchema.optional(),
-  deadline: deadlineInput.optional(),
 });
 
-/** Department create/edit (phase 12; company-wide since phase 48 — creation is
-    executive-only at the route, and an HOD may edit their own description). */
+export const updateProjectSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    icon: z.string().max(40).nullable(),
+    status: projectStatusSchema,
+    orderKey: z.string().min(1),
+    description: z.string().trim().max(4000),
+    leadId: z.string().min(1).nullable(),
+    departmentId: z.string().min(1).nullable(),
+    startDate: dateInput,
+    deadline: dateInput,
+    /** FOUNDER/DIRECTOR only (checked at the route). */
+    progress: z.number().int().min(0).max(100),
+    priority: projectPrioritySchema,
+  })
+  .partial();
+
+/** Department create/edit (company-wide since phase 48). */
 export const createDepartmentSchema = z.object({
   name: z.string().trim().min(1).max(80),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   icon: z.string().max(40).nullable().optional(),
   orderKey: z.string().min(1).optional(),
   description: z.string().trim().max(2000).optional(),
-  /** The Head of Department; null = unassigned. Executive-only at the route. */
   hodId: z.string().min(1).nullable().optional(),
 });
 
@@ -108,60 +86,57 @@ export const updateDepartmentSchema = z
   })
   .partial();
 
-export const updateProjectSchema = z
+/** Restructure: a milestone is a name + review date. */
+export const createMilestoneSchema = z.object({
+  projectId: z.string().min(1),
+  name: z.string().trim().min(1).max(120),
+  reviewDate: z.string().min(4).max(40),
+});
+export const updateMilestoneSchema = z
   .object({
-    name: z.string().trim().min(1).max(80),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-    icon: z.string().max(40).nullable(),
-    health: healthSchema,
-    gateTemplate: z.array(gateSchema),
+    name: z.string().trim().min(1).max(120),
+    reviewDate: z.string().min(4).max(40),
     orderKey: z.string().min(1),
-    description: z.string().trim().max(4000),
-    leadId: z.string().min(1).nullable(),
-    /** Move the tool into a department, or null to unfile it (phase 12). */
-    departmentId: z.string().min(1).nullable(),
-    /** Phase 48: priority + deadline. */
-    priority: projectPrioritySchema,
-    deadline: deadlineInput,
   })
   .partial();
-
-export const createProjectNoteSchema = z.object({
-  body: z.string().trim().min(1).max(4000),
+export const milestoneOutcomeInput = z.object({
+  outcome: milestoneOutcomeSchema,
+  note: z.string().trim().max(2000).optional(),
+  /** The founder/director may set the project's % in the same breath. */
+  progress: z.number().int().min(0).max(100).optional(),
 });
 
+/** Restructure: one note shape for projects, milestones and tasks. */
+export const createCommentSchema = z
+  .object({
+    targetType: commentTargetSchema,
+    targetId: z.string().min(1),
+    body: z.string().trim().max(4000),
+    attachmentUrl: z.string().url().max(2000).nullable().optional(),
+    attachmentName: z.string().trim().max(200).nullable().optional(),
+    attachmentType: z.string().trim().max(120).nullable().optional(),
+  })
+  .refine((v) => v.body.length > 0 || Boolean(v.attachmentUrl), { message: "Write something or attach a file" });
+
 export const createTaskSchema = z.object({
-  // Client-generated so an optimistic row keeps its identity — and its keyboard
-  // focus — across the round trip. Constrained to a UUID so the id space stays
-  // predictable and callers cannot smuggle in arbitrary primary keys.
   id: z.string().uuid().optional(),
-  // Optional since phase 15: a PRIVATE task carries no projectId. The route
-  // requires exactly one of a projectId (project task) or isPrivate (personal).
   projectId: z.string().min(1).optional(),
-  /** Phase 15: create a personal private task (belongs to the caller, no project). */
   isPrivate: z.boolean().optional(),
-  /** Phase 33: the caller's PersonalProject a private root task lives in (a subtask
-      inherits its parent's). Replaces the phase-15 labelId. */
   personalProjectId: z.string().min(1).nullable().optional(),
   parentId: z.string().min(1).nullable().optional(),
+  milestoneId: z.string().min(1).nullable().optional(),
   title: z.string().max(500).optional(),
-  /** Phase 24: a free-form description supplied at creation (My Space "Prompt"
-      composer). Only the private-task path applies it; the project path ignores it. */
+  /** My notes only; the project path ignores it. */
   descriptionMd: z.string().max(20000).optional(),
   orderKey: z.string().min(1).optional(),
   status: statusSchema.optional(),
-  priority: prioritySchema.optional(),
-  // Quick-add resolves these at parse time, so creation takes one round trip.
   dueDate: z.string().nullable().optional(),
-  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
   assigneeId: z.string().min(1).nullable().optional(),
-  /** Clients say "this date is a guess"; the server decides on inheritance. */
+  important: z.boolean().optional(),
   dueProvisional: z.boolean().optional(),
 });
 
-/** Personal (private) department/project create/edit (phase 33). Caller-scoped at
-    the route — a user only ever touches their own. Name only; no color/icon (the
-    private space is deliberately simple). */
+/** Personal (private) department/project create/edit (phase 33). */
 export const createPersonalDepartmentSchema = z.object({
   name: z.string().trim().min(1).max(80),
   orderKey: z.string().min(1).optional(),
@@ -179,7 +154,7 @@ export const updatePersonalProjectSchema = z
   .object({ name: z.string().trim().min(1).max(80), orderKey: z.string().min(1) })
   .partial();
 
-/** Phase 33: the My Space "Prompt" quick-capture (DEVELOPER-only at the route). */
+/** Phase 33: the My notes "Prompt" quick-capture (RESOURCE-only at the route). */
 export const promptSchema = z.object({
   personalProjectId: z.string().min(1),
   text: z.string().trim().min(1).max(20000),
@@ -273,19 +248,14 @@ export const updateTaskSchema = z
     title: z.string().max(500),
     descriptionMd: z.string().max(20000),
     status: statusSchema,
-    priority: prioritySchema,
     dueDate: z.string().nullable(),
-    gates: z.array(gateSchema),
-    tags: z.array(z.string().min(1).max(40)).max(20),
-    links: z.array(linkSchema).max(50),
     parentId: z.string().min(1).nullable(),
+    milestoneId: z.string().min(1).nullable(),
     orderKey: z.string().min(1),
     assigneeId: z.string().min(1).nullable(),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable(),
-    /** Phase 15: a GROUP_TINTS key (validated at the route), or null to remove. */
-    groupColor: z.string().max(40).nullable(),
+    important: z.boolean(),
+    archived: z.boolean(),
     deletedAt: z.null(),
-    pinnedAt: z.string().nullable(),
     // Links only, never uploads — http(s) enforced so a javascript: URL cannot
     // be stored and later rendered as an anchor.
     deliverableUrl: z

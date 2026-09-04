@@ -1,5 +1,4 @@
 import type { DateState } from "./dates";
-import type { Gate } from "./gates";
 import type { Role as AuthRole } from "./auth";
 
 /*
@@ -7,128 +6,102 @@ import type { Role as AuthRole } from "./auth";
  * derives its zod enum from the same array.
  *
  * Standing law after phase 5 batch 1: a set written out twice is a set that
- * will eventually disagree with itself. TEAM_LEAD was added to a union and
- * not to a hand-written runtime check, and every team lead got 401 at sign-in
- * — the role existed in the type system and nowhere else. Status, Priority and
- * Health were each carrying the same three-copy risk.
+ * will eventually disagree with itself.
  *
- * Status order is reading order, not database order. On hold sits between
- * in-progress and blocked: work that has started and stopped for a reason
- * nobody is at fault for, where blocked means something is in the way.
+ * Restructure (2026-09-04): four task statuses, four project statuses. The
+ * labels are the words the founder uses; nothing here is jargon.
  */
-export const STATUSES = [
-  "BACKLOG",
-  "PLANNED",
-  "IN_PROGRESS",
-  "ON_HOLD",
-  "BLOCKED",
-  "DONE",
-  "CANCELLED",
-] as const;
-export type Status = (typeof STATUSES)[number];
+export const TASK_STATUSES = ["TODO", "DOING", "STUCK", "DONE"] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+/** Back-compat alias for the few shared files that still say `Status`. */
+export type Status = TaskStatus;
+export const STATUSES = TASK_STATUSES;
 
-/**
- * Sentence case, because these are read by people, not parsers.
- * lib/status.ts is the richer source; this stays for label-only callers.
- */
-export const STATUS_LABEL: Record<Status, string> = {
-  BACKLOG: "To do",
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
+  TODO: "To do",
+  DOING: "Doing",
+  STUCK: "Stuck",
+  DONE: "Done",
+};
+export const STATUS_LABEL = TASK_STATUS_LABEL;
+
+export const PROJECT_STATUSES = ["PLANNED", "ACTIVE", "PAUSED", "DONE"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   PLANNED: "Planned",
-  IN_PROGRESS: "In progress",
-  ON_HOLD: "On hold",
-  BLOCKED: "Stuck",
-  DONE: "Completed",
-  CANCELLED: "Cancelled",
+  ACTIVE: "Active",
+  PAUSED: "Paused",
+  DONE: "Done",
 };
 
-export const PRIORITIES = ["P0", "P1", "P2", "P3"] as const;
-export type Priority = (typeof PRIORITIES)[number];
-
-/** Task priority labels. The owner's company speaks P-numbers natively, so
-    the labels ARE the values (phase 49 reverted a brief plain-language pass). */
-export const PRIORITY_LABEL: Record<Priority, string> = {
-  P0: "P0",
-  P1: "P1",
-  P2: "P2",
-  P3: "P3",
-};
-
-/** Phase 48: PROJECT-level priority — a separate, coarser axis than task
-    priority, set by the chain and used to sort company/department dashboards. */
+/** The column survives (phase 48); it is no longer shown anywhere. */
 export const PROJECT_PRIORITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 export type ProjectPriorityValue = (typeof PROJECT_PRIORITIES)[number];
 
-/** The owner's call (phase 49): project priority reads as P1-P4 — the
-    numbering their company already uses — with P1 the most urgent. The
-    stored enum values are unchanged. */
-export const PROJECT_PRIORITY_LABEL: Record<ProjectPriorityValue, string> = {
-  CRITICAL: "P1",
-  HIGH: "P2",
-  MEDIUM: "P3",
-  LOW: "P4",
+export const MILESTONE_OUTCOMES = ["ON_TRACK", "NEEDS_WORK"] as const;
+export type MilestoneOutcome = (typeof MILESTONE_OUTCOMES)[number];
+export const MILESTONE_OUTCOME_LABEL: Record<MilestoneOutcome, string> = {
+  ON_TRACK: "On track",
+  NEEDS_WORK: "Needs work",
 };
 
-/** Picker helper text — why you'd pick each level, in plain words. */
-export const PROJECT_PRIORITY_HINT: Record<ProjectPriorityValue, string> = {
-  CRITICAL: "Needs attention today",
-  HIGH: "This week",
-  MEDIUM: "Scheduled",
-  LOW: "When time permits",
-};
+export const COMMENT_TARGETS = ["PROJECT", "MILESTONE", "TASK"] as const;
+export type CommentTarget = (typeof COMMENT_TARGETS)[number];
 
-export const HEALTHS = ["ACTIVE", "PAUSED", "SHIPPED", "IDEA"] as const;
-export type Health = (typeof HEALTHS)[number];
-
-export const HEALTH_LABEL: Record<Health, string> = {
-  ACTIVE: "Active",
-  PAUSED: "Paused",
-  SHIPPED: "Delivered",
-  IDEA: "Idea",
-};
-
-export type LinkItem = { label: string; url: string };
+/** "YES" = I'll be there, "NO" = Can't, null = no reply yet. */
+export type MeetingResponse = "YES" | "NO";
 
 /** Wire shape: dates are ISO strings once they cross the JSON boundary. */
 export type TaskDTO = {
   id: string;
-  /** Null for a PRIVATE personal task (phase 15) — it belongs to no project. */
+  /** Null for a PRIVATE personal task (My notes) — it belongs to no project. */
   projectId: string | null;
-  /** True for a PRIVATE personal task (phase 15): owned by one user, isolated. */
   isPrivate: boolean;
-  /** The private task's owner (phase 15); null for a project task. */
   ownerId: string | null;
-  /** The PersonalProject a private task lives in (phase 33); null for a project task. */
   personalProjectId: string | null;
-  /** A GROUP_TINTS key painting a soft band behind this task + its subtree. */
-  groupColor: string | null;
+  /** A step's parent. Project tasks are one level deep: a step's parentId is
+      always a root task (deeper rows are flattened on read). */
   parentId: string | null;
+  /** The milestone box this task sits in; null = "Not in a milestone yet". */
+  milestoneId: string | null;
   title: string;
+  /** My notes only (the private-task Notes box). "" on project tasks. */
   descriptionMd: string;
-  status: Status;
-  priority: Priority;
+  status: TaskStatus;
   dueDate: string | null;
-  /** The server guessed this date; no human has confirmed it yet. */
   dueProvisional: boolean;
   orderKey: string;
-  gates: Gate[];
-  tags: string[];
-  links: LinkItem[];
+  important: boolean;
+  archived: boolean;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
   deletedAt: string | null;
-  pinnedAt: string | null;
   deliverableUrl: string | null;
   completedById: string | null;
-  /** Joined for display; null when nobody is recorded or the row was reopened. */
   completedByName: string | null;
   assigneeId: string | null;
   assigneeName: string | null;
-  /** A personal task colour; null = none. The tool colour is the identity cue. */
-  color: string | null;
-  /** Row-level hints that there is more inside, so nothing hides silently. */
+  /** Who gave the task — the giver Face on Today. */
+  givenById: string | null;
+  givenByName: string | null;
   hasDescription: boolean;
   noteCount: number;
+  /** Steps under a root task (0 for a step itself). */
+  stepCount: number;
+  stepsDone: number;
+};
+
+export type ProjectPersonDTO = {
+  id: string;
+  name: string;
+  role: UserRole;
+  isLead: boolean;
+  isOwner: boolean;
+  isMember: boolean;
+  canManage: boolean;
+  /** Live, unarchived tasks held in this project. */
+  taskCount: number;
 };
 
 export type ProjectDTO = {
@@ -137,23 +110,58 @@ export type ProjectDTO = {
   slug: string;
   color: string;
   icon: string | null;
-  health: Health;
-  gateTemplate: Gate[];
+  status: ProjectStatus;
   orderKey: string;
   createdAt: string;
+  startDate: string | null;
+  deadline: string | null;
+  /** 0-100, set by hand by the founder/director. Never computed. */
+  progress: number;
+  priority: ProjectPriorityValue;
   taskCount: number;
+  openTasks: number;
+  doneTasks: number;
+  overdueTasks: number;
   description: string;
-  /** Null on the tools that predate phase 5, until a manager assigns one. */
   leadId: string | null;
   leadName: string | null;
-  /** The department this tool is filed under (phase 12). Null = unfiled. */
   departmentId: string | null;
-  /** The manager who OWNS this tool (phase 14). Owner-only powers key off this. */
   ownerId: string | null;
-  /** Phase 48: project priority — company/department dashboards sort by it. */
-  priority: ProjectPriorityValue;
-  /** Phase 48: when the project should finish (ISO), or null. */
-  deadline: string | null;
+  /** Everyone on the project (lead, owner, members, task holders), lead first. */
+  people: ProjectPersonDTO[];
+  /** The next milestone whose review has not happened yet. */
+  nextMilestone: { id: string; name: string; reviewDate: string } | null;
+  /** Late: past deadline and not done, an overdue task, or a review date passed with no outcome. */
+  behind: boolean;
+};
+
+export type MilestoneDTO = {
+  id: string;
+  projectId: string;
+  name: string;
+  reviewDate: string;
+  orderKey: string;
+  reviewEventId: string | null;
+  outcome: MilestoneOutcome | null;
+  outcomeNote: string | null;
+  outcomeAt: string | null;
+  createdAt: string;
+  taskCount: number;
+  doneCount: number;
+  noteCount: number;
+  latestNote: CommentDTO | null;
+};
+
+export type CommentDTO = {
+  id: string;
+  targetType: CommentTarget;
+  targetId: string;
+  body: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  createdAt: string;
+  author: { id: string; name: string; role: UserRole };
 };
 
 /** A department / department of tools (phase 12; company-wide since phase 48). */
@@ -164,65 +172,65 @@ export type DepartmentDTO = {
   icon: string | null;
   orderKey: string;
   createdAt: string;
-  /** Phase 48: what the department does, in plain language. */
   description: string;
-  /** Phase 48: the Head of Department, or null when none is assigned. */
   hodId: string | null;
   hodName: string | null;
-  /** How many tools THE CALLER CAN SEE are filed here — drives the sidebar's
-      "hide empty departments for a team member" rule and the Home rollup line. */
+  /** How many tools THE CALLER CAN SEE are filed here. */
   projectCount: number;
 };
 
-export type ProjectNoteDTO = {
-  id: string;
-  projectId: string;
-  body: string;
-  createdAt: string;
-  author: { id: string; name: string; role: UserRole };
-};
-
-/** A project's people for the sidebar members popover (phase 17) — names only:
-    the team lead, then the developer members. No ids, counts, or extra roles. */
-export type ProjectTeamDTO = {
-  name: string;
-  lead: { name: string } | null;
-  developers: { name: string }[];
-};
-
-/** A task on the calendar: its est-completion date, with the date-state and
-    tool colour the chip needs. dateState reuses lib/dates (no parallel logic). */
+/** A task on the calendar: its date, with the date-state and project colour the chip needs. */
 export type CalendarTaskDTO = {
   id: string;
   title: string;
   dueDate: string;
-  status: Status;
+  status: TaskStatus;
   dateState: DateState;
   dueProvisional: boolean;
   projectId: string;
   projectColor: string;
+  projectSlug: string;
 };
 
-/** An invitee on a meeting (phase 22). userId lets the schedule/edit modal
-    pre-check the box; name is what the day panel shows. */
-export type MeetingAttendeeDTO = { userId: string; name: string };
+/** A project deadline on the calendar. */
+export type CalendarDeadlineDTO = {
+  projectId: string;
+  name: string;
+  slug: string;
+  deadline: string;
+  color: string;
+};
+
+export type MeetingAttendeeDTO = {
+  userId: string;
+  name: string;
+  response: MeetingResponse | null;
+  respondedAt: string | null;
+};
 
 export type CalendarEventDTO = {
   id: string;
   title: string;
   description: string;
   date: string;
-  /** Meetings (phase 22): "HH:MM" 24h. null on a plain event. */
+  /** Meetings: "HH:MM" 24h. null on a plain event. */
   startTime: string | null;
   endTime: string | null;
   isMeeting: boolean;
   projectId: string | null;
   projectName: string | null;
   projectColor: string | null;
+  projectSlug: string | null;
+  /** Set when this meeting is a milestone's review. */
+  milestoneId: string | null;
+  milestoneName: string | null;
   isGlobal: boolean;
-  /** The selected invitees — present (possibly empty) for a meeting, [] for a
-      plain event. */
   attendees: MeetingAttendeeDTO[];
+  /** The caller's own reply, if they are an attendee. */
+  myResponse: MeetingResponse | null;
+  isAttendee: boolean;
+  /** The caller may reschedule (organiser, founder, director). */
+  canReschedule: boolean;
   createdById: string;
   createdByName: string;
   createdAt: string;
@@ -231,6 +239,31 @@ export type CalendarEventDTO = {
 export type CalendarPayload = {
   tasks: CalendarTaskDTO[];
   events: CalendarEventDTO[];
+  deadlines: CalendarDeadlineDTO[];
+};
+
+/** Today's page, in one round trip. */
+export type TodayDTO = {
+  /** Executives and department heads see the company line; null for others. */
+  summary: { projects: number; behind: number; reviewsThisWeek: number } | null;
+  /** The caller's open tasks: overdue first, then by date. */
+  tasks: (TaskDTO & { projectName: string; projectSlug: string })[];
+  /** Today's and tomorrow's meetings the caller attends or organises. */
+  meetings: CalendarEventDTO[];
+  /** Founder/director only: reviews due (review date ≤ today, no outcome yet). */
+  needsOk: NeedsOkDTO[];
+};
+
+export type NeedsOkDTO = {
+  milestoneId: string;
+  milestoneName: string;
+  projectId: string;
+  projectName: string;
+  projectSlug: string;
+  reviewDate: string;
+  progress: number;
+  tasksDone: number;
+  tasksTotal: number;
 };
 
 export type NotificationDTO = {
@@ -241,9 +274,6 @@ export type NotificationDTO = {
   url: string;
   readAt: string | null;
   createdAt: string;
-  // Snooze (phase 23): an ISO time this item is hidden until, or null. Items in
-  // the active list always carry null here; the separate `snoozed` list carries
-  // future values for the "Snoozed (N)" section.
   snoozedUntil: string | null;
 };
 
@@ -251,10 +281,7 @@ export const ROLES = ["FOUNDER", "DIRECTOR", "HOD", "MANAGER", "TEAM_LEAD", "RES
 export type UserRole = (typeof ROLES)[number];
 
 /* This list and lib/auth.ts's must stay identical: one decides what the UI
-   offers, the other decides which session tokens are accepted at all. They
-   live apart because auth.ts pulls in jose and has no business in a client
-   bundle — so the invariant is enforced here instead, as a type error the
-   moment they diverge. */
+   offers, the other decides which session tokens are accepted at all. */
 type _RolesMatch = AuthRole extends UserRole
   ? UserRole extends AuthRole
     ? true
@@ -263,28 +290,22 @@ type _RolesMatch = AuthRole extends UserRole
 const _rolesMatch: _RolesMatch = true;
 void _rolesMatch;
 
+/** Role words appear ONLY on the People page. */
 export const ROLE_LABEL: Record<UserRole, string> = {
-  // Phase 48: the chain above MANAGER, top first.
   FOUNDER: "Founder",
   DIRECTOR: "Director",
   HOD: "Head of department",
   MANAGER: "Manager",
   TEAM_LEAD: "Team lead",
-  // Phase 48 (renamed from DEVELOPER): "Team member" is the user-facing label —
-  // friendlier than "Resource" and instantly understood by non-technical people.
   RESOURCE: "Team member",
   ADMIN: "Admin",
-  // Phase 35 (renamed from CHILD): a walled-off login role, never offered in a
-  // work picker (see ASSIGNABLE_ROLES) or shown in People — the label exists
-  // only for completeness.
   PERSON: "Person",
 };
 
-/** A short chip label for tight spots (org chart pills, tables). */
 export const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   FOUNDER: "Founder",
   DIRECTOR: "Director",
-  HOD: "HOD",
+  HOD: "Head",
   MANAGER: "Manager",
   TEAM_LEAD: "Lead",
   RESOURCE: "Member",
@@ -303,83 +324,21 @@ export type UserDTO = {
   createdAt: string;
   disabledAt: string | null;
   emailOptIn: boolean;
-  /** WhatsApp (phase 32): E.164 number or null (no WhatsApp), and the per-person
-      opt-in for the WhatsApp channel only. */
   phone: string | null;
   whatsappOptIn: boolean;
-  /** How many projects this user OWNS (phase 14). Drives the delete-manager
-      confirmation ("this permanently deletes N projects"). 0 for non-managers. */
+  /** Where this person sits on the People page; null = "Not placed yet". */
+  departmentId: string | null;
+  departmentName: string | null;
   ownedProjectCount: number;
 };
 
-export type NoteDTO = {
-  id: string;
-  taskId: string;
-  body: string;
-  createdAt: string;
-  author: { id: string; name: string; role: UserRole };
+/** The signed-in account: a UserDTO plus what the chrome needs. */
+export type MeDTO = UserDTO & {
+  /** Owns (or monitors) a Person in Well Being — shows the Family tab. */
+  hasFamily: boolean;
 };
 
-export type OverviewProject = {
-  id: string;
-  name: string;
-  slug: string;
-  color: string;
-  health: Health;
-  /** Leaf tasks, cancelled excluded from both halves of the ratio. */
-  totalLeaves: number;
-  doneLeaves: number;
-  inFlight: number;
-  blocked: number;
-  doneThisWeek: number;
-  /** Completions per day, oldest first, ending today. Always 14 entries. */
-  sparkline: number[];
-  nextUp: { id: string; title: string } | null;
-  leadId: string | null;
-  leadName: string | null;
-  /** The department this tool is filed under (phase 12); null = unfiled. */
-  departmentId: string | null;
-  /** Phase 48: project priority + deadline, for chain dashboards. */
-  priority: ProjectPriorityValue;
-  deadline: string | null;
-  /** Phase 49: what the project is for — the hover-expanded "about" line. */
-  description: string;
-  /** Every status, ON_HOLD included, so batch 2 can chart without recounting. */
-  statusCounts: Record<Status, number>;
-  /** Schedule health, computed server-side so every consumer agrees. */
-  overdue: number;
-  atRisk: number;
-  unscheduled: number;
-  perAssignee: Array<{
-    userId: string | null;
-    name: string;
-    open: number;
-    done: number;
-  }>;
-};
-
-export type OverviewDTO = {
-  projects: OverviewProject[];
-  global: {
-    shippedThisWeek: number;
-    inFlight: number;
-    blocked: number;
-    overdue: number;
-    atRisk: number;
-    unscheduled: number;
-    onHold: number;
-  };
-  /** Completions per ISO week, oldest first, ending this week (phase 12). */
-  weeklyCompletions: number[];
-  recent: Array<{
-    id: string;
-    title: string;
-    projectId: string;
-    completedAt: string;
-  }>;
-};
-
-/** Palette offered when creating a tool — the tool palette, tinted to sit on a light page. */
+/** Palette offered when creating a project — tinted to sit on a light page. */
 export const PROJECT_COLORS = [
   "#2dd4bf",
   "#eab308",
@@ -391,28 +350,7 @@ export const PROJECT_COLORS = [
   "#f87171",
 ];
 
-/**
- * A separate, quieter palette for a task's personal colour (phase 11). It is a
- * marker someone puts on their own row — never the identity of the task, which
- * the tool's colour already carries — so the swatches sit a shade softer than
- * the tool palette and are chosen to read as a dot, not a fill.
- */
-export const TASK_COLORS = [
-  "#f87171",
-  "#fb923c",
-  "#facc15",
-  "#4ade80",
-  "#22d3ee",
-  "#60a5fa",
-  "#c084fc",
-  "#f472b6",
-];
-
-/**
- * A department palette for departments (phase 12). Deeper, more saturated than the
- * tool palette so a department header reads as the container it is and never gets
- * mistaken for one of the tools sitting inside it.
- */
+/** A department palette (phase 12). */
 export const DEPARTMENT_COLORS = [
   "#0d9488",
   "#0369a1",

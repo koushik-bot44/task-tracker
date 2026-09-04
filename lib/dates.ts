@@ -1,25 +1,18 @@
 /**
- * Estimated-completion dates: one owner for how a date is judged.
- *
- * The label is "Est. completion" everywhere it is shown to a person; the
- * column stays `dueDate`, because renaming a column across a live database to
- * win a word is not a trade worth making.
- *
- * Every surface that renders a date — tree, board, detail panel, focus — asks
- * this file what state it is in. Three places computing "is this late?" is how
- * they end up disagreeing.
+ * Dates, in words. One owner for "is this late?", "what day is that?" and the
+ * deadline chip's colour, so every screen agrees.
  */
-import type { Status } from "./types";
+import type { TaskStatus } from "./types";
 
 export const AT_RISK_DAYS = 3;
-
-/** Days added when nothing better is known and a date is still required. */
-export const AUTO_DATE_DAYS = 7;
+/** Deadline chips turn amber inside this many days. */
+export const DEADLINE_SOON_DAYS = 7;
 
 export type DateState = "none" | "normal" | "at-risk" | "overdue";
+export type DeadlineTone = "green" | "amber" | "red";
 
 /** Local midnight — comparisons are about calendar days, not instants. */
-function startOfDay(d: Date): Date {
+export function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
@@ -29,19 +22,10 @@ export function daysUntil(iso: string, now = new Date()): number {
   return Math.round((then.getTime() - today.getTime()) / 86_400_000);
 }
 
-/**
- * Finished work is never late. A task that shipped last month against a date
- * two weeks earlier is history, not a problem, and painting it red buries the
- * things that are actually slipping.
- */
-export function dateState(
-  dueDate: string | null,
-  status: Status,
-  now = new Date(),
-): DateState {
+/** Finished work is never late. */
+export function dateState(dueDate: string | null, status: TaskStatus, now = new Date()): DateState {
   if (!dueDate) return "none";
-  if (status === "DONE" || status === "CANCELLED") return "normal";
-
+  if (status === "DONE") return "normal";
   const days = daysUntil(dueDate, now);
   if (days < 0) return "overdue";
   if (days <= AT_RISK_DAYS) return "at-risk";
@@ -55,45 +39,33 @@ export const DATE_STATE_STYLE: Record<Exclude<DateState, "none">, string> = {
   overdue: "bg-danger-soft text-danger-ink",
 };
 
-/**
- * A guessed date still counts — it is in the at-risk and overdue maths exactly
- * like any other, because pretending a task has no deadline until someone
- * types one is how work goes untracked. It is only marked as guessed, with a
- * dashed edge and a leading "~", so nobody mistakes the tracker's arithmetic
- * for somebody's commitment.
- */
-/* Plain `border-dashed`, no alpha modifier: Tailwind inherits currentColor
-   for the border, which is already the chip's own -ink tone. `border-current/40`
-   would have been another class that compiles to nothing. */
-export const PROVISIONAL_RING = "border border-dashed";
-
-export function dateLabel(
-  iso: string,
-  provisional: boolean,
-  now = new Date(),
-): string {
-  const base = formatDate(iso, now);
-  return provisional ? `~${base}` : base;
+/** A project deadline chip: green, amber inside a week, red when passed. */
+export function deadlineTone(deadline: string | null, done = false, now = new Date()): DeadlineTone | null {
+  if (!deadline) return null;
+  if (done) return "green";
+  const days = daysUntil(deadline, now);
+  if (days < 0) return "red";
+  if (days < DEADLINE_SOON_DAYS) return "amber";
+  return "green";
 }
 
-/**
- * The pill shown when a task predates the date requirement.
- *
- * Deliberately NOT amber. Every legacy row is dateless, so amber here painted
- * a whole tree the same colour as "at risk" and the distinction died — a
- * screen where everything is a warning contains no warnings. Missing a date is
- * an absence, so it is styled like one: neutral, dashed, quiet. Amber is
- * reserved for a real date that is running out.
- */
+export const DEADLINE_TONE_STYLE: Record<DeadlineTone, string> = {
+  green: "bg-ok-soft text-ok-ink",
+  amber: "bg-warn-soft text-warn-ink",
+  red: "bg-danger-soft text-danger-ink",
+};
+
+export const PROVISIONAL_RING = "border border-dashed";
 export const NO_DATE_STYLE = "border border-dashed border-line text-muted";
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 /**
- * Absolute calendar date as DD/MM/YYYY — day-first, zero-padded, no locale
- * guesswork. Every absolute date a person reads goes through here, so none of
- * them can render year-first or month-first.
- *
- * A date-only ISO string (YYYY-MM-DD) is split rather than parsed: new Date()
- * reads it as UTC midnight, which rolls back a day in any western timezone.
+ * Absolute calendar date as DD/MM/YYYY — kept for the few places (email
+ * footers, tooltips) that want a full date. Everything a person reads on a
+ * screen goes through `dateWord` instead.
  */
 export function formatDMY(iso: string): string {
   const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
@@ -107,33 +79,62 @@ export function formatDMY(iso: string): string {
   return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
-export function formatDate(iso: string, now = new Date()): string {
+/** "12 Sep", or "12 Sep 2027" when it is not this year. */
+export function shortDate(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  const year = d.getFullYear() === now.getFullYear() ? "" : ` ${d.getFullYear()}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${year}`;
+}
+
+/** "September 1" — the PROJECT START line. */
+export function longDate(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  const year = d.getFullYear() === now.getFullYear() ? "" : `, ${d.getFullYear()}`;
+  return `${MONTHS_LONG[d.getMonth()]} ${d.getDate()}${year}`;
+}
+
+/**
+ * Dates as words. Today / Tomorrow / Yesterday / a weekday inside the week /
+ * "3 days late" / "12 Sep". This is the ONLY date format on rows and chips.
+ */
+export function dateWord(iso: string, now = new Date()): string {
   const days = daysUntil(iso, now);
   if (days === 0) return "Today";
   if (days === 1) return "Tomorrow";
   if (days === -1) return "Yesterday";
-  if (days < 0 && days >= -6) return `${Math.abs(days)}d late`;
-  if (days > 0 && days <= 6) {
-    return new Date(iso).toLocaleDateString(undefined, { weekday: "short" });
-  }
-  return formatDMY(iso);
+  if (days < 0 && days >= -6) return `${Math.abs(days)} days late`;
+  if (days > 0 && days <= 6) return WEEKDAYS[new Date(iso).getDay()];
+  return shortDate(iso, now);
 }
 
-/** ISO date (no time) `n` days from now, for the auto-filled default. */
+/** Back-compat name used by My notes' outline. */
+export const formatDate = dateWord;
+
+export function dateLabel(iso: string, provisional: boolean, now = new Date()): string {
+  const base = dateWord(iso, now);
+  return provisional ? `~${base}` : base;
+}
+
+/** ISO date (no time) `n` days from now. */
 export function isoDaysFromNow(n: number, now = new Date()): string {
   const d = startOfDay(now);
   d.setDate(d.getDate() + n);
   return d.toISOString();
 }
 
-/**
- * A child finishing after its parent is a scheduling contradiction, not an
- * error: the plan may simply not have caught up yet. It warns, never blocks.
- */
-export function childOutlastsParent(
-  childDue: string | null,
-  parentDue: string | null,
-): boolean {
+/** "YYYY-MM-DD" of a local day, for date inputs. */
+export function dayInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Same calendar day, local. */
+export function sameDay(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  return startOfDay(new Date(a)).getTime() === startOfDay(new Date(b)).getTime();
+}
+
+export function childOutlastsParent(childDue: string | null, parentDue: string | null): boolean {
   if (!childDue || !parentDue) return false;
   return startOfDay(new Date(childDue)) > startOfDay(new Date(parentDue));
 }
