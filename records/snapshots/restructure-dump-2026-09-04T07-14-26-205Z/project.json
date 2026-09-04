@@ -1,0 +1,174 @@
+[
+ {
+  "id": "cmrwis5gd0001jv04zg0pntjm",
+  "name": "Anvi Careers",
+  "slug": "anvi-careers",
+  "color": "#2dd4bf",
+  "icon": null,
+  "health": "ACTIVE",
+  "gateTemplate": [
+   {
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "orderKey": "a4",
+  "priority": "CRITICAL",
+  "deadline": "2026-09-06T18:33:35.319Z",
+  "createdAt": "2026-07-22T20:13:17.341Z",
+  "description": "The Anvi hiring site — job listings, applications, and the recruiter review flow.",
+  "leadId": "cmrw6nu0p0000jw04uyss26mg",
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "departmentId": "cms7evm8s0001j4ecrr28gs15"
+ },
+ {
+  "id": "cmru9bcml0000j464n329w96d",
+  "name": "Skyzen Webhooks",
+  "slug": "skyzen-webhooks",
+  "color": "#2dd4bf",
+  "icon": "webhook",
+  "health": "ACTIVE",
+  "gateTemplate": [
+   {
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "orderKey": "a0",
+  "priority": "HIGH",
+  "deadline": "2026-09-13T18:33:35.344Z",
+  "createdAt": "2026-07-21T06:12:44.589Z",
+  "description": "Delivers Skyzen event notifications to customer systems reliably, with retries and receipts.",
+  "leadId": "cmrw6nu0p0000jw04uyss26mg",
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "departmentId": "cms7evm8s0001j4ecrr28gs15"
+ },
+ {
+  "id": "cmsewa9ts0001ji04q5ffct31",
+  "name": "Skyzen Careers",
+  "slug": "skyzen-careers",
+  "color": "#f87171",
+  "icon": null,
+  "health": "ACTIVE",
+  "gateTemplate": [
+   {
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "orderKey": "a5",
+  "priority": "MEDIUM",
+  "deadline": "2026-09-24T18:33:35.345Z",
+  "createdAt": "2026-08-04T16:51:08.993Z",
+  "description": "The Skyzen careers page — openings, applications, and candidate tracking.",
+  "leadId": "cmrw6nu0p0000jw04uyss26mg",
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "departmentId": "cms7evm8s0001j4ecrr28gs15"
+ },
+ {
+  "id": "cmru9bhne000xj464ico7jgcg",
+  "name": "Recruiter Dashboard",
+  "slug": "recruiter-dashboard",
+  "color": "#eab308",
+  "icon": "line-chart",
+  "health": "SHIPPED",
+  "gateTemplate": [
+   {
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "orderKey": "a1",
+  "priority": "LOW",
+  "deadline": null,
+  "createdAt": "2026-07-21T06:12:51.098Z",
+  "description": "One screen for recruiters: pipeline funnel, stage conversion, and weekly digest emails.",
+  "leadId": "cmrw6nu0p0000jw04uyss26mg",
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "departmentId": "cms7evm8s0001j4ecrr28gs15"
+ }
+]

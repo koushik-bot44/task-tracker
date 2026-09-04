@@ -11,28 +11,35 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
-enum Status {
-  BACKLOG
-  PLANNED
-  IN_PROGRESS
-  ON_HOLD
-  BLOCKED
+/// Restructure (2026-09-04): four task statuses, read as To do / Doing /
+/// Stuck / Done. BACKLOG+PLANNED became TODO, IN_PROGRESS became DOING,
+/// ON_HOLD+BLOCKED became STUCK, CANCELLED became DONE + archived.
+enum TaskStatus {
+  TODO
+  DOING
+  STUCK
   DONE
-  CANCELLED
 }
 
-enum Priority {
-  P0
-  P1
-  P2
-  P3
-}
-
-enum Health {
+/// Restructure: a project's own status, set by the chain (was Health).
+enum ProjectStatus {
+  PLANNED
   ACTIVE
   PAUSED
-  SHIPPED
-  IDEA
+  DONE
+}
+
+/// Restructure: what the founder/director said at a milestone review.
+enum MilestoneOutcome {
+  ON_TRACK
+  NEEDS_WORK
+}
+
+/// Restructure: one Comment model for every note thread.
+enum CommentTarget {
+  PROJECT
+  MILESTONE
+  TASK
 }
 
 enum Role {
@@ -87,11 +94,12 @@ model User {
   disabledAt         DateTime?
   invite             Invite?                @relation("UserInvite")
   createdInvites     Invite[]               @relation("InviteCreatedBy")
-  notes              TaskNote[]
+  comments           Comment[]
   completedTasks     Task[]                 @relation("CompletedBy")
   assignedTasks      Task[]                 @relation("AssignedTo")
+  /// Restructure: the tasks this person GAVE (the giver Face on Today).
+  givenTasks         Task[]                 @relation("GivenBy")
   ledProjects        Project[]              @relation("ProjectLead")
-  projectNotes       ProjectNote[]
   pushSubscriptions  PushSubscription[]
   createdEvents      CalendarEvent[]
   eventAttendances   EventAttendee[]
@@ -112,7 +120,11 @@ model User {
   /// Phase 48: the department(s) this user heads as HOD (normally at most one).
   headedDepartments  Department[]           @relation("DepartmentHod")
   ownedProjects      Project[]              @relation("ProjectOwner")
-  managerRoles       ProjectManager[]
+  /// Restructure: where this person sits on the People page. Backfilled from the
+  /// department they head, else the department of the projects they own, lead,
+  /// belong to or hold tasks in; null = "Not placed yet". SetNull on delete.
+  departmentId       String?
+  department         Department?            @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
   resetRequests      PasswordResetRequest[] @relation("ResetUser")
   resolvedResets     PasswordResetRequest[] @relation("ResetResolvedBy")
   privateTasks       Task[]                 @relation("PrivateTaskOwner")
@@ -152,6 +164,10 @@ model Department {
   createdBy   User?     @relation("DepartmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   projects    Project[]
+  /// Restructure: the people placed in this department (User.departmentId).
+  members     User[]    @relation("DepartmentMembers")
+
+  @@index([hodId])
 }
 
 /// An explicit project membership (phase 11). A DEVELOPER sees a project iff they
@@ -164,22 +180,12 @@ model ProjectMember {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  /// Restructure: a member who may run the project (add people, milestones,
+  /// dates) without owning it — what the old accepted collaborator invite meant.
+  canManage Boolean  @default(false)
 
   @@unique([projectId, userId])
   @@index([userId])
-}
-
-/// Plain-text discussion on a task. Deliberately not markdown in v1.
-model TaskNote {
-  id        String   @id @default(cuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
-  body      String
-  createdAt DateTime @default(now())
-
-  @@index([taskId, createdAt])
 }
 
 model Project {
@@ -188,8 +194,13 @@ model Project {
   slug          String           @unique
   color         String
   icon          String?
-  health        Health           @default(ACTIVE)
-  gateTemplate  Json             @default("[]")
+  /// Restructure: PLANNED / ACTIVE / PAUSED / DONE (was Health).
+  status        ProjectStatus    @default(ACTIVE)
+  /// Restructure: the day the project started (backfilled from createdAt).
+  startDate     DateTime?
+  /// Restructure: how far along, 0-100, set BY HAND by the founder/director
+  /// only. Never computed from tasks.
+  progress      Int              @default(0)
   orderKey      String
   /// Phase 48: how urgent this project is to the company. Company/department
   /// dashboards sort by it (priority, then deadline, then name).
@@ -218,34 +229,37 @@ model Project {
   departmentId  String?
   department    Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   tasks         Task[]
-  projectNotes  ProjectNote[]
   events        CalendarEvent[]
   members       ProjectMember[]
-  collaborators ProjectManager[]
+  milestones    Milestone[]
 
   @@index([departmentId])
   @@index([ownerId])
 }
 
-/// A manager invited to collaborate on a project they don't own (phase 14). The
-/// row IS the invite while status = PENDING, and becomes the membership once
-/// ACCEPTED — a decline just deletes the row (chosen over a separate invite
-/// table: one lifecycle, one place to look). The OWNER is Project.ownerId, not
-/// a row here; only the owner manages this list.
-model ProjectManager {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// COLLABORATOR for now; the column exists so other collab roles need no migration.
-  role      String   @default("COLLABORATOR")
-  /// PENDING | ACCEPTED. Pending = an unanswered invite; accepted = access.
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
+/// Restructure: a MILESTONE is a named box on the project page — a name, the
+/// review date (which IS a meeting: reviewEventId), the tasks filed in it and
+/// its note thread. The founder/director records an outcome at the review.
+model Milestone {
+  id            String            @id @default(cuid())
+  projectId     String
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name          String
+  reviewDate    DateTime
+  orderKey      String
+  /// The review meeting (CalendarEvent, isMeeting). Created with the milestone,
+  /// moved with it, deleted with it. SetNull so a cancelled meeting never takes
+  /// the milestone with it.
+  reviewEventId String?           @unique
+  reviewEvent   CalendarEvent?    @relation("MilestoneReviewEvent", fields: [reviewEventId], references: [id], onDelete: SetNull)
+  outcome       MilestoneOutcome?
+  outcomeNote   String?
+  outcomeAt     DateTime?
+  createdAt     DateTime          @default(now())
+  tasks         Task[]
+  events        CalendarEvent[]   @relation("EventMilestone")
 
-  @@unique([projectId, userId])
-  @@index([userId, status])
+  @@index([projectId, reviewDate])
 }
 
 /// A forgot-password request for an admin to action (phase 14). One PENDING row
@@ -266,18 +280,22 @@ model PasswordResetRequest {
   @@index([status, createdAt])
 }
 
-/// Tool-level discussion — the "About & requirements" thread. Same shape and
-/// same rules as TaskNote: plain text, author-only delete.
-model ProjectNote {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
-  body      String
-  createdAt DateTime @default(now())
+/// Restructure: ONE note model for projects, milestones and tasks (replaces
+/// TaskNote + ProjectNote). Plain text, author-only delete, optional attachment
+/// (a photo from the camera, or a file such as a PDF) stored in Vercel Blob.
+model Comment {
+  id             String        @id @default(cuid())
+  targetType     CommentTarget
+  targetId       String
+  authorId       String
+  author         User          @relation(fields: [authorId], references: [id])
+  body           String
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  createdAt      DateTime      @default(now())
 
-  @@index([projectId, createdAt])
+  @@index([targetType, targetId, createdAt])
 }
 
 model Task {
@@ -291,30 +309,35 @@ model Task {
   parent         Task?      @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
   children       Task[]     @relation("Subtasks")
   title          String
+  /// Kept for My notes (the private-task "Notes" box). Project tasks migrated
+  /// theirs into the first Comment and keep "" here.
   descriptionMd  String     @default("")
-  status         Status     @default(BACKLOG)
-  priority       Priority   @default(P2)
+  status         TaskStatus @default(TODO)
   dueDate        DateTime?
   /// True when the server guessed this date rather than a person choosing it.
   /// Cleared the first time anyone edits the date.
   dueProvisional Boolean    @default(false)
   orderKey       String
-  gates          Json       @default("[]")
-  tags           String[]   @default([])
-  links          Json       @default("[]")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   completedAt    DateTime?
   deletedAt      DateTime?
-  pinnedAt       DateTime?
   deliverableUrl String?
+  /// Restructure: the milestone box this task sits in. Null = "Not in a
+  /// milestone yet". SetNull so deleting a box moves its tasks there.
+  milestoneId    String?
+  milestone      Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  /// Restructure: the ★ (was P0/P1).
+  important      Boolean    @default(false)
+  /// Restructure: out of the way without being deleted (was CANCELLED).
+  archived       Boolean    @default(false)
+  /// Restructure: who gave this task (the giver Face on Today). SetNull.
+  givenById      String?
+  givenBy        User?      @relation("GivenBy", fields: [givenById], references: [id], onDelete: SetNull)
   completedById  String?
   completedBy    User?      @relation("CompletedBy", fields: [completedById], references: [id])
   assigneeId     String?
   assignee       User?      @relation("AssignedTo", fields: [assigneeId], references: [id], onDelete: SetNull)
-  /// A personal colour a task's editor may set. Null = no personal colour; the
-  /// tool's own colour is the identity cue the dashboards key on regardless.
-  color          String?
   /// True for a PRIVATE personal task (phase 15). Invariant: isPrivate = true
   /// IFF projectId is null and ownerId is set. Every project-task read excludes
   /// these so a private task never surfaces in a project tree, count, rollup,
@@ -330,13 +353,9 @@ model Task {
   /// DELETE endpoint removes its tasks explicitly so none are orphaned.
   personalProjectId String?
   personalProject   PersonalProject? @relation("PersonalProjectTasks", fields: [personalProjectId], references: [id], onDelete: SetNull)
-  /// A soft LIGHT tint drawn behind a task WITH children and its whole subtree
-  /// (phase 15), so a group's extent reads at a glance. Null = no band. One of
-  /// the GROUP_TINTS token keys; a child's band overrides within its own subtree.
-  groupColor     String?
-  notes          TaskNote[]
 
   @@index([projectId, parentId])
+  @@index([milestoneId])
   @@index([assigneeId])
   @@index([ownerId, isPrivate])
   @@index([personalProjectId])
@@ -420,6 +439,10 @@ model CalendarEvent {
   isMeeting   Boolean  @default(false)
   projectId   String?
   project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  /// Restructure: set when this meeting IS a milestone's review.
+  milestoneId String?
+  milestone   Milestone? @relation("EventMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
+  reviewOf    Milestone? @relation("MilestoneReviewEvent")
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
   attendees   EventAttendee[]
@@ -428,6 +451,7 @@ model CalendarEvent {
 
   @@index([date])
   @@index([projectId, date])
+  @@index([milestoneId])
 }
 
 /// The SELECTED attendees of a meeting (phase 22). Present only for isMeeting
@@ -440,6 +464,10 @@ model EventAttendee {
   event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   userId  String
   user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Restructure: "YES" (I'll be there) | "NO" (Can't) | null (no reply yet).
+  /// Cleared when the meeting is rescheduled.
+  response    String?
+  respondedAt DateTime?
 
   @@unique([eventId, userId])
   @@index([userId])

@@ -1,0 +1,8713 @@
+[
+ {
+  "id": "cmru9bdue0004j46435d0euoy",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "Ingest layer",
+  "descriptionMd": "zdsvbcfxvnbn",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-26T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "Zz",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:46.165Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-29T09:33:58.729Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:46.167Z",
+  "updatedAt": "2026-08-31T14:20:28.951Z",
+  "completedAt": "2026-08-31T14:20:28.950Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "rose"
+ },
+ {
+  "id": "cmru9bgkn000qj464av84au3y",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "Observability",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-23T14:07:00.688Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-30T15:43:59.219Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:49.703Z",
+  "updatedAt": "2026-07-30T15:45:13.586Z",
+  "completedAt": "2026-07-30T15:45:13.585Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bdc70002j464xx9x1dtd",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "Delivery pipeline",
+  "descriptionMd": "",
+  "status": "IN_PROGRESS",
+  "priority": "P1",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:45.511Z",
+  "updatedAt": "2026-07-31T08:49:20.268Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "amber"
+ },
+ {
+  "id": "cmru9bhd3000wj464i1yno61l",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "Drop the legacy v1 endpoint",
+  "descriptionMd": "",
+  "status": "CANCELLED",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:50.727Z",
+  "updatedAt": "2026-08-28T16:10:55.619Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-28T16:10:55.618Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bipq0015j46432kkpaqd",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": null,
+  "title": "Weekly digest email",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-07T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:52.476Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:52.476Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [
+   "email"
+  ],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:52.478Z",
+  "updatedAt": "2026-08-10T15:35:51.702Z",
+  "completedAt": "2026-08-10T15:35:51.701Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "631a0d41-88e7-4568-b57e-9e1cae4e7f0b",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-22T13:57:32.685Z",
+  "updatedAt": "2026-07-22T13:57:41.314Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-22T13:57:41.313Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bhwz000zj4648o58soi8",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": null,
+  "title": "Pipeline funnel view",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P1",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:51.442Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:51.442Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:51.442Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-21T08:57:15.497Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-21T06:12:51.442Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:51.444Z",
+  "updatedAt": "2026-07-21T08:57:15.644Z",
+  "completedAt": "2026-07-21T06:12:51.442Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "bda657c0-e55f-46e7-b2e5-874b3fe6910c",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "over view",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:30:29.266Z",
+  "updatedAt": "2026-09-03T14:30:34.444Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "9d326446-4991-4c6e-be68-c3eb14f457f8",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:30:35.276Z",
+  "updatedAt": "2026-09-03T14:30:35.276Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bjfs001bj464ou9ohc8i",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": null,
+  "title": "Dark theme parity pass",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [
+   "design"
+  ],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:53.416Z",
+  "updatedAt": "2026-08-05T15:10:04.809Z",
+  "completedAt": "2026-08-05T15:10:04.808Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "51a6d182-bb63-4462-b62f-f3d6be748791",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "schedule meeting",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:30:46.310Z",
+  "updatedAt": "2026-09-03T14:31:29.667Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "bd5db269-99c0-428c-bdf9-2b5198790907",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a8",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T09:13:16.442Z",
+  "updatedAt": "2026-07-30T09:13:19.336Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-30T09:13:19.335Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "ed1fcffa-f1b4-4305-ad0e-83a411dc8422",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "PLANNED",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T17:10:37.660Z",
+  "updatedAt": "2026-07-22T09:00:48.145Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-22T09:00:48.142Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "4823d2cc-22b7-4009-b910-2718e75ea5f8",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Check For Every Level Security ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a8",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-31T09:26:15.287Z",
+  "updatedAt": "2026-08-31T16:57:34.685Z",
+  "completedAt": "2026-08-31T16:57:34.684Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": "#f87171",
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "plum"
+ },
+ {
+  "id": "82cedae1-2141-40c7-b47f-69d9d0be7f6e",
+  "projectId": null,
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:35:21.809Z",
+  "updatedAt": "2026-08-13T18:35:31.503Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-13T18:35:31.502Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "4ca45085-d1fa-4a47-943f-c330e7673f11",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a7",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T13:54:09.761Z",
+  "updatedAt": "2026-07-29T13:54:12.586Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T13:54:12.585Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "7724085f-9846-40d5-8f8f-c8782cf380b6",
+  "projectId": null,
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:35:41.713Z",
+  "updatedAt": "2026-08-13T18:35:46.854Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-13T18:35:46.853Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "42feb2fe-d347-4e9c-ac0b-13ccf59fdc5f",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:27:12.167Z",
+  "updatedAt": "2026-07-29T09:27:22.417Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T09:27:22.416Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "98b6398f-191d-4a83-9867-b2df2831b9c4",
+  "projectId": null,
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:37:16.544Z",
+  "updatedAt": "2026-08-13T18:37:19.045Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-13T18:37:19.044Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "c15fb2ac-ae2b-4f4c-9a0f-4769ba94ff3a",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Production Bugs",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a6",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T10:50:02.695Z",
+  "updatedAt": "2026-08-31T16:57:34.295Z",
+  "completedAt": "2026-08-31T16:57:34.293Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "da15e1a3-3e29-4c1a-8839-90c84d916b8e",
+  "projectId": null,
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:37:32.215Z",
+  "updatedAt": "2026-08-13T18:37:34.655Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-13T18:37:34.654Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "69234b16-1b62-4fe0-bc36-09282d604593",
+  "projectId": null,
+  "parentId": null,
+  "title": "Mail System",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:37:23.733Z",
+  "updatedAt": "2026-08-13T18:37:41.634Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": "rose"
+ },
+ {
+  "id": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Additional Task",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:13.167Z",
+  "updatedAt": "2026-08-31T16:57:34.079Z",
+  "completedAt": "2026-08-31T16:57:34.077Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d68573ba-c196-4609-a745-ae42c96b9ab8",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a6",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:17.932Z",
+  "updatedAt": "2026-07-29T09:43:25.347Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T09:43:25.346Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "a30cbf82-3004-46e3-8ffa-8b3317c24f86",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Manager Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:00.979Z",
+  "updatedAt": "2026-08-31T16:57:32.757Z",
+  "completedAt": "2026-08-31T16:57:32.755Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "teal"
+ },
+ {
+  "id": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Intern Dashboard ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:40:28.718Z",
+  "updatedAt": "2026-08-31T16:57:30.100Z",
+  "completedAt": "2026-08-31T16:57:30.099Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": "#22d3ee",
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "sky"
+ },
+ {
+  "id": "b4b96e1d-6abd-4809-9da0-0012bb33ab1a",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "ERM Dashboard ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:40:44.096Z",
+  "updatedAt": "2026-08-31T16:57:31.048Z",
+  "completedAt": "2026-08-31T16:57:31.047Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": "#c084fc",
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "rose"
+ },
+ {
+  "id": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Evaluator Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:40:58.907Z",
+  "updatedAt": "2026-08-31T16:57:32.534Z",
+  "completedAt": "2026-08-31T16:57:32.533Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": "#f87171",
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "lime"
+ },
+ {
+  "id": "e981a55c-5ab3-4aa7-b05a-feddb3798ba6",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Trainer Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:07.119Z",
+  "updatedAt": "2026-08-31T16:57:33.686Z",
+  "completedAt": "2026-08-31T16:57:33.685Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "violet"
+ },
+ {
+  "id": "de183aa7-0547-460f-a726-07d72e359127",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "aB",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T15:16:22.527Z",
+  "updatedAt": "2026-09-03T15:16:22.527Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms9028bq0003j42kw5mhg1te",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d7534bf4-5617-4b0a-8e0d-1b5d26a72412",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T18:35:53.485Z",
+  "updatedAt": "2026-08-28T16:10:53.319Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-28T16:10:53.318Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "59eaa32b-6e03-45a0-a489-7e00a644b955",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a8",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T16:13:06.458Z",
+  "updatedAt": "2026-07-29T16:13:09.839Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T16:13:09.831Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "0d0bfb2c-2d5c-4033-b5e8-562993249c79",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Admin Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a7",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T16:12:47.508Z",
+  "updatedAt": "2026-08-31T16:57:34.477Z",
+  "completedAt": "2026-08-31T16:57:34.476Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "8aba0178-dc53-47ec-9e48-4dea9b9d2e78",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Creating admin dashboard",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "aA",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T15:16:02.258Z",
+  "updatedAt": "2026-09-03T15:16:19.350Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms9028bq0003j42kw5mhg1te",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "75e6cde9-2190-40c5-8f0e-19d641a88173",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Intern Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:05:22.560Z",
+  "updatedAt": "2026-08-31T16:57:36.914Z",
+  "completedAt": "2026-08-31T16:57:36.913Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "af07bd28-5f6d-4610-9ded-f90b5f000a30",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a9",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-01T05:48:58.284Z",
+  "updatedAt": "2026-08-03T08:54:04.337Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-03T08:54:04.336Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "ae5d8683-5eec-4c52-9fb8-163480956eed",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "ERM Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:05:31.338Z",
+  "updatedAt": "2026-08-31T16:57:38.314Z",
+  "completedAt": "2026-08-31T16:57:38.313Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d3670ebe-b9ad-48a6-9fb2-e28a9fca656a",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Security Concerns ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a6",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:06:39.339Z",
+  "updatedAt": "2026-08-31T17:49:25.026Z",
+  "completedAt": "2026-08-31T17:49:25.025Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "76783c3f-858f-4b0d-818d-9374c3e1f786",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Admin Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:06:18.994Z",
+  "updatedAt": "2026-08-31T16:57:40.063Z",
+  "completedAt": "2026-08-31T16:57:40.060Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "bdd41950-be60-406f-8196-1e91620c032b",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Emails",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a7",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:07:10.582Z",
+  "updatedAt": "2026-08-31T17:49:27.066Z",
+  "completedAt": "2026-08-31T17:49:27.065Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "287c8367-1d0b-4faa-bf94-ea9435af55fe",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Manager Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:05:40.013Z",
+  "updatedAt": "2026-08-31T16:57:38.729Z",
+  "completedAt": "2026-08-31T16:57:38.728Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "4d2bdd40-f085-4c73-a051-9296c26ae784",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Evaluator Dashboard",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:05:54.469Z",
+  "updatedAt": "2026-08-31T16:57:39.629Z",
+  "completedAt": "2026-08-31T16:57:39.628Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "62d0f105-f57e-4ffb-9729-f7a69c5290f9",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "Prior Tasks",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a9",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:57:19.845Z",
+  "updatedAt": "2026-08-31T16:57:34.885Z",
+  "completedAt": "2026-08-31T16:57:34.884Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "ed6dd1be-3950-4a21-bc78-056e5dceca08",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "aA",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:57:26.058Z",
+  "updatedAt": "2026-08-04T17:57:26.935Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-04T17:57:26.934Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "6155e499-1131-4722-99ea-7c168eeceb01",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": null,
+  "title": "Additional Tasks",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:06:34.621Z",
+  "updatedAt": "2026-08-31T16:57:40.280Z",
+  "completedAt": "2026-08-31T16:57:40.279Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": "cms5viumr0005jr048aoqrc63",
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "f6d803a2-89c5-4694-9825-b3bb3e16379f",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:32:04.436Z",
+  "updatedAt": "2026-09-03T14:32:04.436Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "3043dbcd-d798-4bdf-8166-775b251bea26",
+  "projectId": null,
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:19:56.373Z",
+  "updatedAt": "2026-09-03T14:20:00.554Z",
+  "completedAt": null,
+  "deletedAt": "2026-09-03T14:20:00.553Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "fb1fbcbb-0f69-433b-b412-864a4f92bf8e",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "feedback",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a6",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:30:56.651Z",
+  "updatedAt": "2026-09-03T14:33:56.550Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "8c881f8d-4ed4-4080-a340-060201edbc53",
+  "projectId": null,
+  "parentId": null,
+  "title": "koushik offer letter",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:19:51.440Z",
+  "updatedAt": "2026-09-03T14:20:04.720Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "378d0c5f-863a-45bb-89c4-2240cc18833a",
+  "projectId": null,
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:20:04.693Z",
+  "updatedAt": "2026-09-03T14:20:18.850Z",
+  "completedAt": null,
+  "deletedAt": "2026-09-03T14:20:18.849Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "f0b33bec-9cc5-4dcf-8f7f-d8c7fb86f6ca",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": null,
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:23:02.676Z",
+  "updatedAt": "2026-09-03T14:23:02.676Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "8db49ccb-2274-46c0-8fba-8670895ee97c",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "Signature verification",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-26T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a7",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:07:18.277Z",
+  "updatedAt": "2026-08-31T14:20:32.453Z",
+  "completedAt": "2026-08-31T14:20:32.452Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bfgy000ij464k2i2l7nz",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdc70002j464xx9x1dtd",
+  "title": "Delivery layer",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-07T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:48.274Z",
+  "updatedAt": "2026-08-31T16:57:35.480Z",
+  "completedAt": "2026-08-31T16:57:35.479Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9be4f0006j464uxdwlz1k",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "Signature verification",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P0",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:46.525Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:46.525Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:46.525Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-21T06:12:46.525Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-21T06:12:46.525Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:46.528Z",
+  "updatedAt": "2026-07-21T17:55:38.528Z",
+  "completedAt": "2026-07-21T17:55:38.527Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bf8f000gj464tf55a5m4",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "Idempotency keys on replay",
+  "descriptionMd": "",
+  "status": "IN_PROGRESS",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:47.965Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:47.965Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T13:28:25.403Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-30T15:43:36.055Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:47.968Z",
+  "updatedAt": "2026-07-30T18:32:56.866Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "9c063642-68fa-4784-b242-17bb9337c767",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "c15fb2ac-ae2b-4f4c-9a0f-4769ba94ff3a",
+  "title": "Intern Application Withdrawl should again enable ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T18:02:06.814Z",
+  "updatedAt": "2026-07-29T18:33:52.670Z",
+  "completedAt": "2026-07-29T18:33:52.669Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bh4j000uj464tovywwq5",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bgkn000qj464av84au3y",
+  "title": "Alert on delivery-failure spike",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-06T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": "2026-07-29T09:39:40.196Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-29T09:39:42.290Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-29T09:39:43.324Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-29T09:39:44.365Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-29T09:39:45.413Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:50.419Z",
+  "updatedAt": "2026-08-31T16:57:35.288Z",
+  "completedAt": "2026-08-31T16:57:35.287Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bj130017j464mq9zlpce",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": "cmru9bipq0015j46432kkpaqd",
+  "title": "Copy review with Sanjay",
+  "descriptionMd": "",
+  "status": "PLANNED",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:52.887Z",
+  "updatedAt": "2026-07-21T17:10:48.821Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-21T17:10:48.820Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bgus000sj464pds7d5xe",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bgkn000qj464av84au3y",
+  "title": "Structured logs to the warehouse",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-09T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:50.066Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:50.066Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:50.066Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-21T06:12:50.066Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:50.068Z",
+  "updatedAt": "2026-08-31T18:06:35.673Z",
+  "completedAt": "2026-08-31T18:06:35.670Z",
+  "deletedAt": null,
+  "pinnedAt": "2026-07-22T21:21:19.621Z",
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "amber"
+ },
+ {
+  "id": "d1aa82c9-4897-4fbb-bc32-8a36d91109ae",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:35:26.038Z",
+  "updatedAt": "2026-07-29T14:35:35.410Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T14:35:35.409Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "5e052594-beb2-42b3-aa2f-e0c14d70f75c",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "title": "Mails For Every Step to the Internal Mail after onboarding ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T18:51:37.856Z",
+  "updatedAt": "2026-08-31T16:57:31.242Z",
+  "completedAt": "2026-08-31T16:57:31.241Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "e2ce488f-d781-4377-aa41-3acdbbf7e122",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "f6d803a2-89c5-4694-9825-b3bb3e16379f",
+  "title": "wertyu",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:31:42.748Z",
+  "updatedAt": "2026-09-03T14:32:13.370Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bf17000ej464palxsbft",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "Retry with exponential backoff",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P0",
+  "dueDate": "2026-07-19T06:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:47.705Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-22T17:38:05.950Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:47.708Z",
+  "updatedAt": "2026-07-29T13:59:20.551Z",
+  "completedAt": "2026-07-21T17:33:53.129Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvqr70002j4jopbt36uap",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "04c005ae-3a44-4571-a492-f1bbc2c292bc",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "e981a55c-5ab3-4aa7-b05a-feddb3798ba6",
+  "title": "Schedule KT Session should be autofill the date and time in 30 mins future and add the timezone after",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T17:03:44.883Z",
+  "updatedAt": "2026-08-31T16:57:28.914Z",
+  "completedAt": "2026-08-31T16:57:28.913Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "ffcd33a7-b548-403b-b44c-cf62ab468090",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "b4b96e1d-6abd-4809-9da0-0012bb33ab1a",
+  "title": "Rejection Option for the ERM After the Interview Before the Manager Approval",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T16:07:21.338Z",
+  "updatedAt": "2026-08-31T16:57:30.176Z",
+  "completedAt": "2026-08-31T16:57:30.174Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "16358516-5d57-4484-8f44-a439cc9910dd",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T17:55:40.325Z",
+  "updatedAt": "2026-07-22T09:00:48.145Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-22T09:00:48.142Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "0e131e97-ba7f-4d8f-a123-dd8c122bf6ae",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Adding Time Zones while Scheduling sessions ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": "2026-07-30T04:44:18.861Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-30T04:44:20.422Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-30T04:44:22.762Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-30T04:44:24.033Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-29T16:11:16.911Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T10:48:59.998Z",
+  "updatedAt": "2026-07-30T04:44:25.021Z",
+  "completedAt": "2026-07-29T14:37:27.961Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "225a601a-b1b9-4cde-b235-6d6296e59aeb",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "[Meeting Record Gallery]Adding the option of Uploading the recorded Evaluated Session Completed between the Evaluator and Intern ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a7",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T15:02:35.961Z",
+  "updatedAt": "2026-07-30T04:06:32.956Z",
+  "completedAt": "2026-07-30T04:06:32.955Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "c8f396dc-411b-4a98-b0e6-dcc41722b933",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "title": "Pop - Up Notifications When Staff Members  login  on the new day",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T05:35:55.841Z",
+  "updatedAt": "2026-08-31T16:57:32.343Z",
+  "completedAt": "2026-08-31T16:57:32.342Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "dd167dc0-cc3d-43ab-9437-4f4b0ebb347c",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "b4b96e1d-6abd-4809-9da0-0012bb33ab1a",
+  "title": "Ingest layer",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T17:05:34.664Z",
+  "updatedAt": "2026-07-30T17:05:50.610Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-30T17:05:50.609Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "a33f5d30-b7ab-49d4-bcd0-3013f02537f0",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bgkn000qj464av84au3y",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-23T14:06:38.108Z",
+  "updatedAt": "2026-07-23T14:06:46.779Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-23T14:06:46.778Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "07ba141b-2e03-41ff-ab07-55f733260ef8",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a8",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T15:03:21.744Z",
+  "updatedAt": "2026-07-29T15:03:24.636Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T15:03:24.635Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "64548963-c584-4eb1-ba26-b0bc49c3bbd6",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T10:49:28.174Z",
+  "updatedAt": "2026-07-29T13:11:49.591Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T10:49:33.543Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "5d138aae-aebc-4211-a7d1-cf7aa7331d40",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a8",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T15:11:55.553Z",
+  "updatedAt": "2026-07-29T15:12:00.897Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T15:12:00.897Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "03d4c3aa-cfee-4b13-86fe-04aaaba7dbcf",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "title": "",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-31T19:42:15.455Z",
+  "updatedAt": "2026-08-31T16:57:33.866Z",
+  "completedAt": "2026-08-31T16:57:33.864Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "61554ea9-dc2b-4aa5-9c50-d686992b06b9",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Weekly Reports Preview and Download ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:44:37.886Z",
+  "updatedAt": "2026-07-29T17:16:36.578Z",
+  "completedAt": "2026-07-29T17:16:36.577Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "9b0427df-38d5-4042-b4af-0e44af51001a",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "UI of Submit report for the Train Especially for the Q&A Session",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:52.866Z",
+  "updatedAt": "2026-07-29T18:34:24.597Z",
+  "completedAt": "2026-07-29T18:34:24.596Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Active Evaluess Section",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T10:49:20.173Z",
+  "updatedAt": "2026-07-29T18:34:32.470Z",
+  "completedAt": "2026-07-29T18:34:32.469Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "f94776f7-f03f-4f81-86e5-1f490c074278",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-19T06:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:22:07.955Z",
+  "updatedAt": "2026-07-31T08:49:34.882Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-31T08:49:34.882Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "da6d24b5-7239-4e4e-ba16-1c75d974bef7",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Sorting the Whole Dashboard by Month and year Data ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "Zz",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T15:12:54.774Z",
+  "updatedAt": "2026-08-03T06:16:51.276Z",
+  "completedAt": "2026-08-03T06:16:51.274Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "333cd138-ee2d-467d-bda3-914569128b9f",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Trainer Submitting Question and Answers to Evaluator",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:30.487Z",
+  "updatedAt": "2026-07-29T18:34:26.899Z",
+  "completedAt": "2026-07-29T18:34:26.898Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "39dadc87-dd80-4cfc-a2b1-7474090ce493",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "New Notifications Updates to the Dashboard and follwed up according ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:45:26.014Z",
+  "updatedAt": "2026-08-03T14:15:48.650Z",
+  "completedAt": "2026-08-03T14:15:48.649Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "fee69e0e-70e3-45fb-8551-1cb0eb80b15a",
+  "projectId": null,
+  "parentId": "69234b16-1b62-4fe0-bc36-09282d604593",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:37:47.856Z",
+  "updatedAt": "2026-08-13T18:37:49.620Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-13T18:37:49.619Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "33ba3a25-d622-4b50-94d8-36a429de9ec1",
+  "projectId": null,
+  "parentId": "69234b16-1b62-4fe0-bc36-09282d604593",
+  "title": "Internal mails",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-13T18:37:52.339Z",
+  "updatedAt": "2026-08-19T09:47:42.180Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": true,
+  "ownerId": "cmruqvoou0001j4jodpwz4nzt",
+  "personalProjectId": "cmsruytnx0003l904u4kkw6dl",
+  "groupColor": null
+ },
+ {
+  "id": "8f1a33d8-0651-44be-a97c-a82c525e4919",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Forgot Password Enabling",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a8",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T16:07:35.904Z",
+  "updatedAt": "2026-07-30T04:06:22.381Z",
+  "completedAt": "2026-07-30T04:06:22.380Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "0569c1fb-11a6-425f-bf22-f3dcdf680602",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "0d0bfb2c-2d5c-4033-b5e8-562993249c79",
+  "title": "Create a Documents Section where we will reupload the Documents in the Seection should Reflect in the Documents packet which will send While Onboarding ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T16:13:12.531Z",
+  "updatedAt": "2026-07-30T04:44:57.955Z",
+  "completedAt": "2026-07-30T04:44:57.954Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "9ca8ef71-2005-4332-8c99-9cef14fef9be",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "title": "Should be able  Re-apply for the same job if rejected at any level",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T16:08:02.678Z",
+  "updatedAt": "2026-08-31T16:57:29.074Z",
+  "completedAt": "2026-08-31T16:57:29.073Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "de26d806-a37a-4fba-bc63-b38144fe69b3",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-19T06:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T18:36:03.136Z",
+  "updatedAt": "2026-08-31T16:53:21.502Z",
+  "completedAt": "2026-08-31T14:20:28.028Z",
+  "deletedAt": "2026-08-31T16:53:21.501Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d4fc7ac9-7af3-43f5-b787-4790bd158c58",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "title": "Asking Github Username for starting the Project even though the github thing is not mandatory",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T17:41:18.062Z",
+  "updatedAt": "2026-08-31T16:57:31.621Z",
+  "completedAt": "2026-08-31T16:57:31.620Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "afb189af-56c9-4dcf-9453-8f2a2875a09d",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "title": "After Deleting the Intern It should also delete the Documents related to him in the Amazon s3",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:09:22.572Z",
+  "updatedAt": "2026-08-31T16:57:33.065Z",
+  "completedAt": "2026-08-31T16:57:33.064Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "49320d72-0cb7-4955-a8a9-6ef3c0956de3",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "b4b96e1d-6abd-4809-9da0-0012bb33ab1a",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T16:07:53.480Z",
+  "updatedAt": "2026-07-30T16:08:00.561Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-30T16:08:00.560Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "53b440df-0a1e-4736-9a18-f98fdc6a2f3f",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "s",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-26T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T18:35:17.824Z",
+  "updatedAt": "2026-07-30T18:35:48.352Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-30T18:35:48.351Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "e76e24e5-c448-4417-baed-0156826da03d",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "sds",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-26T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a6",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T18:57:53.611Z",
+  "updatedAt": "2026-08-31T14:20:32.014Z",
+  "completedAt": "2026-08-31T14:20:32.013Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "c11fbf67-b07c-40a2-9bfa-954d3657d936",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "title": "If I go to messages section then all sections those sections which are there before onboarding are also appearing they should not ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:24:37.630Z",
+  "updatedAt": "2026-08-31T16:57:33.616Z",
+  "completedAt": "2026-08-31T16:57:33.615Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "64fe6e4a-459b-4ca6-bf5f-2e34bdf1c304",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "UI Refinements",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "Zy",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:29:27.797Z",
+  "updatedAt": "2026-08-31T14:20:33.224Z",
+  "completedAt": "2026-08-31T14:20:33.223Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "8628610b-5830-4d82-acce-0d06460416b9",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "b4b96e1d-6abd-4809-9da0-0012bb33ab1a",
+  "title": "UI Refinements",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "Zz",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:29:14.889Z",
+  "updatedAt": "2026-08-31T16:56:54.705Z",
+  "completedAt": "2026-08-31T16:56:54.704Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "e25e48e5-5f43-40a8-a738-6a711f26d12f",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "title": "not showing active in the status bar even though they are active ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:17:04.270Z",
+  "updatedAt": "2026-08-31T16:57:31.834Z",
+  "completedAt": "2026-08-31T16:57:31.833Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "7c363cc0-0d06-468e-a55c-1fbec0883597",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "e981a55c-5ab3-4aa7-b05a-feddb3798ba6",
+  "title": "UI Refinements",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "Zz",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:29:42.183Z",
+  "updatedAt": "2026-08-31T16:57:19.166Z",
+  "completedAt": "2026-08-31T16:57:19.165Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "e17a3191-2895-469a-b763-fd2023770e43",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "title": "UI Refinements",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "Zz",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-08-31T16:57:02.984Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:28:12.911Z",
+  "updatedAt": "2026-08-31T16:57:09.671Z",
+  "completedAt": "2026-08-31T16:57:09.671Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": "lime"
+ },
+ {
+  "id": "3b435a0e-78b5-46fe-b053-b5a6ec55e2df",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "b4b96e1d-6abd-4809-9da0-0012bb33ab1a",
+  "title": "Automatic Filling of Technology while sending the Offer letter (ERM Editable)",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:12:09.833Z",
+  "updatedAt": "2026-08-31T16:57:30.707Z",
+  "completedAt": "2026-08-31T16:57:30.706Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "fd16c65d-73df-4e09-b165-0317426348c9",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4dfeb98c-ec5b-45a8-a195-804065f983bb",
+  "title": "Once they got the Internal email id creds and they are onboarded remove the status bar of job application",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:17:39.794Z",
+  "updatedAt": "2026-08-31T16:57:32.877Z",
+  "completedAt": "2026-08-31T16:57:32.871Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "a03ff73a-1167-4d02-be9d-3faef179e37b",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "title": "For Every Card Of Uploading onboarding documents we should get label of encryption and decryption",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:14:23.733Z",
+  "updatedAt": "2026-08-31T16:57:33.452Z",
+  "completedAt": "2026-08-31T16:57:33.451Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "54f37262-fe7f-4be1-9220-9cd18b08ae95",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bdue0004j46435d0euoy",
+  "title": "Add replay-window check",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-26T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T18:37:06.896Z",
+  "updatedAt": "2026-08-31T14:20:30.049Z",
+  "completedAt": "2026-08-31T14:20:30.048Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "94f736c0-d56b-4aaf-95ef-04a8c7733d57",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Email Triggers",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a6",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:46:43.840Z",
+  "updatedAt": "2026-08-03T14:15:41.464Z",
+  "completedAt": "2026-08-03T14:15:41.462Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "f4053bc4-308a-460d-b577-01d484af03e5",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Separate Project Cards but one single Evaluation button ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "aA",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-31T19:38:40.608Z",
+  "updatedAt": "2026-08-03T14:15:43.184Z",
+  "completedAt": "2026-08-03T14:15:43.183Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "444cb142-38c6-4610-8287-35298820934a",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "a30cbf82-3004-46e3-8ffa-8b3317c24f86",
+  "title": "UI Refinements",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:29:47.683Z",
+  "updatedAt": "2026-08-31T16:57:29.258Z",
+  "completedAt": "2026-08-31T16:57:29.257Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "5c218932-6c13-4329-ade3-803636314c3f",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "4823d2cc-22b7-4009-b910-2718e75ea5f8",
+  "title": "",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-31T09:27:33.368Z",
+  "updatedAt": "2026-08-31T16:57:30.330Z",
+  "completedAt": "2026-08-31T16:57:30.329Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "acc490fe-f121-477f-9518-876a18c49eb7",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Active Evalues section add another field for schedule final for both projects ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a9",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-31T19:38:04.588Z",
+  "updatedAt": "2026-08-03T07:35:37.907Z",
+  "completedAt": "2026-08-03T07:35:37.906Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "3a4c96d6-5a0d-46ea-a85e-9ba59f649037",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "384a4d8b-7d8b-4541-a0d5-23ac6a1e7e9b",
+  "title": "Internal Mail Box for every staff member and updates too",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:59.567Z",
+  "updatedAt": "2026-08-31T16:57:29.766Z",
+  "completedAt": "2026-08-31T16:57:29.765Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "48606219-1137-4590-bca3-45b908109ee8",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "0d0bfb2c-2d5c-4033-b5e8-562993249c79",
+  "title": "If The Intern is deleted then the files related to him should be also deleted from Amazon S3 Server too ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-31T09:26:32.964Z",
+  "updatedAt": "2026-08-31T16:57:30.880Z",
+  "completedAt": "2026-08-31T16:57:30.879Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "1134694b-e826-4c45-bfe5-884a387aa054",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "ae5d8683-5eec-4c52-9fb8-163480956eed",
+  "title": "Onboarding Documents Assigning ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:06:48.412Z",
+  "updatedAt": "2026-08-31T16:57:37.494Z",
+  "completedAt": "2026-08-31T16:57:37.493Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "7bb42f90-a1b3-48b7-b04b-575adfc4acd2",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "bdd41950-be60-406f-8196-1e91620c032b",
+  "title": "Internal Email",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:07:15.298Z",
+  "updatedAt": "2026-08-31T16:57:36.500Z",
+  "completedAt": "2026-08-31T16:57:36.498Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "447d0727-29c5-4332-a693-00eb7c0f67e3",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "bdd41950-be60-406f-8196-1e91620c032b",
+  "title": "External Email",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:07:21.553Z",
+  "updatedAt": "2026-08-31T16:57:38.124Z",
+  "completedAt": "2026-08-31T16:57:38.123Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "02cb4d9b-96b2-4973-9e38-3f0a818e11ed",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "75e6cde9-2190-40c5-8f0e-19d641a88173",
+  "title": "\"Complete you profile\" Section ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:09:04.289Z",
+  "updatedAt": "2026-08-31T16:57:37.918Z",
+  "completedAt": "2026-08-31T16:57:37.917Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "0bc658a9-e717-405e-8f3b-b3713655883b",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "75e6cde9-2190-40c5-8f0e-19d641a88173",
+  "title": "Add Profile Section for the Intern ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:08:46.148Z",
+  "updatedAt": "2026-08-31T16:57:36.077Z",
+  "completedAt": "2026-08-31T16:57:36.076Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "aee85c11-350a-4fb8-bc8a-5f772414e73f",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "62d0f105-f57e-4ffb-9729-f7a69c5290f9",
+  "title": "Adding the option to the ERM to onboard the already Onboarded employee who are manually added before this website ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:57:29.507Z",
+  "updatedAt": "2026-08-31T16:57:29.415Z",
+  "completedAt": "2026-08-31T16:57:29.414Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "4c293b71-a1bb-448f-8d98-2dc802f1b2d4",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "6155e499-1131-4722-99ea-7c168eeceb01",
+  "title": "",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T20:14:09.505Z",
+  "updatedAt": "2026-08-31T16:57:37.738Z",
+  "completedAt": "2026-08-31T16:57:37.737Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "2309b0c0-ca74-4d4a-acb1-052d053bdf31",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "bdd41950-be60-406f-8196-1e91620c032b",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:10:22.887Z",
+  "updatedAt": "2026-08-04T17:10:26.145Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-04T17:10:26.144Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "26123df5-56ed-4135-98ca-30adde3c5dcd",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "1e4156e0-5535-48d0-85b9-54b7121a84aa",
+  "title": "Edit option for the Rating ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "aB",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T18:33:46.429Z",
+  "updatedAt": "2026-08-31T16:57:35.080Z",
+  "completedAt": "2026-08-31T16:57:35.079Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "eae22ce5-d8cb-4deb-9a02-a3f49a0f9e05",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "75e6cde9-2190-40c5-8f0e-19d641a88173",
+  "title": "",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T20:12:37.189Z",
+  "updatedAt": "2026-09-03T13:34:44.217Z",
+  "completedAt": "2026-08-31T16:57:38.957Z",
+  "deletedAt": "2026-09-03T13:34:44.216Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "f6e3c7aa-2a26-4aa8-912b-54d7726cc178",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "6155e499-1131-4722-99ea-7c168eeceb01",
+  "title": "Create the jobs admin dashboard and give the acces of changing onboarding documents ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T20:13:31.324Z",
+  "updatedAt": "2026-08-31T16:57:35.697Z",
+  "completedAt": "2026-08-31T16:57:35.696Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bi5i0011j464dmxvp4jk",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": "cmru9bhwz000zj4648o58soi8",
+  "title": "Stage conversion rates",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:51.748Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:51.748Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:51.748Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-21T06:12:51.748Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-21T06:12:51.748Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:51.750Z",
+  "updatedAt": "2026-08-12T06:24:07.451Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bj8n0019j464nim3co1z",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": "cmru9bipq0015j46432kkpaqd",
+  "title": "Unsubscribe ha",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:53.159Z",
+  "updatedAt": "2026-08-10T15:35:02.089Z",
+  "completedAt": "2026-08-10T15:35:02.088Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9biil0013j464lzvxhamd",
+  "projectId": "cmru9bhne000xj464ico7jgcg",
+  "parentId": "cmru9bhwz000zj4648o58soi8",
+  "title": "Time-in-stage histogram",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:52.220Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:52.220Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:52.220Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-21T06:12:52.220Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:52.222Z",
+  "updatedAt": "2026-08-31T17:49:41.665Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": "2026-07-21T17:34:27.806Z",
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "167990cb-1aca-4802-bdcd-5e8ee6617b49",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "bda657c0-e55f-46e7-b2e5-874b3fe6910c",
+  "title": "wsedrftgyu",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:31:45.805Z",
+  "updatedAt": "2026-09-03T14:31:47.517Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "a6a284f5-c309-435f-ba44-590705bb1569",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "bda657c0-e55f-46e7-b2e5-874b3fe6910c",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a5",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:31:47.649Z",
+  "updatedAt": "2026-09-03T14:31:47.649Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "14d1c16b-ee08-4942-b724-50eb75b5d660",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "bda657c0-e55f-46e7-b2e5-874b3fe6910c",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-07-01T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-09-03T14:31:06.929Z",
+  "updatedAt": "2026-09-03T14:31:06.929Z",
+  "completedAt": null,
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bed00008j464f13hh7nm",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9be4f0006j464uxdwlz1k",
+  "title": "Rotate signing keys quarterly",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:46.834Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:46.834Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:46.834Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-21T06:12:46.834Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-07-21T06:12:46.834Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:46.837Z",
+  "updatedAt": "2026-07-21T06:12:46.837Z",
+  "completedAt": "2026-07-21T06:12:46.834Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bg9a000oj4642hgvaq7v",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bfgy000ij464k2i2l7nz",
+  "title": "Delivery receipts",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-07-25T00:00:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": "2026-07-21T06:12:49.292Z",
+    "key": "built",
+    "done": true,
+    "label": "Built"
+   },
+   {
+    "at": "2026-07-21T06:12:49.292Z",
+    "key": "reviewed",
+    "done": true,
+    "label": "Reviewed"
+   },
+   {
+    "at": "2026-07-21T06:12:49.292Z",
+    "key": "tested",
+    "done": true,
+    "label": "Tested"
+   },
+   {
+    "at": "2026-07-22T17:44:16.279Z",
+    "key": "deployed",
+    "done": true,
+    "label": "Deployed"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:49.294Z",
+  "updatedAt": "2026-07-22T17:44:16.397Z",
+  "completedAt": "2026-07-21T06:12:49.292Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bfxy000mj464inhrpvp1",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bfgy000ij464k2i2l7nz",
+  "title": "Per-endpoint rate limits",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-09-03T13:58:06.017Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:48.887Z",
+  "updatedAt": "2026-09-03T13:58:06.169Z",
+  "completedAt": "2026-09-03T13:56:07.958Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "82080c11-c433-4ab8-856d-df10bb6429db",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "94f736c0-d56b-4aaf-95ef-04a8c7733d57",
+  "title": "Implement the Email Triggers for both External [Personal gmail] : Before Onboarding , Internal Mail[after Onboarding ]",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:47:59.442Z",
+  "updatedAt": "2026-08-31T16:57:32.024Z",
+  "completedAt": "2026-08-31T16:57:32.023Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d28d0080-f14d-4dcc-8e81-6dededf66f4e",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "94f736c0-d56b-4aaf-95ef-04a8c7733d57",
+  "title": "Survey the Emails that are triggering Before onboarding and After Onboarding",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:46:53.318Z",
+  "updatedAt": "2026-08-31T16:57:30.521Z",
+  "completedAt": "2026-08-31T16:57:30.520Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "3ad51362-6aeb-41e7-b46c-cf9dfc4da768",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "94f736c0-d56b-4aaf-95ef-04a8c7733d57",
+  "title": "Survey the Steps or actions Happening between Intern and Other Staff Roles",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:47:22.080Z",
+  "updatedAt": "2026-08-31T16:57:31.428Z",
+  "completedAt": "2026-08-31T16:57:31.427Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bfpb000kj46461dkxd2m",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9bfgy000ij464k2i2l7nz",
+  "title": "Dead-letter queue",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P1",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": "2026-09-03T13:58:09.124Z",
+    "key": "verified",
+    "done": true,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:48.575Z",
+  "updatedAt": "2026-09-03T13:58:09.275Z",
+  "completedAt": "2026-09-03T13:56:07.378Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "4bf83212-b5d4-48bd-8d20-9659cdd8859e",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "225a601a-b1b9-4cde-b235-6d6296e59aeb",
+  "title": "Section : Month -> Intern name -> Project -> Video",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T15:03:43.572Z",
+  "updatedAt": "2026-08-04T19:01:46.636Z",
+  "completedAt": "2026-08-04T19:01:46.634Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d3ef6466-1662-41fc-833e-f25327208024",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+  "title": "Updated Status Table of Active Evaluees",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:36:37.615Z",
+  "updatedAt": "2026-07-29T14:36:53.385Z",
+  "completedAt": "2026-07-29T14:36:53.384Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "35e672c4-cdfa-4b6e-985c-8af46737243d",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+  "title": "Per Project Cards",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T10:49:35.628Z",
+  "updatedAt": "2026-07-29T14:36:06.231Z",
+  "completedAt": "2026-07-29T14:36:06.230Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "b819a624-f6ba-4dc4-8326-100cce059803",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+  "title": "Resolved a bug of Scheduling the Session after an Hour with the Intern",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:36:55.291Z",
+  "updatedAt": "2026-07-29T14:37:19.319Z",
+  "completedAt": "2026-07-29T14:37:19.317Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cms5viumr0005jr048aoqrc63",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "f95497a8-8a7a-4b2c-bb58-64883060c634",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "ec50c0a2-c7fd-4fc5-9c5f-2a2b76f18ebc",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:37:22.614Z",
+  "updatedAt": "2026-07-29T14:37:53.414Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T14:37:53.413Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "7ebb818d-6a60-449c-9a2e-c0fbc02f4197",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "333cd138-ee2d-467d-bda3-914569128b9f",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T09:43:45.393Z",
+  "updatedAt": "2026-07-29T13:11:49.591Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T09:43:50.742Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cec8af6f-84fa-4fa0-9ada-712c26105501",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "a03ff73a-1167-4d02-be9d-3faef179e37b",
+  "title": "Trainer: (not assigned yet) Manager: (not assigned yet) resolve this trainer is only the one ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T19:22:35.982Z",
+  "updatedAt": "2026-08-31T16:57:29.587Z",
+  "completedAt": "2026-08-31T16:57:29.587Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "a19ead46-7375-4b77-af20-6d0a031be40b",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "04c005ae-3a44-4571-a492-f1bbc2c292bc",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-30T17:04:31.563Z",
+  "updatedAt": "2026-07-30T19:34:18.679Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-30T19:34:18.678Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "d76d3782-9ae4-4e83-9927-4e32eae559d1",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "7bb42f90-a1b3-48b7-b04b-575adfc4acd2",
+  "title": "1.\tSend email notification after Intern account creation (sign-up).",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:07:36.777Z",
+  "updatedAt": "2026-08-31T16:57:36.283Z",
+  "completedAt": "2026-08-31T16:57:36.282Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "14225b5e-8630-48fa-babd-91500ef23bcb",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "7bb42f90-a1b3-48b7-b04b-575adfc4acd2",
+  "title": "3.\tSend email notification after job application submission.",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:08:00.998Z",
+  "updatedAt": "2026-08-31T16:57:39.187Z",
+  "completedAt": "2026-08-31T16:57:39.186Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "3271e32d-05a2-4835-a5e7-ff1ba788da91",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "7bb42f90-a1b3-48b7-b04b-575adfc4acd2",
+  "title": "2.\tSend email notification after Intern profile completion.",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:07:58.731Z",
+  "updatedAt": "2026-08-31T16:57:38.537Z",
+  "completedAt": "2026-08-31T16:57:38.536Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "33645eb8-f2c1-471c-ad6e-9a2ca0a7ea4d",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "7bb42f90-a1b3-48b7-b04b-575adfc4acd2",
+  "title": "5.\tSend notification (email and dashboard) to the Manager after an employee is successfully onboarded.",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a4",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:08:24.377Z",
+  "updatedAt": "2026-08-31T16:57:39.848Z",
+  "completedAt": "2026-08-31T16:57:39.847Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "84d8e456-3138-4fe5-98cc-c519eba48f4a",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "02cb4d9b-96b2-4973-9e38-3f0a818e11ed",
+  "title": "6.\tAdd an Education tab  'Complete Your Profile'. Section ",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:09:24.851Z",
+  "updatedAt": "2026-08-31T16:57:36.686Z",
+  "completedAt": "2026-08-31T16:57:36.685Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "62e2166f-ee98-4882-8d2f-7a5743241bb5",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "447d0727-29c5-4332-a693-00eb7c0f67e3",
+  "title": "Need acknowledge email to ERM about Intern , with the required details in it :- [E-mail template]",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:10:55.210Z",
+  "updatedAt": "2026-08-31T16:57:35.882Z",
+  "completedAt": "2026-08-31T16:57:35.881Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "02e58bdd-23f8-4b94-86d6-c079f6c12603",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "7bb42f90-a1b3-48b7-b04b-575adfc4acd2",
+  "title": "4.\tSend email notification after Intern uploads documents.",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a3",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:08:24.165Z",
+  "updatedAt": "2026-08-31T16:57:39.396Z",
+  "completedAt": "2026-08-31T16:57:39.395Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9bell000aj464580q1rab",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9be4f0006j464uxdwlz1k",
+  "title": "Add replay-window check",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P1",
+  "dueDate": "2026-08-07T18:30:00.000Z",
+  "dueProvisional": false,
+  "orderKey": "a1",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:47.146Z",
+  "updatedAt": "2026-09-03T13:57:05.818Z",
+  "completedAt": "2026-08-10T16:24:02.029Z",
+  "deletedAt": null,
+  "pinnedAt": "2026-09-03T13:57:05.649Z",
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "cmru9beu0000cj464vbgmz60c",
+  "projectId": "cmru9bcml0000j464n329w96d",
+  "parentId": "cmru9be4f0006j464uxdwlz1k",
+  "title": "Document the header contract",
+  "descriptionMd": "",
+  "status": "DONE",
+  "priority": "P2",
+  "dueDate": null,
+  "dueProvisional": false,
+  "orderKey": "a2",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [
+   "docs"
+  ],
+  "links": [],
+  "createdAt": "2026-07-21T06:12:47.449Z",
+  "updatedAt": "2026-08-10T16:24:02.513Z",
+  "completedAt": "2026-08-10T16:24:02.512Z",
+  "deletedAt": null,
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": "cmruqvoou0001j4jodpwz4nzt",
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "e8729cb7-176a-46e5-81b6-711856c71351",
+  "projectId": "cmrwis5gd0001jv04zg0pntjm",
+  "parentId": "3ad51362-6aeb-41e7-b46c-cf9dfc4da768",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-04T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-07-29T14:47:48.011Z",
+  "updatedAt": "2026-07-29T14:47:56.298Z",
+  "completedAt": null,
+  "deletedAt": "2026-07-29T14:47:56.297Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ },
+ {
+  "id": "02424bc5-c539-4f13-9c24-531cddd20bdc",
+  "projectId": "cmsewa9ts0001ji04q5ffct31",
+  "parentId": "d76d3782-9ae4-4e83-9927-4e32eae559d1",
+  "title": "",
+  "descriptionMd": "",
+  "status": "BACKLOG",
+  "priority": "P2",
+  "dueDate": "2026-08-10T18:30:00.000Z",
+  "dueProvisional": true,
+  "orderKey": "a0",
+  "gates": [
+   {
+    "at": null,
+    "key": "built",
+    "done": false,
+    "label": "Built"
+   },
+   {
+    "at": null,
+    "key": "reviewed",
+    "done": false,
+    "label": "Reviewed"
+   },
+   {
+    "at": null,
+    "key": "tested",
+    "done": false,
+    "label": "Tested"
+   },
+   {
+    "at": null,
+    "key": "deployed",
+    "done": false,
+    "label": "Deployed"
+   },
+   {
+    "at": null,
+    "key": "verified",
+    "done": false,
+    "label": "Verified"
+   }
+  ],
+  "tags": [],
+  "links": [],
+  "createdAt": "2026-08-04T17:07:44.683Z",
+  "updatedAt": "2026-08-04T17:07:56.708Z",
+  "completedAt": null,
+  "deletedAt": "2026-08-04T17:07:56.707Z",
+  "pinnedAt": null,
+  "deliverableUrl": null,
+  "completedById": null,
+  "assigneeId": null,
+  "color": null,
+  "isPrivate": false,
+  "ownerId": null,
+  "personalProjectId": null,
+  "groupColor": null
+ }
+]

@@ -1,0 +1,173 @@
+statements: 54
+{
+  "usersPlaced": [
+    {
+      "placed": 12
+    }
+  ],
+  "usersNotPlaced": [
+    {
+      "name": "Admin",
+      "role": "ADMIN"
+    },
+    {
+      "name": "Arjun Dev",
+      "role": "RESOURCE"
+    },
+    {
+      "name": "Director",
+      "role": "DIRECTOR"
+    },
+    {
+      "name": "Manager",
+      "role": "MANAGER"
+    },
+    {
+      "name": "Perm admin",
+      "role": "ADMIN"
+    },
+    {
+      "name": "Perm lead",
+      "role": "TEAM_LEAD"
+    },
+    {
+      "name": "Perm manager",
+      "role": "MANAGER"
+    },
+    {
+      "name": "Priya Lead",
+      "role": "TEAM_LEAD"
+    },
+    {
+      "name": "Rahul",
+      "role": "MANAGER"
+    },
+    {
+      "name": "Rahul (Director)",
+      "role": "DIRECTOR"
+    },
+    {
+      "name": "Vardhan",
+      "role": "ADMIN"
+    },
+    {
+      "name": "jhon",
+      "role": "RESOURCE"
+    }
+  ],
+  "usersByDepartment": [
+    {
+      "name": "Accounts",
+      "people": 0
+    },
+    {
+      "name": "Administration",
+      "people": 0
+    },
+    {
+      "name": "Development",
+      "people": 10
+    },
+    {
+      "name": "ERM",
+      "people": 0
+    },
+    {
+      "name": "HR",
+      "people": 0
+    },
+    {
+      "name": "Network Admins",
+      "people": 0
+    },
+    {
+      "name": "Operations",
+      "people": 1
+    },
+    {
+      "name": "Research and Development",
+      "people": 1
+    },
+    {
+      "name": "Self",
+      "people": 0
+    }
+  ],
+  "tasksByStatus": [
+    {
+      "status": "TODO",
+      "n": 51
+    },
+    {
+      "status": "DOING",
+      "n": 2
+    },
+    {
+      "status": "DONE",
+      "n": 100
+    }
+  ],
+  "tasksImportant": [
+    {
+      "n": 6
+    }
+  ],
+  "tasksArchived": [
+    {
+      "n": 1
+    }
+  ],
+  "projects": [
+    {
+      "name": "Anvi Careers",
+      "status": "ACTIVE",
+      "startDate": "2026-07-22T20:13:17.341Z",
+      "progress": 0
+    },
+    {
+      "name": "Recruiter Dashboard",
+      "status": "DONE",
+      "startDate": "2026-07-21T06:12:51.098Z",
+      "progress": 0
+    },
+    {
+      "name": "Skyzen Careers",
+      "status": "ACTIVE",
+      "startDate": "2026-08-04T16:51:08.993Z",
+      "progress": 0
+    },
+    {
+      "name": "Skyzen Webhooks",
+      "status": "ACTIVE",
+      "startDate": "2026-07-21T06:12:44.589Z",
+      "progress": 0
+    }
+  ],
+  "comments": [
+    {
+      "targetType": "TASK",
+      "n": 2
+    },
+    {
+      "targetType": "PROJECT",
+      "n": 2
+    }
+  ],
+  "membersCanManage": [
+    {
+      "n": 0
+    }
+  ],
+  "milestones": [
+    {
+      "n": 0
+    }
+  ],
+  "attendeesReplied": [
+    {
+      "n": 0
+    }
+  ],
+  "droppedTables": []
+}
+AUDIT ONLY — no statements run
