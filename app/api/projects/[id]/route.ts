@@ -106,6 +106,22 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
   if (!(await canActAsProjectOwner(actor, params.id))) {
     throw new HttpError(403, "Only the people running this project can delete it");
   }
-  await prisma.project.delete({ where: { id: params.id } });
+  // Notes have no FK to cascade from: sweep the project's, its milestones' and its tasks' first.
+  const [milestones, tasks] = await Promise.all([
+    prisma.milestone.findMany({ where: { projectId: params.id }, select: { id: true } }),
+    prisma.task.findMany({ where: { projectId: params.id }, select: { id: true } }),
+  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.comment.deleteMany({
+      where: {
+        OR: [
+          { targetType: "PROJECT", targetId: params.id },
+          { targetType: "MILESTONE", targetId: { in: milestones.map((m) => m.id) } },
+          { targetType: "TASK", targetId: { in: tasks.map((t) => t.id) } },
+        ],
+      },
+    });
+    await tx.project.delete({ where: { id: params.id } });
+  });
   return NextResponse.json({ ok: true });
 });

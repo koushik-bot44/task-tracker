@@ -48,6 +48,8 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
   if (!(await canManageProject(actor, m.projectId))) throw new HttpError(403, "Only the people running this project can delete a milestone.");
   await prisma.$transaction(async (tx) => {
     await tx.task.updateMany({ where: { milestoneId: params.id }, data: { milestoneId: null } });
+    // Its notes go with it (Comment has no FK to follow).
+    await tx.comment.deleteMany({ where: { targetType: "MILESTONE", targetId: params.id } });
     if (m.reviewEventId) await tx.calendarEvent.delete({ where: { id: m.reviewEventId } }).catch(() => undefined);
     await tx.milestone.delete({ where: { id: params.id } });
   });

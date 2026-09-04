@@ -10,4 +10,5 @@ it. No landing closes with an open row; never report green with a known red.
 | 3 | L1 shell | `useMe()` was typed as `UserDTO`, so `me.hasFamily` (the Family tab) did not type-check | restructure: shell + hooks | fixed |
 | 4 | L1 tree | My notes' outline engine referenced dropped fields (gates, pins, tags, priority, group colours) and the seven-status enum | restructure: My notes tree trim | fixed |
 | 5 | L1 Projects shot | Face initials kept punctuation: "Rahul (Director)" rendered "R(" in the top bar | restructure: Face initials strip punctuation | fixed |
+| 7 | L1 Project shot | Deleting a milestone (or a project) left its notes behind — Comment has no FK to cascade from | restructure: comments swept on milestone/project delete | fixed |
 | 6 | L1 rig | Three phase-21 account probes still expected a manager to mint/administer a fellow manager (phase 48 moved that up the chain); the snooze probe hard-coded its cron secret; the WhatsApp probe tested the meeting-created message the restructure removed | restructure: regression probes adapted | fixed |
