@@ -42,3 +42,7 @@ screenshots/
 .DS_Store
 Thumbs.db
 .localdb/
+
+# The full production backup stays out of the repo: the repo is on GitHub and
+# the dump holds real emails, phone numbers and message texts.
+records/snapshots/prod-backup-*/
