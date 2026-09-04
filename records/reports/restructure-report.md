@@ -87,6 +87,16 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   and what they own, lead, belong to or hold a task in. A team lead no longer
   sees the whole company. Departments and People follow the same rule.
 
+## Owner feedback, round 10 — project logos, a better projects section, a way back
+
+- Every project has a mark: its uploaded logo, or its icon on a tile in its
+  own colour, or its first letter. Cards are recomposed around it (mark ·
+  name + P chip · deadline + next / Behind · faces + bar + number).
+- The project header opens with **‹ Projects** (back to its department), the
+  mark (tap to open **Project look**: upload a logo, ten colours, 24 icons),
+  the name, faces, P chip and deadline, then the bar.
+- `Project.logoUrl` added (migration `20260904170000_project_logo`).
+
 ## Where things stand
 
 | landing | what | state |

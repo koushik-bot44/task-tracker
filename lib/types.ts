@@ -129,6 +129,8 @@ export type ProjectDTO = {
   slug: string;
   color: string;
   icon: string | null;
+  /** An uploaded logo; null = the icon (or initial) on a colour tile. */
+  logoUrl: string | null;
   status: ProjectStatus;
   orderKey: string;
   createdAt: string;

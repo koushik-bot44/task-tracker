@@ -82,6 +82,8 @@ export function useProjectMutations() {
       patch: Partial<{
         name: string;
         color: string;
+        icon: string | null;
+        logoUrl: string | null;
         status: ProjectStatus;
         description: string;
         leadId: string | null;

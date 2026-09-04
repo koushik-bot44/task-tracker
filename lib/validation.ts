@@ -52,6 +52,8 @@ export const updateProjectSchema = z
     name: z.string().trim().min(1).max(80),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     icon: z.string().max(40).nullable(),
+    /** An uploaded logo's URL (from /api/uploads), or null to go back to the icon. */
+    logoUrl: z.string().max(500).nullable(),
     status: projectStatusSchema,
     orderKey: z.string().min(1),
     description: z.string().trim().max(4000),

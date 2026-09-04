@@ -77,6 +77,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (patch.name !== undefined) data.name = patch.name;
   if (patch.color !== undefined) data.color = patch.color;
   if (patch.icon !== undefined) data.icon = patch.icon;
+  if (patch.logoUrl !== undefined) data.logoUrl = patch.logoUrl;
   if (patch.status !== undefined) data.status = patch.status;
   if (patch.orderKey !== undefined) data.orderKey = patch.orderKey;
   if (patch.description !== undefined) data.description = patch.description;

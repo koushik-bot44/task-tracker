@@ -135,6 +135,7 @@ export function serializeProject(project: ProjectRow, taskCount = 0): ProjectDTO
     slug: project.slug,
     color: project.color,
     icon: project.icon,
+    logoUrl: project.logoUrl ?? null,
     status: project.status,
     orderKey: project.orderKey,
     createdAt: project.createdAt.toISOString(),

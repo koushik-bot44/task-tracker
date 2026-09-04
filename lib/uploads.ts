@@ -1,7 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { getBaseUrl } from "@/lib/base-url";
 
 /**
  * Attachments on notes (restructure): a photo from the camera, or a file
@@ -62,7 +61,9 @@ export async function storeUpload(file: { name: string; type: string; bytes: Buf
   await mkdir(DEV_DIR, { recursive: true });
   const stored = `${randomBytes(6).toString("hex")}-${name}`;
   await writeFile(path.join(DEV_DIR, stored), file.bytes);
-  return { url: `${getBaseUrl()}/api/uploads/${stored}` };
+  // A relative URL: the dev fallback is served by this same server, whatever
+  // APP_URL says (it points at production even on a laptop).
+  return { url: `/api/uploads/${stored}` };
 }
 
 /** Local development only: read a file the disk fallback stored. */

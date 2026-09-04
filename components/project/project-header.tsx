@@ -1,18 +1,21 @@
 "use client";
 
-import { UserPlus } from "lucide-react";
+import { ChevronLeft, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { PriorityChip } from "@/components/projects/project-card";
 import { PrioritySheet } from "@/components/sheets/priority-sheet";
+import { ProjectLookSheet } from "@/components/sheets/project-look-sheet";
 import { DeadlineChip } from "@/components/ui/chip";
 import { Faces } from "@/components/ui/face";
+import { ProjectMark } from "@/components/ui/project-mark";
 import type { ProjectDTO, ProjectPersonDTO } from "@/lib/types";
 
 /**
- * Name · faces (lead first) · priority (P1 / P2 / P3) · deadline · a progress
- * bar with its number. The number is tasks done over tasks in the project —
- * nobody sets it. People who manage the project tap the priority chip to
- * change it. Nothing else: no status words, no description.
+ * A way back to the department's projects · the project's mark (tap to change
+ * its look) · name · faces (lead first) · priority (P1 / P2 / P3) · deadline ·
+ * a progress bar with its number (tasks done over tasks, or the CEO's own).
+ * Nothing else: no status words, no description.
  */
 export function ProjectHeader({
   project,
@@ -31,7 +34,10 @@ export function ProjectHeader({
   onSetProgress?: () => void;
 }) {
   const [priorityOpen, setPriorityOpen] = useState(false);
+  const [lookOpen, setLookOpen] = useState(false);
   const done = project.status === "DONE";
+  const backHref = project.departmentId ? `/projects?d=${encodeURIComponent(project.departmentId)}` : "/projects";
+  const mark = <ProjectMark name={project.name} color={project.color} icon={project.icon} logoUrl={project.logoUrl} size="lg" />;
   const progress = Math.max(0, Math.min(100, Math.round(project.progress)));
   const bar = (
     <>
@@ -44,25 +50,37 @@ export function ProjectHeader({
 
   return (
     <header className="space-y-3">
-      <h1 className="text-page font-semibold text-ink">{project.name}</h1>
-      <div className="flex flex-wrap items-center gap-2">
-        <Faces names={people.map((p) => p.name)} max={4} />
+      <Link href={backHref} className="press -ml-2 inline-flex h-11 items-center gap-0.5 rounded-chip pl-1 pr-3 text-sm font-medium text-primary">
+        <ChevronLeft className="h-5 w-5" strokeWidth={2} aria-hidden />
+        Projects
+      </Link>
+      <div className="flex items-start gap-3">
         {canManage ? (
-          <button
-            type="button"
-            onClick={onAddPeople}
-            className="press inline-flex h-9 items-center gap-1.5 rounded-chip px-2.5 text-micro font-medium text-muted hover:text-ink"
-          >
-            <UserPlus className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            Add people
+          <button type="button" onClick={() => setLookOpen(true)} aria-label="Change the project's look" title="Change the look" className="press shrink-0 rounded-card">
+            {mark}
           </button>
-        ) : null}
-        <PriorityChip
-          priority={project.priority}
-          muted={done}
-          onClick={canManage ? () => setPriorityOpen(true) : undefined}
-          className="ml-auto"
-        />
+        ) : (
+          mark
+        )}
+        <div className="min-w-0 flex-1">
+          <h1 className="text-page font-semibold leading-tight text-ink">{project.name}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Faces names={people.map((p) => p.name)} max={4} />
+            {canManage ? (
+              <button
+                type="button"
+                onClick={onAddPeople}
+                className="press inline-flex h-9 items-center gap-1.5 rounded-chip px-2.5 text-micro font-medium text-muted hover:text-ink"
+              >
+                <UserPlus className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                Add people
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <PriorityChip priority={project.priority} muted={done} onClick={canManage ? () => setPriorityOpen(true) : undefined} />
         <DeadlineChip deadline={project.deadline} done={done} />
       </div>
       {canSetProgress && onSetProgress ? (
@@ -81,6 +99,7 @@ export function ProjectHeader({
       )}
       {project.progressManual !== null ? <p className="-mt-1 text-right text-micro text-muted">Set by the CEO</p> : null}
       {canManage ? <PrioritySheet open={priorityOpen} onClose={() => setPriorityOpen(false)} project={project} /> : null}
+      {canManage ? <ProjectLookSheet open={lookOpen} onClose={() => setLookOpen(false)} project={project} /> : null}
     </header>
   );
 }

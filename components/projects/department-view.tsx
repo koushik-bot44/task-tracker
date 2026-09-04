@@ -73,9 +73,9 @@ export function DepartmentView({
         Projects
       </button>
 
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         <DepartmentMark name={department.name} className="mt-0.5" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-[11rem]">
           <h1 className="text-section font-semibold leading-tight text-ink">{department.name}</h1>
           <p className="mt-0.5 text-sm text-muted">{countLine}</p>
         </div>

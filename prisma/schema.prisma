@@ -194,6 +194,8 @@ model Project {
   slug          String           @unique
   color         String
   icon          String?
+  /// Owner, 2026-09-04: an uploaded logo; null = the icon on a colour tile.
+  logoUrl       String?
   /// Restructure: PLANNED / ACTIVE / PAUSED / DONE (was Health).
   status        ProjectStatus    @default(ACTIVE)
   /// Restructure: the day the project started (backfilled from createdAt).
