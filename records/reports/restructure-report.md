@@ -19,6 +19,19 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   spread to the deadline on working days, every review a meeting on the calendar
   with the day-before message; each task dated with its box's review day.
 
+## Owner feedback, round 3 — the reschedule loop and the brief audit
+
+- A "Can't" after a move now gets three **new** dates, all after the moved day
+  (proven twice in a row: `records/evidence/restructure/reschedule-loop.txt`).
+- A moved meeting stays on Today while it still needs you (no reply yet, or a
+  Can't the organiser must act on), so the loop never disappears (defect #10).
+- The brief's offline state was missing; built (defect #11).
+- Brief audit: every screen, rule, message, redirect and model item in the brief
+  is present, except the ones the owner reversed on purpose (manual %, faces on
+  every task, attachments on task notes, Put away). What cannot work anywhere
+  until credentials exist: **email and WhatsApp** — `.env` has no SMTP or Twilio
+  variables (bell and push work; VAPID keys are present).
+
 ## Where things stand
 
 | landing | what | state |

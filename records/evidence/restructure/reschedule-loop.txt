@@ -1,0 +1,21 @@
+PASS  meeting tomorrow created  (status 201 {"id":"cmtmy434l00af0dk971pkp2u8","title":"RS- Loop check","description":"","date":"2026-09-05T00:00:00.000Z","startTime)
+PASS  member says Can't
+PASS  3 slots offered  (2026-09-07 · 2026-09-08 · 2026-09-09)
+PASS  all after the meeting day
+PASS  organiser's Today shows the meeting with the Can't
+PASS  moved to the 3rd slot  (200 2026-09-09)
+PASS  replies cleared
+PASS  message re-sent  (resent 1)
+PASS  member's Today still shows the moved meeting (no reply yet)
+PASS  member says Can't again
+PASS  3 NEW slots offered  (2026-09-10 · 2026-09-11 · 2026-09-14)
+PASS  all after the moved day
+PASS  none repeat the first set
+PASS  organiser's Today shows the moved meeting with the new Can't
+PASS  moved again
+PASS  member accepts the new day
+PASS  settled meeting a week+ out leaves the organiser's Today
+cleanup meeting -> 200
+cleanup membership -> 200
+
+all passed

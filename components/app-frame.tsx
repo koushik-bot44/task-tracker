@@ -10,6 +10,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { DetailPanelHost } from "@/components/detail-panel";
 import { HelpSheet } from "@/components/help-sheet";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { OfflineBanner } from "@/components/offline-banner";
 import { PwaNudges } from "@/components/pwa/pwa-nudges";
 import { Face } from "@/components/ui/face";
 import { cn } from "@/lib/cn";
@@ -96,6 +97,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Bottom tabs leave room on a phone. */}
+        <OfflineBanner />
         <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
       </div>
 
