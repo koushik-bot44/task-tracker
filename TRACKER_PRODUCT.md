@@ -1,3 +1,5 @@
+> **Superseded (2026-09-04).** This is the pre-restructure product spec (tools, gates, seven statuses). The current shape of Orbit — projects, milestone boxes, four statuses, the three messages — is specified in `records/plans/restructure-plan.md`. Kept as history.
+
 # TRACKER_PRODUCT.md — Orbit (v7, subtask %, lead-scoped onboarding, manager read-only rail)
 
 A **small-team task tracker with excellent UI/UX**. Tracks progress of every SGROUP automation tool: what shipped, what is in flight, what is next — and who finished it. Installable PWA — same app in a desktop browser and on a phone home screen, one shared source of truth.

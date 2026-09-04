@@ -22,10 +22,10 @@ server on :3000, 2026-09-04. Production is untouched.
   | `ProjectMember.canManage` (from ACCEPTED ProjectManager) | 0 |
   | milestones | 0 (none existed; boxes are new) |
 
-- Integrity: `restructure-baseline-clone` (143 tasks) and `restructure-after-clone`
-  in `records/integrity-ledger.txt`; both hashes recorded. No real task changed
-  fields other than the mapped ones (status, important, archived, milestoneId
-  null).
+- Integrity: `restructure-baseline-clone` (143 tasks, ad31c267…) and
+  `restructure-final-clone` (143 tasks, ec9cc47b… / full b3013309…) in
+  `records/integrity-ledger.txt`. Row-by-row diff: nothing added or removed;
+  only `status` moved, exactly per the migration map (see the L3 verdict).
 
 ## Screens (per-screen verdicts hold the 10-second test and the LOOK checklist)
 
