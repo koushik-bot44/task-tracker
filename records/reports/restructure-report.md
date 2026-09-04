@@ -97,6 +97,12 @@ Tags: `baseline-phase49b` → `restructure-l1` → `restructure-l2` → `restruc
   the name, faces, P chip and deadline, then the bar.
 - `Project.logoUrl` added (migration `20260904170000_project_logo`).
 
+## Owner feedback, round 11 — the deadline can be changed
+
+- The deadline chip on a project header (and a pencil beside it) opens
+  **Project details**: name, lead, start, deadline, a Finished switch, and
+  Delete project — for the people who run the project.
+
 ## Where things stand
 
 | landing | what | state |
