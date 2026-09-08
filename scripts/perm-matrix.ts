@@ -3,7 +3,7 @@
  * against a running server.
  *
  * Creates throwaway `permtest-` accounts — one per mintable role, NEVER a
- * FOUNDER (capped at one, never minted) — a throwaway department the director
+ * The CEO is borrowed (capped at one, never minted) — a throwaway department he
  * hands to the throwaway HOD, and a fixture project the throwaway manager
  * owns. Every case is a real HTTP call carrying a real sign-in cookie. At the
  * end it deletes only what it created (in a `finally`, so a crash mid-run
@@ -101,7 +101,6 @@ async function main() {
   // ── throwaway actors ──────────────────────────────────────────────────────
   // No FOUNDER: the account is capped at one and never minted (lib/permissions).
   const specs = [
-    { label: "director", role: "DIRECTOR" },
     { label: "hod", role: "HOD" },
     { label: "manager", role: "MANAGER" },
     { label: "manager2", role: "MANAGER" },
@@ -137,17 +136,22 @@ async function main() {
 }
 
 async function runCases(actors: Record<string, Actor>, userIds: string[]) {
+  // Exactly one CEO exists on the clone; the rig borrows him rather than
+  // minting a second top-of-the-ladder account (owner, 2026-09-08).
+  const ceoRow = await prisma.user.findFirst({ where: { role: "FOUNDER" }, select: { id: true, email: true } });
+  if (!ceoRow) throw new Error("no CEO account on the clone");
+  actors.director = { label: "ceo", email: ceoRow.email, id: ceoRow.id, cookie: await signIn(ceoRow.email, "orbit123") };
   const { director, hod, manager, manager2, lead, dev, dev2, dev3, admin } = actors;
   const today = new Date();
 
   console.log("\n── departments ───────────────────────────────────────────────");
   record("manager creates a department -> 403", (await call(manager, "POST", "/api/departments", { name: "PT manager department", color: "#0d9488" })).status, 403);
   const dept = await call(director, "POST", "/api/departments", { name: "PT department", color: "#0d9488", hodId: hod.id });
-  record("director creates a department, hod as its head -> 201", dept.status, 201);
+  record("the CEO creates a department, hod as its head -> 201", dept.status, 201);
   if (dept.status !== 201) throw new Error(`fixture department not created: ${dept.status} ${JSON.stringify(dept.json)}`);
   const deptId: string = dept.json.id;
   const otherDept = await call(director, "POST", "/api/departments", { name: "PT other department", color: "#7c3aed" });
-  record("director creates a second, empty department -> 201", otherDept.status, 201);
+  record("the CEO creates a second, empty department -> 201", otherDept.status, 201);
   const otherDeptId: string = otherDept.json?.id;
   record("hod edits their own department's description -> 200", (await call(hod, "PATCH", `/api/departments/${deptId}`, { description: "PT described by its head" })).status, 200);
   record("hod renames their own department -> 403", (await call(hod, "PATCH", `/api/departments/${deptId}`, { name: "PT renamed" })).status, 403);
@@ -173,10 +177,10 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   const other = await call(manager2, "POST", "/api/projects", projectBody("PT other project", deptId));
   record("another manager starts their own project -> 201", other.status, 201);
   const otherProjectId: string = other.json?.id;
-  record("director deletes an empty department -> 200", (await call(director, "DELETE", `/api/departments/${otherDeptId}`)).status, 200);
+  record("the CEO deletes an empty department -> 200", (await call(director, "DELETE", `/api/departments/${otherDeptId}`)).status, 200);
 
   console.log("\n── seeing a project ──────────────────────────────────────────");
-  record("director reads the project -> 200", (await call(director, "GET", `/api/projects/${projectId}`)).status, 200);
+  record("the CEO reads the project -> 200", (await call(director, "GET", `/api/projects/${projectId}`)).status, 200);
   record("hod reads a project in their department -> 200", (await call(hod, "GET", `/api/projects/${projectId}`)).status, 200);
   record("lead reads any project -> 200", (await call(lead, "GET", `/api/projects/${projectId}`)).status, 200);
   record("another manager (not on it) reads the project -> 404", (await call(manager2, "GET", `/api/projects/${projectId}`)).status, 404);
@@ -200,17 +204,20 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("manager (owner) renames the project -> 200", (await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "PT fixture project" })).status, 200);
   record("hod (own department) sets the status -> 200", (await call(hod, "PATCH", `/api/projects/${projectId}`, { status: "ACTIVE" })).status, 200);
   record("another manager renames the project -> 404", (await call(manager2, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 404);
-  // Progress is computed from tasks done (lib/projects.ts); a typed number is dropped, never stored.
-  // Owner, 2026-09-04: the percentage by hand is the CEO's alone — a director is refused
-  // like everyone else, and the counted number stands.
+  // The percentage counts tasks done (lib/projects.ts) until the CEO — and only
+  // the CEO — types one (owner, 2026-09-04).
   const beforeTyped = await call(director, "GET", `/api/projects/${projectId}`);
   const typed = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 10 });
   const afterTyped = await call(director, "GET", `/api/projects/${projectId}`);
   check(
-    "a director cannot set the % by hand (403, value unchanged)",
-    typed.status === 403 && afterTyped.json?.progress === beforeTyped.json?.progress,
+    "the CEO sets the % by hand (200, his number stands)",
+    typed.status === 200 && afterTyped.json?.progress === 10,
     `status ${typed.status}, progress ${beforeTyped.json?.progress} -> ${afterTyped.json?.progress}`,
   );
+  const byHod = await call(hod, "PATCH", `/api/projects/${projectId}`, { progress: 90 });
+  check("a head of department cannot set the %", byHod.status === 403, `status ${byHod.status}`);
+  // Hand it back to the count for the checks that follow.
+  await call(director, "PATCH", `/api/projects/${projectId}`, { progress: null });
 
   console.log("\n── give a task ───────────────────────────────────────────────");
   const dueDate = new Date(today.getTime() + 5 * 86_400_000).toISOString();
@@ -369,7 +376,7 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("dev replies Can't -> 200", (await call(dev, "POST", `/api/events/${eventId}/reply`, { response: "NO" })).status, 200);
   record("dev2 (not invited) replies -> 404", (await call(dev2, "POST", `/api/events/${eventId}/reply`, { response: "YES" })).status, 404);
   record("dev asks to reschedule -> 403", (await call(dev, "GET", `/api/events/${eventId}/reschedule`)).status, 403);
-  record("director asks to reschedule -> 200", (await call(director, "GET", `/api/events/${eventId}/reschedule`)).status, 200);
+  record("the CEO asks to reschedule -> 200", (await call(director, "GET", `/api/events/${eventId}/reschedule`)).status, 200);
   const slots = await call(manager, "GET", `/api/events/${eventId}/reschedule`);
   record("manager (organiser) asks to reschedule -> 200", slots.status, 200);
   const slotList: string[] = Array.isArray(slots.json?.slots) ? slots.json.slots : [];
@@ -396,8 +403,8 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("manager creates a team lead -> 201", (await mint(manager, "mgrlead", "TEAM_LEAD")).status, 201);
   record("manager creates a manager -> 403", (await mint(manager, "mgrmgr", "MANAGER")).status, 403);
   record("hod creates a manager -> 201", (await mint(hod, "hodmgr", "MANAGER")).status, 201);
-  record("director creates a head of department -> 201", (await mint(director, "dirhod", "HOD")).status, 201);
-  record("admin creates a director -> 403", (await mint(admin, "admdir", "DIRECTOR")).status, 403);
+  record("the CEO creates a head of department -> 201", (await mint(director, "dirhod", "HOD")).status, 201);
+  record("admin creates a head of department -> 403", (await mint(admin, "admhod", "HOD")).status, 403);
   record("admin creates a manager -> 201", (await mint(admin, "admmgr", "MANAGER")).status, 201);
   record("manager places dev in a department -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 200);
   record("lead places dev in a department -> 403", (await call(lead, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 403);
@@ -473,7 +480,7 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("dev reads their own private note -> 200", (await call(dev, "GET", `/api/tasks/${privId}`)).status, 200);
   record("dev2 reads it -> 404", (await call(dev2, "GET", `/api/tasks/${privId}`)).status, 404);
   record("dev2 reads its notes -> 404", (await call(dev2, "GET", `/api/comments?targetType=TASK&targetId=${privId}`)).status, 404);
-  record("director reads it -> 404 (no role override)", (await call(director, "GET", `/api/tasks/${privId}`)).status, 404);
+  record("the CEO reads it -> 404 (no role override)", (await call(director, "GET", `/api/tasks/${privId}`)).status, 404);
 }
 
 /**

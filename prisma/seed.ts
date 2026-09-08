@@ -132,7 +132,7 @@ function utcDay(offset: number): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset));
 }
 
-const AUTHORITY: Role[] = ["FOUNDER", "DIRECTOR", "HOD", "MANAGER"];
+const AUTHORITY: Role[] = ["FOUNDER", "HOD", "MANAGER"];
 
 /** Someone to own the projects, give the tasks and write the note. */
 async function seedAuthor(): Promise<{ id: string; name: string }> {

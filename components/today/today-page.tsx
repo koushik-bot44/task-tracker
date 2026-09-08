@@ -15,7 +15,7 @@ import { TaskRows } from "./task-rows";
 
 /**
  * Today: what is waiting on you, in the order you'd deal with it — your
- * tasks, today's and tomorrow's meetings, and (founder/director) the reviews
+ * tasks and today's and tomorrow's meetings. A review is recorded on its
  * that need your OK. One button: + gives a task.
  */
 export function TodayPage() {

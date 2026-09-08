@@ -26,7 +26,7 @@ export const GET = route(async () => {
   const actor = await requireUser();
   assertCanListUsers(actor);
 
-  // Owner, 2026-09-04: only the CEO (and a director, and the admin who runs
+  // Owner, 2026-09-04: only the CEO (and the admin who runs
   // accounts) sees everyone. Everyone else sees their own department, any
   // department they head, the CEO, and themselves.
   const wide = isExecutiveRole(actor.role) || isAdminRole(actor.role);
@@ -47,7 +47,7 @@ export const GET = route(async () => {
     include: { department: { select: { name: true } } },
   });
   const managerIds = users
-    .filter((u) => u.role === "FOUNDER" || u.role === "DIRECTOR" || u.role === "HOD" || u.role === "MANAGER")
+    .filter((u) => u.role === "FOUNDER" || u.role === "HOD" || u.role === "MANAGER")
     .map((u) => u.id);
   const grouped = managerIds.length
     ? await prisma.project.groupBy({ by: ["ownerId"], where: { ownerId: { in: managerIds } }, _count: { _all: true } })

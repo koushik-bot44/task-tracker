@@ -13,7 +13,7 @@ type Params = { params: { id: string } };
 
 /**
  * Departments are COMPANY-WIDE (phase 48). Write rules:
- *   FOUNDER/DIRECTOR → edit anything on any department; assign/replace the HOD.
+ *   The CEO → edit anything on any department; assign/replace the HOD.
  *   HOD              → edit the DESCRIPTION of the department(s) they head,
  *                      nothing else, nowhere else.
  *   everyone else    → read-only (404-shaped 403s are not needed; the list is

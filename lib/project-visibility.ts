@@ -8,7 +8,7 @@ import { HttpError } from "@/lib/session";
  * Which projects a user may see — the single source of truth.
  *
  *   ADMIN      → NONE (403). PERSON → NONE (403) — the two walls.
- *   FOUNDER / DIRECTOR → all (null): only the CEO sees the whole company.
+ *   FOUNDER → all (null): only the CEO sees the whole company.
  *   Everyone else (HOD, MANAGER, TEAM_LEAD, RESOURCE) → their own department
  *   — every project filed there — plus any department they head, plus the
  *   projects they own, lead, belong to or hold a task in anywhere else.
@@ -78,7 +78,7 @@ export async function projectOwnerId(projectId: string): Promise<string | null> 
 
 /**
  * May this user exercise OWNER powers on this project (edit its name, lead,
- * dates, status; delete it; re-file it)? FOUNDER/DIRECTOR anywhere; the HOD
+ * dates, status; delete it; re-file it)? The CEO anywhere; the HOD
  * of its department; the literal owner; a member who may manage.
  */
 export async function canActAsProjectOwner(user: { id: string; role: Role }, projectId: string): Promise<boolean> {

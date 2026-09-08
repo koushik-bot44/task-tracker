@@ -51,7 +51,7 @@ export const GET = route(async () => {
 
 /**
  * "+ New project": Name · Lead · Start · Deadline, inside a department.
- *   FOUNDER/DIRECTOR → any department. HOD → only the department they head.
+ *   The CEO → any department. HOD → only the department they head.
  *   MANAGER → any department (the project becomes theirs).
  */
 export const POST = route(async (req: Request) => {

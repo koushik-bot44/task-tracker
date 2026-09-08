@@ -29,7 +29,7 @@ enum ProjectStatus {
   DONE
 }
 
-/// Restructure: what the founder/director said at a milestone review.
+/// Restructure: what the CEO said at a milestone review.
 enum MilestoneOutcome {
   ON_TRACK
   NEEDS_WORK
@@ -46,9 +46,6 @@ enum Role {
   /// Phase 48: the top of the company chain. Sees and can act on everything;
   /// capped at exactly ONE (like ADMIN) and never mintable through the UI.
   FOUNDER
-  /// Phase 48: company-wide view and action like FOUNDER, minus founder-only
-  /// powers (touching the FOUNDER account, deleting departments).
-  DIRECTOR
   /// Phase 48: Head of Department. Sees and acts on every project in the
   /// department(s) whose Department.hodId points at them; nothing else beyond
   /// what they own or collaborate on.
@@ -68,7 +65,7 @@ enum Role {
   PERSON
 }
 
-/// Phase 48: project-level priority, set by the chain (founder/director
+/// Phase 48: project-level priority, set by the chain (the CEO
 /// anywhere, HOD in their department, owner manager on their own projects).
 /// Deliberately four plain levels; task Priority (P0-P3) is a separate,
 /// finer-grained axis that only changed its LABELS.
@@ -144,7 +141,7 @@ model User {
 /// A Department (phase 16, renamed from Folder; phase 48 made them
 /// COMPANY-WIDE) — the top-level grouping every tool lives in. One shared set
 /// for the whole company, each optionally headed by an HOD (hodId). Creation
-/// and deletion are executive-only (FOUNDER/DIRECTOR); an HOD may edit their
+/// and deletion are the CEO's; an HOD may edit their
 /// own department's description. createdById is attribution only now —
 /// nullable + SetNull so removing a user never takes a shared department with
 /// them. A department can still only be deleted once empty.
@@ -202,7 +199,7 @@ model Project {
   status        ProjectStatus    @default(ACTIVE)
   /// Restructure: the day the project started (backfilled from createdAt).
   startDate     DateTime?
-  /// Restructure: how far along, 0-100, set BY HAND by the founder/director
+  /// Restructure: how far along, 0-100, set BY HAND by the CEO
   /// only. Never computed from tasks.
   progress      Int              @default(0)
   /// The CEO's own number, when set by hand; null = count the tasks (owner, 2026-09-04).
@@ -245,7 +242,7 @@ model Project {
 
 /// Restructure: a MILESTONE is a named box on the project page — a name, the
 /// review date (which IS a meeting: reviewEventId), the tasks filed in it and
-/// its note thread. The founder/director records an outcome at the review.
+/// its note thread. The CEO records an outcome at the review.
 model Milestone {
   id            String            @id @default(cuid())
   projectId     String

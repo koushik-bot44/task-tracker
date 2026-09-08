@@ -9,7 +9,6 @@
  *
  *   FOUNDER    the top of the chain. Sees and acts on everything; sets the
  *              project % by hand; records review outcomes. Exactly one.
- *   DIRECTOR   company-wide like FOUNDER, minus founder-only account powers.
  *   HOD        full authority over the projects filed in the department(s)
  *              they head, nothing beyond it.
  *   MANAGER    runs projects, SILOED to the ones they own or may manage.
@@ -33,7 +32,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { ensureMember, isOnProject } from "@/lib/project-people";
 
-export const CAN_LEAD: Role[] = ["FOUNDER", "DIRECTOR", "HOD", "MANAGER", "TEAM_LEAD"];
+export const CAN_LEAD: Role[] = ["FOUNDER", "HOD", "MANAGER", "TEAM_LEAD"];
 
 export function isManager(user: { role: Role }): boolean {
   return isManagerRole(user.role);
@@ -98,8 +97,7 @@ export function assertCanListUsers(user: { role: Role }) {
 /**
  * Who may create/invite an account, and with which role (phase 21; phase 48
  * adds the rank rule). Chain actors create strictly below their own rank —
- * except directors, the top of the working chain, who may mint fellow
- * directors. The ADMIN actor keeps manager-and-below. FOUNDER and PERSON are
+ * The ADMIN actor keeps manager-and-below. FOUNDER and PERSON are
  * never mintable here.
  */
 export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role) {
@@ -115,11 +113,11 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
   if (newRole === "PERSON") {
     throw new HttpError(403, "A person account is created from the Well Being tab.");
   }
-  if (newRole === "DIRECTOR" || newRole === "HOD" || newRole === "MANAGER" || newRole === "TEAM_LEAD" || newRole === "RESOURCE") {
+  if (newRole === "HOD" || newRole === "MANAGER" || newRole === "TEAM_LEAD" || newRole === "RESOURCE") {
     const ceiling = isAdmin(actor)
       ? ROLE_RANK.MANAGER
-      : actor.role === "DIRECTOR" || actor.role === "FOUNDER"
-        ? ROLE_RANK.DIRECTOR
+      : actor.role === "FOUNDER"
+        ? ROLE_RANK.FOUNDER
         : ROLE_RANK[actor.role] - 1;
     if (ROLE_RANK[newRole] > ceiling) {
       throw new HttpError(403, "You can only create accounts below your own level.");
@@ -130,7 +128,7 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
 /**
  * Who may disable/enable, reset, re-role, place or delete a GIVEN account.
  * Only an ADMIN may touch the ADMIN account; only the FOUNDER the FOUNDER
- * account; chain actors administer strictly lower ranks (directors are peers);
+ * account; chain actors administer strictly lower ranks;
  * the admin keeps manager-and-below.
  */
 export function assertCanAdministerTarget(actor: { role: Role }, target: { role: Role }) {
@@ -146,14 +144,13 @@ export function assertCanAdministerTarget(actor: { role: Role }, target: { role:
   if (!isAdminRole(target.role) && target.role !== "PERSON" && !isAdmin(actor)) {
     const actorRank = ROLE_RANK[actor.role];
     const targetRank = ROLE_RANK[target.role];
-    const directorPeer = actor.role === "DIRECTOR" && target.role === "DIRECTOR";
-    if (targetRank >= actorRank && target.role !== "FOUNDER" && !directorPeer) {
+    if (targetRank >= actorRank && target.role !== "FOUNDER") {
       throw new HttpError(403, "You can only manage accounts below your own level.");
     }
   }
   if (!isAdminRole(target.role) && target.role !== "PERSON" && isAdmin(actor)) {
     if (ROLE_RANK[target.role] > ROLE_RANK.MANAGER) {
-      throw new HttpError(403, "Director and department head accounts are managed by the founder.");
+      throw new HttpError(403, "Department head accounts are managed by the CEO.");
     }
   }
 }

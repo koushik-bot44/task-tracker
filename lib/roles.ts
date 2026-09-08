@@ -7,8 +7,8 @@ import type { UserRole } from "@/lib/types";
  * and a refused request always agree on who a role is.
  *
  * Phase 48 adds the company chain above MANAGER:
- *   FOUNDER > DIRECTOR > HOD > MANAGER > TEAM_LEAD > RESOURCE
- * FOUNDER and DIRECTOR see and act on everything; an HOD sees and acts on
+ *   FOUNDER > HOD > MANAGER > TEAM_LEAD > RESOURCE
+ * The CEO sees and acts on everything; an HOD sees and acts on
  * their own department. "Project authority" (isManagerRole) now means the
  * whole chain from MANAGER up, so every manager-gated project surface opens
  * to the roles above without new call sites. Two things deliberately do NOT
@@ -17,13 +17,13 @@ import type { UserRole } from "@/lib/types";
  */
 export const isFounderRole = (r: UserRole | null | undefined): boolean => r === "FOUNDER";
 
-/** Company-wide authority: FOUNDER and DIRECTOR see and act on everything. */
+/** Company-wide authority: the CEO alone sees and acts on everything. */
 export const isExecutiveRole = (r: UserRole | null | undefined): boolean =>
-  r === "FOUNDER" || r === "DIRECTOR";
+  r === "FOUNDER";
 
 export const isHodRole = (r: UserRole | null | undefined): boolean => r === "HOD";
 
-/** PROJECT AUTHORITY — the chain that runs projects: FOUNDER, DIRECTOR, HOD,
+/** PROJECT AUTHORITY — the chain that runs projects: FOUNDER, HOD,
     MANAGER. What each may reach is scoped by lib/project-visibility (executives
     all, HOD their department, manager owned ∪ collaborations). */
 export const isManagerRole = (r: UserRole | null | undefined): boolean =>
@@ -58,7 +58,6 @@ export const canAdministerAccountsRole = (r: UserRole | null | undefined): boole
  */
 export const ROLE_RANK: Record<UserRole, number> = {
   FOUNDER: 6,
-  DIRECTOR: 5,
   HOD: 4,
   MANAGER: 3,
   TEAM_LEAD: 2,

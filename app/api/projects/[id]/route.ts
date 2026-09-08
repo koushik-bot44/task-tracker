@@ -29,7 +29,7 @@ export const GET = route(async (_req: Request, { params }: Params) => {
 
 /**
  * Editing a project — name, lead, dates, status, priority, department — is an
- * OWNER power: the literal owner, a member who may manage, the FOUNDER/DIRECTOR
+ * OWNER power: the literal owner, a member who may manage, the CEO
  * anywhere, or the HOD of its department. `progress` is the CEO's alone: a
  * number by hand, or null to go back to counting the tasks (lib/projects.ts).
  */

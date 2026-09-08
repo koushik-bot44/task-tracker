@@ -87,7 +87,7 @@ export async function ensureMember(projectId: string, userId: string): Promise<v
 
 /**
  * May this person RUN the project — add people, add/move milestones, edit its
- * dates? FOUNDER/DIRECTOR anywhere; the HOD of its department; the owner; a
+ * dates? The CEO anywhere; the HOD of its department; the owner; a
  * member with canManage. A TEAM_LEAD or a plain member cannot.
  */
 export async function canManageProject(user: { id: string; role: Role }, projectId: string): Promise<boolean> {

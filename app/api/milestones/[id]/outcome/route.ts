@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: { id: string } };
 
 /**
- * "Needs your OK" (restructure): the founder/director says On track or Needs
+ * The review (owner, 2026-09-08 — from the milestone box): the CEO says On track or Needs
  * work (+ a line). The outcome lands on the milestone, the line becomes a
  * note beside the box, and message (c) goes to everyone on the project with
  * how far along it is — tasks done over tasks in the project, never a number
@@ -24,7 +24,7 @@ type Params = { params: { id: string } };
  */
 export const POST = route(async (req: Request, { params }: Params) => {
   const actor = await requireUser();
-  if (!isExecutiveRole(actor.role)) throw new HttpError(403, "Only the CEO or a director records a review.");
+  if (!isExecutiveRole(actor.role)) throw new HttpError(403, "Only the CEO records a review.");
 
   const parsed = await parseBody(req, milestoneOutcomeInput);
   if (!parsed.ok) return parsed.response;

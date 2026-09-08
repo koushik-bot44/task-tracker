@@ -24,7 +24,7 @@ export const GET = route(async (req: Request) => {
 
 /**
  * "+ Add milestone": Name · Review date. Creating it creates its review
- * meeting (11:00 IST, founder + lead + task holders). FOUNDER/DIRECTOR,
+ * meeting (11:00 IST, the CEO + lead + task holders). The CEO,
  * the HOD of the department, or whoever runs the project.
  */
 export const POST = route(async (req: Request) => {

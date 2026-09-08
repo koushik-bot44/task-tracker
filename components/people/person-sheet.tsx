@@ -17,15 +17,15 @@ export const ASSIGNABLE_ROLES = ROLES.filter((r) => r !== "ADMIN" && r !== "PERS
 
 /**
  * Mirror of the server's assertCanCreateUserWithRole: chain actors offer
- * strictly lower ranks (a director or the founder may offer director); the
+ * strictly lower ranks; the
  * admin offers manager and below. Hiding is a courtesy — the server decides.
  */
 export function rolesOfferedTo(actor: UserRole | null | undefined): UserRole[] {
   if (!actor || !canAdministerAccountsRole(actor)) return [];
   const ceiling = isAdminRole(actor)
     ? ROLE_RANK.MANAGER
-    : actor === "DIRECTOR" || actor === "FOUNDER"
-      ? ROLE_RANK.DIRECTOR
+    : actor === "FOUNDER"
+      ? ROLE_RANK.FOUNDER
       : ROLE_RANK[actor] - 1;
   return ASSIGNABLE_ROLES.filter((r) => ROLE_RANK[r] <= ceiling);
 }
@@ -37,7 +37,6 @@ export function canAdministerTarget(actor: UserRole | null | undefined, target: 
   if (target === "ADMIN") return isAdminRole(actor);
   if (target === "FOUNDER") return actor === "FOUNDER";
   if (isAdminRole(actor)) return ROLE_RANK[target] <= ROLE_RANK.MANAGER;
-  if (actor === "DIRECTOR" && target === "DIRECTOR") return true;
   return ROLE_RANK[target] < ROLE_RANK[actor];
 }
 

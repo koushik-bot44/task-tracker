@@ -28,14 +28,14 @@ export async function founderAlreadyExists(): Promise<boolean> {
   return (await prisma.user.count({ where: { role: "FOUNDER" } })) > 0;
 }
 
-/** Phase 48: active project-authority holders (FOUNDER/DIRECTOR/HOD/MANAGER)
+/** Active project-authority holders (CEO / head / manager)
     other than `exceptId`. Replaces the phase-14 last-manager count: the company
     must always keep at least one active account that can run projects and
     administer the chain, whatever its level. */
 export async function otherActiveAuthorities(exceptId: string): Promise<number> {
   return prisma.user.count({
     where: {
-      role: { in: ["FOUNDER", "DIRECTOR", "HOD", "MANAGER"] },
+      role: { in: ["FOUNDER", "HOD", "MANAGER"] },
       id: { not: exceptId },
       disabledAt: null,
       status: "ACTIVE",

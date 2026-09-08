@@ -62,7 +62,7 @@ export function PeoplePage() {
     const heads = new Map<string, string>();
     for (const d of depts) if (d.hodId && !heads.has(d.hodId)) heads.set(d.hodId, d.id);
 
-    // The top of the ladder — the CEO (and any director) — sits above the
+    // The top of the ladder — the CEO — sits above the
     // departments, not under "Not placed yet"; a head of department stays with
     // their department.
     const byDept = new Map<string, UserDTO[]>();
@@ -70,7 +70,7 @@ export function PeoplePage() {
     const company: UserDTO[] = [];
     for (const u of people) {
       const key = heads.get(u.id) ?? u.departmentId;
-      if (!heads.has(u.id) && (u.role === "FOUNDER" || u.role === "DIRECTOR")) company.push(u);
+      if (!heads.has(u.id) && u.role === "FOUNDER") company.push(u);
       else if (!key) unplaced.push(u);
       else byDept.set(key, [...(byDept.get(key) ?? []), u]);
     }

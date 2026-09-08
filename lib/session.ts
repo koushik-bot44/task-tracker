@@ -69,7 +69,7 @@ export async function requireManager(): Promise<User> {
   return user;
 }
 
-/** The phase-48 project-authority chain: FOUNDER, DIRECTOR, HOD, or MANAGER.
+/** The project-authority chain: the CEO, an HOD, or a MANAGER.
     What each may actually reach is scoped by lib/project-visibility. */
 export async function requireProjectAuthority(): Promise<User> {
   const user = await requireUser();

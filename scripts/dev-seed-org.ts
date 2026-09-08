@@ -1,7 +1,8 @@
 /* Phase 48 org bootstrap (idempotent). Seeds the company's 8 departments from
  * the owner's whiteboard — matching EXISTING departments by name/alias so
  * nothing is duplicated or deleted — and creates local test accounts for the
- * new chain roles (founder/director/HOD) so every view is reachable in dev.
+ * the chain roles (CEO / head / manager / lead / member) so every view is
+ * reachable in dev.
  * Existing departments that match nothing (e.g. "Development") are left alone.
  * Usage: npx tsx --env-file=.env.local scripts/dev-seed-org.ts */
 import { PrismaClient } from "@prisma/client";
@@ -24,8 +25,7 @@ const CANON: { name: string; aliases: string[]; color: string; description: stri
 ];
 
 const CHAIN_USERS = [
-  { email: "founder@orbit.local", name: "Rahul (Director)", role: "DIRECTOR" as const },
-  { email: "director@orbit.local", name: "Director", role: "DIRECTOR" as const },
+  { email: "founder@orbit.local", name: "Rahul", role: "FOUNDER" as const },
   { email: "hod-ops@orbit.local", name: "Ops Head", role: "HOD" as const, heads: "Operations" },
   { email: "hod-rnd@orbit.local", name: "R&D Head", role: "HOD" as const, heads: "R&D" },
 ];

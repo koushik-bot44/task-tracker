@@ -36,7 +36,7 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
   // headline (owner, 2026-09-08).
   const headline = meeting.projectName ? `${meeting.title} · ${meeting.projectName}` : meeting.title;
   const when = [dateWord(meeting.date), meeting.startTime].filter(Boolean).join(" · ");
-  // Whoever can move the meeting (the organiser, the founder, a director) sees
+  // Whoever can move the meeting (the organiser or the CEO) sees
   // the replies and a Postpone button at all times — it is their call, not
   // only a reaction to someone else's "Can't" (owner, 2026-09-04).
   const showReplies = meeting.canReschedule;

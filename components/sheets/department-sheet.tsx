@@ -12,7 +12,7 @@ import { DEPARTMENT_COLORS, type DepartmentDTO } from "@/lib/types";
 
 /**
  * A department: Name · What it does · Head of department. Without a
- * `department` it creates one (founder/director only); with one it edits.
+ * `department` it creates one (the CEO only); with one it edits.
  * A head of department editing their own department sees only "What it
  * does" — the same rule the server enforces.
  */

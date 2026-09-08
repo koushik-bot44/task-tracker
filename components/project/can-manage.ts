@@ -8,7 +8,7 @@ import type { ProjectDTO } from "@/lib/types";
 
 /**
  * May this person RUN the project? The client mirror of
- * lib/project-people canManageProject: FOUNDER/DIRECTOR anywhere, the HOD of
+ * lib/project-people canManageProject: the CEO anywhere, the HOD of
  * its department, the owner, or a member marked canManage. A hidden button and
  * a refused request must agree, so the rule lives in one shape on both sides.
  */

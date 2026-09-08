@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
  * on a row anywhere in Orbit.
  */
 export function initialsOf(name: string): string {
-  // Letters and digits only: "Rahul (Director)" is R D, not R (.
+  // Letters and digits only: "Rahul (CEO)" is R C, not R (.
   const parts = name
     .split(/\s+/)
     .map((p) => p.replace(/[^\p{L}\p{N}]/gu, ""))

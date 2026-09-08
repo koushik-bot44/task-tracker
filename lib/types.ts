@@ -135,7 +135,7 @@ export type ProjectDTO = {
   createdAt: string;
   startDate: string | null;
   deadline: string | null;
-  /** 0-100, set by hand by the founder/director. Never computed. */
+  /** 0-100, set by hand by the CEO. Never computed. */
   /** Shown number: the CEO's own when set by hand, else tasks done ÷ tasks. */
   progress: number;
   /** The CEO's number, or null when the tasks are counted. */
@@ -239,7 +239,7 @@ export type CalendarEventDTO = {
   /** The caller's own reply, if they are an attendee. */
   myResponse: MeetingResponse | null;
   isAttendee: boolean;
-  /** The caller may reschedule (organiser, founder, director). */
+  /** The caller may reschedule (the organiser or the CEO). */
   canReschedule: boolean;
   createdById: string;
   createdByName: string;
@@ -272,7 +272,7 @@ export type NotificationDTO = {
   snoozedUntil: string | null;
 };
 
-export const ROLES = ["FOUNDER", "DIRECTOR", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "ADMIN", "PERSON"] as const;
+export const ROLES = ["FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "ADMIN", "PERSON"] as const;
 export type UserRole = (typeof ROLES)[number];
 
 /* This list and lib/auth.ts's must stay identical: one decides what the UI
@@ -288,7 +288,6 @@ void _rolesMatch;
 /** Role words appear ONLY on the People page. */
 export const ROLE_LABEL: Record<UserRole, string> = {
   FOUNDER: "CEO",
-  DIRECTOR: "Director",
   HOD: "Head of department",
   MANAGER: "Manager",
   TEAM_LEAD: "Team lead",
@@ -299,7 +298,6 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 
 export const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   FOUNDER: "CEO",
-  DIRECTOR: "Director",
   HOD: "Head",
   MANAGER: "Manager",
   TEAM_LEAD: "Lead",

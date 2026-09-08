@@ -14,12 +14,12 @@ export const dynamic = "force-dynamic";
  * Departments — the top-level grouping every tool lives in (phase 16), one
  * COMPANY-WIDE set since phase 48.
  *
- * READ, per role (owner, 2026-09-04): the CEO and a director see the whole
+ * READ, per role (owner, 2026-09-04): the CEO sees the whole
  * company; everyone else sees only their own department, a department they
  * head, and any department holding a project they are on. projectCount
  * always counts only the projects the caller can see.
  *
- * WRITE: creation is EXECUTIVE-only (FOUNDER/DIRECTOR). Editing/deleting is
+ * WRITE: creation is the CEO's alone. Editing/deleting is
  * gated per-department in [id]/route.ts.
  */
 export const GET = route(async () => {
@@ -37,7 +37,7 @@ export const GET = route(async () => {
     },
   });
 
-  // Owner, 2026-09-04: only the CEO (and a director) sees the whole company.
+  // Owner, 2026-09-04: only the CEO sees the whole company.
   // Everyone else sees their own department, a department they head, and a
   // department holding a project they are on — nothing more.
   const executive = isExecutiveRole(user.role);

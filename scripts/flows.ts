@@ -66,7 +66,7 @@ async function main() {
   if (!department) throw new Error("no department in the clone");
   const password = generateTempPassword(16);
   const hash = await hashPassword(password);
-  const mk = async (label: string, role: "DIRECTOR" | "MANAGER" | "TEAM_LEAD" | "RESOURCE" | "PERSON", departmentId: string | null = department.id): Promise<Actor> => {
+  const mk = async (label: string, role: "MANAGER" | "TEAM_LEAD" | "RESOURCE" | "PERSON", departmentId: string | null = department.id): Promise<Actor> => {
     const email = `${PREFIX}${label}@orbit.local`;
     const u = await prisma.user.upsert({
       where: { email },
@@ -75,7 +75,10 @@ async function main() {
     });
     return { label, id: u.id, email, cookie: await signIn(email, password) };
   };
-  const director = await mk("director", "DIRECTOR");
+  // The one CEO on the clone, not a throwaway: there is only ever one.
+  const ceoRow = await prisma.user.findFirst({ where: { role: "FOUNDER" }, select: { id: true, email: true } });
+  if (!ceoRow) throw new Error("no CEO account on the clone");
+  const director: Actor = { label: "ceo", id: ceoRow.id, email: ceoRow.email, cookie: await signIn(ceoRow.email, "orbit123") };
   const manager = await mk("manager", "MANAGER");
   const lead = await mk("lead", "TEAM_LEAD");
   const member = await mk("member", "RESOURCE");
@@ -120,10 +123,16 @@ async function main() {
   const c1 = await computedProgress();
   const p1 = await call(director, "GET", `/api/projects/${projectId}`);
   record("F1 % is tasks done over tasks (computed)", p1.status === 200 && c1.total >= 1 && p1.json?.progress === c1.pct, `${c1.done}/${c1.total} → ${c1.pct}%, got ${p1.json?.progress}`);
-  // Owner, 2026-09-04: only the CEO sets the % by hand; a director is refused and the count stands.
-  const typed = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 50 });
-  const afterTyped = await call(director, "GET", `/api/projects/${projectId}`);
-  record("F1 a director cannot set the % by hand (403, count stands)", typed.status === 403 && afterTyped.json?.progress === c1.pct, `status ${typed.status}, progress ${afterTyped.json?.progress} (computed ${c1.pct})`);
+  // Owner, 2026-09-04: the CEO alone may set the % by hand; everyone else gets
+  // the counted number, and nobody else may type one.
+  const byCeo = await call(director, "PATCH", `/api/projects/${projectId}`, { progress: 50 });
+  const afterCeo = await call(director, "GET", `/api/projects/${projectId}`);
+  record("F1 the CEO can set the % by hand", byCeo.status === 200 && afterCeo.json?.progress === 50, `status ${byCeo.status}, progress ${afterCeo.json?.progress}`);
+  const byLead = await call(lead, "PATCH", `/api/projects/${projectId}`, { progress: 10 });
+  record("F1 nobody else can set the %", byLead.status === 403, `status ${byLead.status}`);
+  await call(director, "PATCH", `/api/projects/${projectId}`, { progress: null });
+  const afterClear = await call(director, "GET", `/api/projects/${projectId}`);
+  record("F1 clearing it counts the tasks again", afterClear.json?.progress === c1.pct, `${afterClear.json?.progress} vs computed ${c1.pct}`);
   // A manager who RUNS the project (member with canManage) can edit it.
   await call(director, "POST", `/api/projects/${projectId}/members`, { userId: manager.id, canManage: true });
   const nameByManager = await call(manager, "PATCH", `/api/projects/${projectId}`, { name: "FLOW Project" });
