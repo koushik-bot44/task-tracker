@@ -18,12 +18,13 @@
     "flows": "tsx --env-file=.env.local scripts/flows.ts",
     "overlays": "tsx --env-file=.env.local scripts/overlay-check.ts",
     "integrity": "tsx scripts/integrity.ts",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:start": "sh scripts/db.sh start",
     "db:stop": "sh scripts/db.sh stop",
-    "e2e": "tsx --env-file=.env.local scripts/e2e-restructure.ts"
+    "e2e": "tsx --env-file=.env.local scripts/e2e-restructure.ts",
+    "db:deploy": "sh scripts/db-deploy.sh"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

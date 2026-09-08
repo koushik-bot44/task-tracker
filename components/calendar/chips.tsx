@@ -70,10 +70,13 @@ export function EventChip({ event, compact = false }: { event: CalendarEventDTO;
       title={`${review ? "Review" : "Meeting"} · ${eventLabel(event)}${event.projectName ? ` · ${event.projectName}` : ""}`}
     >
       {event.startTime ? <span className="shrink-0 tabular-nums">{event.startTime}</span> : null}
+      {/* "Milestone 2 review" says nothing — three of them on one month look
+          identical. In a month cell the project's name is the useful half; the
+          agenda has room for both (owner, 2026-09-08). */}
       <span className="min-w-0 truncate">
-        {review && event.milestoneName ? `${event.milestoneName} review` : event.title}
-        {/* "Milestone 1 review" of WHAT? The project rides along where there is room (owner, 2026-09-08). */}
-        {!compact && event.projectName ? ` · ${event.projectName}` : ""}
+        {compact && review && event.projectName
+          ? event.projectName
+          : `${review && event.milestoneName ? `${event.milestoneName} review` : event.title}${!compact && event.projectName ? ` · ${event.projectName}` : ""}`}
       </span>
     </span>
   );

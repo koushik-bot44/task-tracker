@@ -34,7 +34,10 @@ export function ProjectFilter({
   if (projects.length === 0) return null;
 
   return (
-    <div role="group" aria-label="Show which projects" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+    /* Wrapped, not a sideways scroll: on a phone the row cut off after two
+       projects and the rest looked as though they did not exist (owner,
+       2026-09-08). */
+    <div role="group" aria-label="Show which projects" className="flex flex-wrap gap-2 pb-1">
       <button
         type="button"
         onClick={() => onSelected(null)}

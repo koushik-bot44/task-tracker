@@ -196,6 +196,8 @@ model Project {
   icon          String?
   /// Owner, 2026-09-04: an uploaded logo; null = the icon on a colour tile.
   logoUrl       String?
+  /// A link to the finished thing: the site, the document, the folder.
+  resultUrl     String?
   /// Restructure: PLANNED / ACTIVE / PAUSED / DONE (was Health).
   status        ProjectStatus    @default(ACTIVE)
   /// Restructure: the day the project started (backfilled from createdAt).
@@ -251,6 +253,8 @@ model Milestone {
   name          String
   reviewDate    DateTime
   orderKey      String
+  /// A link to what this milestone produced — the live page, the document.
+  resultUrl     String?
   /// The review meeting (CalendarEvent, isMeeting). Created with the milestone,
   /// moved with it, deleted with it. SetNull so a cancelled meeting never takes
   /// the milestone with it.
