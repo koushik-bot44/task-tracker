@@ -84,9 +84,23 @@ export function RoutinePage() {
             contrast. */}
         <div
           className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
-          style={{ backgroundImage: "url('/well-being.jpg')", opacity: night ? 0.6 : 0.9 }}
+          style={{
+            backgroundImage: "url('/well-being.jpg')",
+            opacity: night ? 0.85 : 1,
+            // Softened the way a wallpaper sits behind glass: recognisable, never
+            // competing with the words on top. Scaled so the blur has no edge.
+            filter: night ? "blur(6px) saturate(105%) brightness(0.85)" : "blur(6px) saturate(110%)",
+            transform: "scale(1.08)",
+          }}
         />
-        <div className="absolute inset-0" style={{ background: night ? "rgba(8,12,28,0.42)" : "rgba(255,255,255,0.14)" }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: night
+              ? "linear-gradient(180deg, rgba(10,14,32,0.30) 0%, rgba(10,14,32,0.52) 100%)"
+              : "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.34) 100%)",
+          }}
+        />
       </div>
       {/* z-[1] sits above the z-0 scene but BELOW the app header (z-sticky = 10), so the
           content slides cleanly under the chrome instead of painting over it when scrolled. */}
