@@ -39,6 +39,24 @@ export async function middleware(req: NextRequest) {
       url.search = "";
       return NextResponse.redirect(url);
     }
+    // The accounts admin has no work screens — the app already hides the tabs,
+    // but typing the address (or a stale bookmark) landed them on an empty
+    // Today or Projects while the page fired 403s underneath (owner sweep,
+    // 2026-09-08). Send them where they belong.
+    if (claims.role === "ADMIN" && !pathname.startsWith("/api/")) {
+      const adminArea =
+        pathname === "/people" ||
+        pathname.startsWith("/people/") ||
+        pathname.startsWith("/settings") ||
+        pathname === "/my-space" ||
+        pathname === "/login";
+      if (!adminArea) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/people";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+    }
     // The family (Well Being) page belongs to the CEO alone (owner, 2026-09-04); its APIs enforce the same.
     if (pathname.startsWith("/routine") && claims.role !== "FOUNDER") {
       const url = req.nextUrl.clone();
