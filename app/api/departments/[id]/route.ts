@@ -81,16 +81,14 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
 });
 
 /**
- * Delete a department. FOUNDER only (a director cannot), and only when EMPTY —
- * every project lives in exactly one department, so a department with tools in
- * it can't be removed (409); move the tools out first.
+ * Delete a department. The CEO only, and only when EMPTY — every project lives
+ * in exactly one department, so a department that still holds projects can't be
+ * removed (409); move them out first.
  */
 export const DELETE = route(async (_req: Request, { params }: Params) => {
   const actor = await requireUser();
-  // The owner folded FOUNDER away — DIRECTOR is the top of the chain now, so
-  // deleting a department is an executive power like creating one.
   if (!isExecutiveRole(actor.role)) {
-    throw new HttpError(403, "Only a director can delete a department.");
+    throw new HttpError(403, "Only the CEO can delete a department.");
   }
 
   const existing = await prisma.department.findUnique({ where: { id: params.id }, select: { id: true } });

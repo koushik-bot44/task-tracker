@@ -29,7 +29,7 @@ export function DepartmentSheet({
   const { data: me } = useMe();
   const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
   const { data: departments } = useDepartments();
-  const { createDepartment, updateDepartment } = useDepartmentMutations();
+  const { createDepartment, updateDepartment, deleteDepartment } = useDepartmentMutations();
 
   const executive = isExecutiveRole(me?.role);
   const headsIt = isHodRole(me?.role) && Boolean(department) && department?.hodId === me?.id;
@@ -56,7 +56,7 @@ export function DepartmentSheet({
   // Keep the current head selectable even before the people list arrives.
   const currentHeadMissing = Boolean(hodId) && !heads.some((h) => h.id === hodId);
 
-  const pending = createDepartment.isPending || updateDepartment.isPending;
+  const pending = createDepartment.isPending || updateDepartment.isPending || deleteDepartment.isPending;
   const ready = (descriptionOnly || name.trim().length > 0) && !pending;
 
   const submit = () => {
@@ -84,6 +84,18 @@ export function DepartmentSheet({
       },
       { onSuccess: done, onError: fail },
     );
+  };
+
+  const remove = () => {
+    if (!department) return;
+    if (!window.confirm(`Delete "${department.name}"? Only an empty department can go — its projects must be moved out first.`)) return;
+    deleteDepartment.mutate(department.id, {
+      onSuccess: () => {
+        onClose();
+        toast({ message: `Deleted "${department.name}"` });
+      },
+      onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+    });
   };
 
   return (
@@ -142,6 +154,19 @@ export function DepartmentSheet({
               ))}
             </select>
           </Field>
+        ) : null}
+
+        {department && executive ? (
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={remove}
+              disabled={deleteDepartment.isPending}
+              className="press h-11 rounded-input px-2 text-sm font-medium text-danger-ink disabled:opacity-40"
+            >
+              Delete department
+            </button>
+          </div>
         ) : null}
       </div>
     </Sheet>
