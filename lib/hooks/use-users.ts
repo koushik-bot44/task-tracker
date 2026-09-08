@@ -41,6 +41,11 @@ export function useUserMutations() {
     onSuccess: refresh,
   });
 
+  const setPassword = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) => apiPost<{ ok: true }>(`/api/users/${id}/password`, { password }),
+    onSuccess: refresh,
+  });
+
   const cancelInvite = useMutation({
     mutationFn: (id: string) => apiDelete<{ ok: true; deletedProjects: number }>(`/api/users/${id}`),
     onSuccess: refresh,
@@ -76,5 +81,5 @@ export function useUserMutations() {
     onSettled: () => void qc.invalidateQueries({ queryKey: meKey }),
   });
 
-  return { createUser, updateUser, changeMyPassword, updateMe, resendInvite, cancelInvite };
+  return { createUser, updateUser, changeMyPassword, updateMe, resendInvite, cancelInvite, setPassword };
 }

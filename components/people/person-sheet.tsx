@@ -71,13 +71,14 @@ export function PersonSheet({
   );
 }
 
-type Action = "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete";
+type Action = "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
 
 function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: UserDTO; departments: DepartmentDTO[]; onClose: () => void }) {
-  const { updateUser, resendInvite, cancelInvite } = useUserMutations();
+  const { updateUser, resendInvite, cancelInvite, setPassword } = useUserMutations();
   const { show: toast } = useToast();
   const [action, setAction] = useState<Action | null>(null);
   const [reveal, setReveal] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState<string | null>(null);
   const [phone, setPhone] = useState(user.phone ?? "");
   const savedPhone = user.phone ?? "";
   useEffect(() => setPhone(savedPhone), [savedPhone]);
@@ -88,7 +89,24 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
   const offered = rolesOfferedTo(me.role);
   const roleChoices = offered.includes(user.role) ? offered : [user.role, ...offered];
   const roleLocked = user.role === "ADMIN" || user.role === "FOUNDER" || offered.length === 0;
-  const busy = updateUser.isPending || resendInvite.isPending || cancelInvite.isPending;
+  const busy = updateUser.isPending || resendInvite.isPending || cancelInvite.isPending || setPassword.isPending;
+
+  const savePassword = () => {
+    const pw = (newPassword ?? "").trim();
+    if (pw.length < 6) return;
+    setAction("password");
+    setPassword.mutate(
+      { id: user.id, password: pw },
+      {
+        onSuccess: () => {
+          setNewPassword(null);
+          toast({ message: `Password set — tell ${user.name} personally. They can sign in with it right away.` });
+        },
+        onError: fail,
+        onSettled: done,
+      },
+    );
+  };
 
   const trimmedPhone = phone.trim();
   const phoneValid = trimmedPhone === "" || PHONE.test(trimmedPhone);
@@ -278,6 +296,34 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
       </div>
 
       <div className="space-y-2 pt-1">
+        {isSelf || user.role === "FOUNDER" ? null : newPassword === null ? (
+          <Button full variant="secondary" onClick={() => setNewPassword("")}>
+            Set a password
+          </Button>
+        ) : (
+          <div>
+            <div className="flex gap-2">
+              <input
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    savePassword();
+                  }
+                }}
+                placeholder="At least 6 characters"
+                aria-label="New password"
+                autoFocus
+                className={cn(inputClass, "min-w-0 flex-1")}
+              />
+              <Button variant="primary" onClick={savePassword} disabled={newPassword.trim().length < 6 || busy} loading={action === "password"}>
+                Save
+              </Button>
+            </div>
+            <p className="mt-1 text-micro text-muted">Tell {user.name.split(" ")[0]} personally. Any old invite link stops working.</p>
+          </div>
+        )}
         {pending ? (
           <>
             <Button full variant="secondary" onClick={resend} disabled={busy} loading={action === "resend"}>
