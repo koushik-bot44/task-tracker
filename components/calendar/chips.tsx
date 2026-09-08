@@ -11,9 +11,10 @@ import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDTO } from "@/l
  *             passed (lib/dates decides), labelled with the project name.
  *   REVIEW    a milestone's review meeting: the accent, filled — "11:00 Design review".
  *   MEETING   any other meeting: the accent, soft — "15:00 Skyzen sync".
- *   TASK      a task's date: an outline chip whose edge carries lateness,
- *             plus the project's colour dot. Provisional dates are dashed
- *             and lead with "~", as everywhere.
+ *   TASK      a task's date: an outline chip whose edge carries lateness.
+ *             Provisional dates are dashed and lead with "~", as everywhere.
+ *
+ * No decoration beyond that — no dots (owner, 2026-09-08).
  *
  * Nothing here is under 13px; `compact` only trims the height for the grid.
  */
@@ -52,7 +53,6 @@ export function TaskChip({ task, compact = false }: { task: CalendarTaskDTO; com
       )}
       title={task.title}
     >
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: task.projectColor }} aria-hidden />
       <span className="min-w-0 truncate">
         {task.dueProvisional ? "~" : ""}
         {task.title}
@@ -85,7 +85,6 @@ export function DeadlineMark({ deadline, compact = false }: { deadline: Calendar
       className={cn(BASE, size(compact), DEADLINE_TONE_STYLE[tone])}
       title={`${deadline.name} · due ${dateWord(deadline.deadline)}`}
     >
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: deadline.color }} aria-hidden />
       <span className="min-w-0 truncate">{deadline.name}</span>
     </span>
   );

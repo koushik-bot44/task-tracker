@@ -240,7 +240,6 @@ export function CalendarView() {
               >
                 <span className={cn("text-micro", todayCell ? "text-on-primary" : "text-muted")}>{WEEKDAYS[(d.getDay() + 6) % 7]}</span>
                 <span className="text-row font-semibold tabular-nums">{d.getDate()}</span>
-                <span className={cn("h-1.5 w-1.5 rounded-full", n > 0 ? (todayCell ? "bg-on-primary" : "bg-primary") : "bg-transparent")} aria-hidden />
               </button>
             );
           })}
