@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
 import { usePush } from "@/lib/hooks/use-push";
 
@@ -17,13 +17,17 @@ const DISMISS_KEY = "orbit-push-ask-dismissed";
 export function PushAsk() {
   const { permission, serverConfigured, busy, enable } = usePush();
   const { show: toast } = useToast();
-  const [dismissed, setDismissed] = useState(() => {
+  // Read the dismissal AFTER hydration. Reading it while rendering meant the
+  // server drew the card (it has no localStorage) and the browser did not,
+  // which React reports as a hydration failure (owner, 2026-09-08).
+  const [dismissed, setDismissed] = useState(true);
+  useEffect(() => {
     try {
-      return Boolean(localStorage.getItem(DISMISS_KEY));
+      setDismissed(Boolean(localStorage.getItem(DISMISS_KEY)));
     } catch {
-      return false;
+      setDismissed(false);
     }
-  });
+  }, []);
 
   const dismiss = () => {
     try {
