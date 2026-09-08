@@ -129,6 +129,9 @@ export async function resendForMeeting(eventId: string): Promise<number> {
   if (!m) return 0;
   const base = getBaseUrl();
   const dayKey = istDayKey(m.date);
+  // Only the latest "Moved" notice may sit in the bell — postponing three
+  // times must not read as three meetings (owner, 2026-09-08).
+  await prisma.notification.deleteMany({ where: { type: "tomorrow", title: `Moved: ${m.title}` } });
   let n = 0;
   for (const a of m.attendees) {
     const links = await replyLinks(a.id);
@@ -142,6 +145,7 @@ export async function resendForMeeting(eventId: string): Promise<number> {
       meetings: [{ title: m.title, projectName: m.project?.name ?? "Everyone", time: `${m.startTime ?? ""}${m.endTime ? `–${m.endTime}` : ""}`.trim(), yesUrl: links.yes, noUrl: links.no }],
     });
     msg.title = `Moved: ${m.title}`;
+    msg.body = `Now ${formatISTDate(m.date)}${m.startTime ? ` · ${m.startTime}` : ""} · ${m.project?.name ?? "Everyone"}`;
     msg.keyExtra = String(Date.now());
     const r = await sendMessage([a.userId], msg);
     n += r.recipients;
