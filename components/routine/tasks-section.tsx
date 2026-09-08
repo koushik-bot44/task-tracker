@@ -39,8 +39,8 @@ export function TasksSection({ tasks, today, weekParam, personId, readOnly = fal
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <h2 className="mb-3 font-display text-lg font-semibold pk-fg">Tasks</h2>
       {readOnly ? null : (
-        <div className="mb-3 flex items-center gap-2">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="Add a task for them…" aria-label="New task" className={cn(inputCls, "h-11 flex-1")} />
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="Add a task for them…" aria-label="New task" className={cn(inputCls, "h-11 w-full min-w-0 flex-1 sm:w-auto")} />
           <button type="button" onClick={() => setForThisWeek((v) => !v)} aria-pressed={forThisWeek} className={cn("press h-11 shrink-0 rounded-card px-3 text-micro font-medium", forThisWeek ? "pk-tab-active" : "pk-chip pk-fg-soft")} title="Pin to this week, or any day">
             {forThisWeek ? "This week" : "Any day"}
           </button>

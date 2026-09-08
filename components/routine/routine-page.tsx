@@ -249,13 +249,17 @@ function RoutineDashboard({
       {view === "summary" ? (
         <SummaryView summary={summary} weekLabel={label} />
       ) : (
-        // On wide screens the sections flow into two columns so the tab fills the space.
+        // On wide screens the sections flow into two columns so the tab fills the
+        // space. min-w-0 on each column: a grid item defaults to min-width:auto, so
+        // the widest thing inside (the seven-day rows) stretched the column past the
+        // screen and carried the "Add task" button off the right edge, where a phone
+        // could not reach it (owner, 2026-09-08).
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <WeeklyGrid segments={segments} week={weekMeta} weekParam={week} personId={routineId} today={today} readOnly={readOnly} />
             <NonNegotiables items={nonNegotiables} week={weekMeta} weekParam={week} personId={routineId} today={today} readOnly={readOnly} />
           </div>
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <TasksSection tasks={tasks} today={today} weekParam={week} personId={routineId} readOnly={readOnly} />
             {canWrite ? <ReminderCard week={week} personId={routineId} undoneToday={undoneToday} /> : null}
             <WeightMonitor entries={weights} monthly={monthlyWeights} today={today} weekParam={week} personId={routineId} readOnly={readOnly} />
