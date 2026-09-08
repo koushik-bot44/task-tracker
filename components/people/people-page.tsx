@@ -17,7 +17,7 @@ import { apiGet } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { departmentsKey } from "@/lib/hooks/use-departments";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isExecutiveRole } from "@/lib/roles";
+import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isLeadOrAboveRole } from "@/lib/roles";
 import { DepartmentMark } from "@/components/ui/department-mark";
 import { ROLE_LABEL, type DepartmentDTO, type UserDTO } from "@/lib/types";
 
@@ -50,13 +50,12 @@ export function PeoplePage() {
 
   const q = query.trim().toLowerCase();
 
-  const { sections, unplaced, admins, shown } = useMemo(() => {
+  const { sections, unplaced, shown } = useMemo(() => {
     const all = users ?? [];
     const depts = departments ?? [];
     const matches = (u: UserDTO) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
     // Disabled accounts stay visible only to those who can enable them again.
     const listed = all.filter((u) => u.role !== "PERSON" && (u.disabledAt === null || canAdmin));
-    const admins = listed.filter((u) => u.role === "ADMIN" && u.disabledAt === null);
     const people = listed.filter((u) => u.role !== "ADMIN" && matches(u));
 
     // A head sits at the top of the department they head, wherever they are placed.
@@ -91,7 +90,7 @@ export function PeoplePage() {
     company.sort(order(null));
     if (company.length > 0) sections.unshift({ id: "company", name: "Company", hodId: null, people: company });
 
-    return { sections, unplaced, admins, shown: people.length };
+    return { sections, unplaced, shown: people.length };
   }, [users, departments, q, canAdmin]);
 
   const selected = (users ?? []).find((u) => u.id === personId) ?? null;
@@ -175,24 +174,6 @@ export function PeoplePage() {
 
           {shown === 0 ? <EmptyState title={q ? "Nobody matches that name" : "Nobody here yet"} body={q ? undefined : "Invite someone to get started."} /> : null}
 
-          {admins.length > 0 && !q && (isExecutiveRole(me.role) || isAdminActor) ? (
-            <p className="px-1 text-micro text-muted">
-              Accounts are looked after by{" "}
-              {admins.map((a, i) => (
-                <Fragment key={a.id}>
-                  {i > 0 ? ", " : ""}
-                  {isAdminActor ? (
-                    <button type="button" onClick={() => setPersonId(a.id)} className="font-medium text-ink underline decoration-line underline-offset-2">
-                      {a.name}
-                    </button>
-                  ) : (
-                    a.name
-                  )}
-                </Fragment>
-              ))}{" "}
-              (admin).
-            </p>
-          ) : null}
         </div>
       )}
 
@@ -220,6 +201,7 @@ function PersonRow({
   onOpen: () => void;
 }) {
   const disabled = user.disabledAt !== null;
+  const ranked = isLeadOrAboveRole(user.role);
   const inner = (
     <>
       <Face name={user.name} className={disabled ? "opacity-50" : undefined} />
@@ -228,9 +210,11 @@ function PersonRow({
           {user.name}
           {isSelf ? <span className="text-muted"> · you</span> : null}
         </span>
-        <span className="block truncate text-micro text-muted">{isHead ? user.email : ROLE_LABEL[user.role]}</span>
+        <span className="block truncate text-micro text-muted">{ranked ? user.email : ROLE_LABEL[user.role]}</span>
       </span>
-      {isHead ? <Chip tone="primary">Head of department</Chip> : null}
+      {/* Everyone who carries responsibility — the CEO down to a team lead —
+          wears their rank; a team member's row stays plain (owner, 2026-09-08). */}
+      {ranked ? <Chip tone="primary">{isHead ? "Head of department" : ROLE_LABEL[user.role]}</Chip> : null}
       {user.status === "PENDING" ? <Chip>Invited</Chip> : null}
       {disabled ? <Chip>Disabled</Chip> : null}
     </>
