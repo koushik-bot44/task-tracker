@@ -60,7 +60,6 @@ export function ProjectFilter({
               active ? "bg-surface font-medium text-ink shadow-e1" : "bg-hover text-muted hover:text-ink",
             )}
           >
-            <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", !active && "opacity-40")} style={{ background: p.color }} aria-hidden />
             <span className="max-w-[10rem] truncate">{p.name}</span>
           </button>
         );

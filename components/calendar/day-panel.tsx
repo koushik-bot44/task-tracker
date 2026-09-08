@@ -94,7 +94,6 @@ export function DayPanel({
                     href={`/project/${d.slug}`}
                     className="press flex min-h-[56px] items-center gap-3 rounded-card bg-bg px-4"
                   >
-                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: d.color }} aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-row text-ink">{d.name}</span>
                       <span className="block text-micro text-muted">Project deadline</span>
@@ -112,10 +111,7 @@ export function DayPanel({
               <div className="space-y-3">
                 {[...byProject.entries()].map(([id, group]) => (
                   <div key={id}>
-                    <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-ink">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: group.color }} aria-hidden />
-                      {group.name}
-                    </p>
+                    <p className="mb-1.5 text-sm font-medium text-ink">{group.name}</p>
                     <div className="flex flex-wrap gap-2">
                       {group.tasks.map((t) => (
                         <button key={t.id} type="button" onClick={() => onOpenTask(t.id)} className="press hit-40 rounded-chip" aria-label={`Open ${t.title}`}>
