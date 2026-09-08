@@ -20,7 +20,9 @@ import { isManagerRole } from "@/lib/roles";
 import type { CalendarEventDTO } from "@/lib/types";
 
 const EMPTY: DayItems = { events: [], deadlines: [] };
-const FILTER_KEY = "orbit-calendar-projects";
+// v2: the capsules changed meaning (tap = show that project), so a filter
+// saved under the old rule would read as the opposite of itself.
+const FILTER_KEY = "orbit-calendar-projects-v2";
 const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type SheetState = { mode: "create"; date: string } | { mode: "edit"; event: CalendarEventDTO };

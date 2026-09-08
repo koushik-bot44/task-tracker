@@ -5,10 +5,12 @@ import type { ProjectDTO } from "@/lib/types";
 
 /**
  * The calendar's project filter: "All projects", then one capsule per
- * project. `selected` null means every project; an array (possibly empty) is
- * an explicit set. Tapping a project while on "All" reads as "just hide this
- * one"; re-selecting every project collapses back to "All". The parent keeps
- * the choice between visits.
+ * project. `selected` null means every project; an array is an explicit set.
+ *
+ * Tapping a project shows THAT project (owner, 2026-09-08 — it used to mean
+ * "hide this one", which is the opposite of what anyone expects). Tap another
+ * to add it; tap the last one again, or "All projects", to go back to
+ * everything. The parent keeps the choice between visits.
  */
 export function ProjectFilter({
   projects,
@@ -24,11 +26,12 @@ export function ProjectFilter({
 
   const toggle = (id: string) => {
     if (isAll) {
-      onSelected(projects.map((p) => p.id).filter((x) => x !== id));
+      onSelected([id]);
       return;
     }
     const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
-    onSelected(next.length === projects.length ? null : next);
+    // Nothing left, or everything picked, both mean "all projects".
+    onSelected(next.length === 0 || next.length === projects.length ? null : next);
   };
 
   if (projects.length === 0) return null;
