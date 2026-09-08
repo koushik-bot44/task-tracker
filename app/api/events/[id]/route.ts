@@ -4,7 +4,7 @@ import { notifyEvent } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { assertManager } from "@/lib/permissions";
 import { canSeeProject } from "@/lib/project-visibility";
-import { HHMM_RE, eventDay, validAttendeeIds } from "@/lib/meetings";
+import { HHMM_RE, eventDay, validAttendeeIds, validCompanyAttendeeIds } from "@/lib/meetings";
 import { eventInclude, eventToDTO } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
 import { isExecutiveRole } from "@/lib/roles";
@@ -57,8 +57,10 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     if (nextStart && nextEnd && nextEnd <= nextStart) {
       throw new HttpError(400, "The end time must be after the start time.");
     }
-    if (patch.attendeeIds !== undefined && existing.projectId) {
-      nextAttendees = await validAttendeeIds(existing.projectId, patch.attendeeIds);
+    if (patch.attendeeIds !== undefined) {
+      nextAttendees = existing.projectId
+        ? await validAttendeeIds(existing.projectId, patch.attendeeIds)
+        : await validCompanyAttendeeIds(patch.attendeeIds);
       if (nextAttendees.length === 0) throw new HttpError(400, "Pick at least one person.");
     }
   }

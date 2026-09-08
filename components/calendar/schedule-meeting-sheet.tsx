@@ -8,19 +8,34 @@ import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { dayInputValue } from "@/lib/dates";
 import { useEventMutations } from "@/lib/hooks/use-calendar";
+import { useDepartments } from "@/lib/hooks/use-departments";
 import { useMeetingCandidates } from "@/lib/hooks/use-meetings";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useMe, useUsers } from "@/lib/hooks/use-users";
+import { canSeeUserListRole } from "@/lib/roles";
 import type { CalendarEventDTO } from "@/lib/types";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
+/** What the meeting is about — that choice fills the faces by itself. */
+type About = "project" | "department" | "everyone" | "person";
+
+const ABOUT: { key: About; label: string }[] = [
+  { key: "project", label: "A project" },
+  { key: "department", label: "A department" },
+  { key: "everyone", label: "Everyone" },
+  { key: "person", label: "One person" },
+];
+
+type Candidate = { userId: string; name: string };
+
 /**
- * Schedule a meeting: "Which project?" → "Who?" (everyone on the project,
- * all picked; tap a face to leave someone out) → "When?" → "What's it
- * about?" (defaults to "<project> meeting") → Save. The same sheet edits or
- * cancels an existing meeting when `meeting` is given. A review meeting
- * never comes here — its day belongs to the milestone.
+ * Schedule a meeting (owner, 2026-09-08 — "make it simpler"): three questions.
+ * "About?" (a project / a department / everyone / one person) — the choice
+ * fills the faces by itself; "When?"; "What's it about?". Tap a face to add
+ * or leave someone out. The same sheet edits or cancels an existing meeting.
+ * A review meeting never comes here — its day belongs to the milestone.
  */
 export function ScheduleMeetingSheet({
   open,
@@ -41,10 +56,14 @@ export function ScheduleMeetingSheet({
   defaultDate?: string;
 }) {
   const { show: toast } = useToast();
+  const { data: me } = useMe();
   const { data: projects } = useProjects();
+  const { data: departments } = useDepartments();
   const { createEvent, updateEvent, deleteEvent } = useEventMutations();
 
+  const [about, setAbout] = useState<About>("project");
   const [projectId, setProjectId] = useState<string | null>(meeting?.projectId ?? presetProjectId);
+  const [departmentId, setDepartmentId] = useState("");
   const [who, setWho] = useState<Set<string>>(new Set());
   const [seededFor, setSeededFor] = useState<string | null>(null);
   const [date, setDate] = useState("");
@@ -53,7 +72,8 @@ export function ScheduleMeetingSheet({
   const [title, setTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
 
-  const { data: candidates, isLoading: loadingPeople } = useMeetingCandidates(projectId, open);
+  const { data: candidates, isLoading: loadingPeople } = useMeetingCandidates(about === "project" ? projectId : null, open);
+  const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
 
   const projectName = useMemo(
     () =>
@@ -63,12 +83,30 @@ export function ScheduleMeetingSheet({
       null,
     [presetProjectName, projects, projectId, meeting],
   );
+  const departmentName = (departments ?? []).find((d) => d.id === departmentId)?.name ?? null;
+
+  // Everyone who could be invited outside a project: active colleagues.
+  const colleagues = useMemo<Candidate[]>(
+    () =>
+      (users ?? [])
+        .filter((u) => u.status === "ACTIVE" && !u.disabledAt)
+        .map((u) => ({ userId: u.id, name: u.name })),
+    [users],
+  );
+
+  const people = useMemo<Candidate[]>(() => {
+    if (about === "project") return candidates ?? [];
+    if (about === "department") return colleagues.filter((c) => (users ?? []).find((u) => u.id === c.userId)?.departmentId === departmentId);
+    return colleagues;
+  }, [about, candidates, colleagues, users, departmentId]);
 
   // Fresh every time it opens: an edit starts from the meeting, a new one
   // from the preset project and day.
   useEffect(() => {
     if (!open) return;
+    setAbout(meeting ? (meeting.projectId ? "project" : "everyone") : presetProjectId ? "project" : "project");
     setProjectId(meeting?.projectId ?? presetProjectId);
+    setDepartmentId("");
     setSeededFor(null);
     setWho(new Set(meeting ? meeting.attendees.map((a) => a.userId) : []));
     setDate(meeting ? meeting.date.slice(0, 10) : defaultDate ?? dayInputValue(new Date()));
@@ -78,19 +116,35 @@ export function ScheduleMeetingSheet({
     setTitleTouched(Boolean(meeting));
   }, [open, meeting, presetProjectId, defaultDate]);
 
-  // Everyone on the project starts picked for a new meeting; picking a
-  // different project re-seeds. An edit keeps the meeting's own list.
+  // The choice fills the faces: a project's people, a department's people,
+  // the whole company — all picked; "one person" starts empty. An edit keeps
+  // the meeting's own list.
+  const seedKey = about === "project" ? `p:${projectId ?? ""}` : about === "department" ? `d:${departmentId}` : about;
   useEffect(() => {
-    if (!open || !projectId || !candidates || seededFor === projectId) return;
-    if (!meeting || meeting.projectId !== projectId) setWho(new Set(candidates.map((c) => c.userId)));
-    setSeededFor(projectId);
-  }, [open, projectId, candidates, seededFor, meeting]);
+    if (!open || seededFor === seedKey || meeting) return;
+    if (about === "project") {
+      if (!projectId || !candidates) return;
+      setWho(new Set(candidates.map((c) => c.userId)));
+    } else if (about === "department") {
+      if (!departmentId || !users) return;
+      setWho(new Set(people.map((p) => p.userId)));
+    } else if (about === "everyone") {
+      if (!users) return;
+      setWho(new Set(people.map((p) => p.userId)));
+    } else {
+      setWho(new Set());
+    }
+    setSeededFor(seedKey);
+  }, [open, meeting, about, seedKey, seededFor, projectId, departmentId, candidates, users, people]);
 
-  // The title follows the project until the person writes their own.
+  // The title follows the choice until the person writes their own.
   useEffect(() => {
     if (!open || titleTouched) return;
-    setTitle(projectName ? `${projectName} meeting` : "");
-  }, [open, titleTouched, projectName]);
+    if (about === "project") setTitle(projectName ? `${projectName} meeting` : "");
+    else if (about === "department") setTitle(departmentName ? `${departmentName} meeting` : "");
+    else if (about === "everyone") setTitle("Company meeting");
+    else setTitle("Catch-up");
+  }, [open, titleTouched, about, projectName, departmentName]);
 
   const toggle = (id: string) =>
     setWho((prev) => {
@@ -101,16 +155,17 @@ export function ScheduleMeetingSheet({
     });
 
   const endValid = !end || (HHMM.test(end) && end > start);
-  const ready = Boolean(projectId) && title.trim().length > 0 && YMD.test(date) && HHMM.test(start) && endValid && who.size >= 1;
+  const contextReady = about === "project" ? Boolean(projectId) : about === "department" ? Boolean(departmentId) : true;
+  const ready = contextReady && title.trim().length > 0 && YMD.test(date) && HHMM.test(start) && endValid && who.size >= 1;
   const pending = createEvent.isPending || updateEvent.isPending || deleteEvent.isPending;
 
   const submit = () => {
-    if (!ready || !projectId) return;
+    if (!ready) return;
     const payload = {
       title: title.trim(),
       description: meeting?.description ?? "",
       date,
-      projectId,
+      projectId: about === "project" ? projectId : null,
       isMeeting: true,
       startTime: start,
       endTime: end || null,
@@ -151,14 +206,14 @@ export function ScheduleMeetingSheet({
     });
   };
 
-  const people = candidates ?? [];
+  const subtitle = about === "project" ? projectName : about === "department" ? departmentName : about === "everyone" ? "The whole company" : null;
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
       title={meeting ? "Edit meeting" : "Schedule a meeting"}
-      subtitle={projectName ?? undefined}
+      subtitle={subtitle ?? undefined}
       footer={
         meeting ? (
           <div className="flex gap-2">
@@ -178,13 +233,37 @@ export function ScheduleMeetingSheet({
     >
       <div className="space-y-5 pt-1">
         {presetProjectId || meeting ? null : (
+          <div>
+            <span className="mb-1.5 block text-micro font-medium text-muted">About what?</span>
+            <div role="group" aria-label="About what" className="flex flex-wrap gap-2">
+              {ABOUT.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  aria-pressed={about === o.key}
+                  onClick={() => {
+                    setAbout(o.key);
+                    setSeededFor(null);
+                  }}
+                  className={cn(
+                    "press h-9 rounded-chip px-3.5 text-sm font-medium",
+                    about === o.key ? "bg-ink text-on-ink" : "bg-surface text-muted shadow-e1 hover:text-ink",
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {about === "project" && !presetProjectId && !meeting ? (
           <Field label="Which project?">
             <select
               value={projectId ?? ""}
               onChange={(e) => setProjectId(e.target.value || null)}
               aria-label="Project"
               className={cn(inputClass, "appearance-none")}
-              autoFocus
             >
               <option value="">Pick a project…</option>
               {(projects ?? []).map((p) => (
@@ -194,23 +273,45 @@ export function ScheduleMeetingSheet({
               ))}
             </select>
           </Field>
-        )}
+        ) : null}
+
+        {about === "department" && !meeting ? (
+          <Field label="Which department?">
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              aria-label="Department"
+              className={cn(inputClass, "appearance-none")}
+            >
+              <option value="">Pick a department…</option>
+              {(departments ?? []).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        ) : null}
 
         <div>
           <div className="mb-1.5 flex items-baseline justify-between">
             <span className="text-micro font-medium text-muted">Who?</span>
-            {projectId && people.length > 0 ? (
+            {people.length > 0 ? (
               <span className="text-micro tabular-nums text-muted">
                 {who.size} of {people.length}
               </span>
             ) : null}
           </div>
-          {!projectId ? (
+          {about === "project" && !projectId ? (
             <p className="text-sm text-muted">Pick a project first.</p>
-          ) : loadingPeople && people.length === 0 ? (
+          ) : about === "department" && !departmentId ? (
+            <p className="text-sm text-muted">Pick a department first.</p>
+          ) : about === "project" && loadingPeople && people.length === 0 ? (
             <div className="h-[5.5rem] animate-pulse rounded-card bg-hover" aria-hidden />
           ) : people.length === 0 ? (
-            <p className="text-sm text-muted">Nobody is on this project yet — add people from the project page.</p>
+            <p className="text-sm text-muted">
+              {about === "project" ? "Nobody is on this project yet — add people from the project page." : "Nobody here yet."}
+            </p>
           ) : (
             <div role="group" aria-label="Who" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
               {people.map((p) => {
@@ -234,9 +335,7 @@ export function ScheduleMeetingSheet({
               })}
             </div>
           )}
-          {projectId && seededFor === projectId && people.length > 0 && who.size === 0 ? (
-            <p className="mt-1 text-micro text-danger-ink">Pick at least one person.</p>
-          ) : null}
+          {people.length > 0 && who.size === 0 ? <p className="mt-1 text-micro text-danger-ink">Pick at least one person.</p> : null}
         </div>
 
         <div>
@@ -277,7 +376,7 @@ export function ScheduleMeetingSheet({
                 submit();
               }
             }}
-            placeholder={projectName ? `${projectName} meeting` : "e.g. Weekly catch-up"}
+            placeholder="e.g. Weekly catch-up"
             aria-label="What's it about"
             className={inputClass}
           />

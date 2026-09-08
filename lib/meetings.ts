@@ -26,6 +26,18 @@ export async function validAttendeeIds(projectId: string, submitted: string[]): 
   return [...new Set(submitted)].filter((id) => ok.has(id));
 }
 
+/** A meeting with no project (a department, the company, one person): any
+    active colleague can be invited. */
+export async function validCompanyAttendeeIds(submitted: string[]): Promise<string[]> {
+  const ids = [...new Set(submitted)];
+  if (ids.length === 0) return [];
+  const ok = await prisma.user.findMany({
+    where: { id: { in: ids }, disabledAt: null, status: "ACTIVE", role: { notIn: ["PERSON"] } },
+    select: { id: true },
+  });
+  return ok.map((u) => u.id);
+}
+
 /** A calendar day (YYYY-MM-DD or ISO) as that day's UTC midnight — how events are stored. */
 export function eventDay(input: string | Date): Date {
   const key = typeof input === "string" ? input.slice(0, 10) : input.toISOString().slice(0, 10);
