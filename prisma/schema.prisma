@@ -195,6 +195,8 @@ model Project {
   logoUrl       String?
   /// A link to the finished thing: the site, the document, the folder.
   resultUrl     String?
+  /// Pinned to the top of its department, above the priority order.
+  pinned        Boolean   @default(false)
   /// Restructure: PLANNED / ACTIVE / PAUSED / DONE (was Health).
   status        ProjectStatus    @default(ACTIVE)
   /// Restructure: the day the project started (backfilled from createdAt).

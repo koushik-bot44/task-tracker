@@ -86,6 +86,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (patch.startDate !== undefined) data.startDate = patch.startDate ? new Date(patch.startDate) : null;
   if (patch.deadline !== undefined) data.deadline = patch.deadline ? new Date(patch.deadline) : null;
   if (patch.priority !== undefined) data.priority = patch.priority;
+  if (patch.pinned !== undefined) data.pinned = patch.pinned;
   if (patch.progress !== undefined) data.progressManual = patch.progress;
 
   const project = await prisma.project.update({

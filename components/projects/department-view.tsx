@@ -20,6 +20,9 @@ export function byRankThenOrder(a: ProjectDTO, b: ProjectDTO): number {
   const doneA = a.status === "DONE";
   const doneB = b.status === "DONE";
   if (doneA !== doneB) return doneA ? 1 : -1;
+  // A pin beats everything below it: it is somebody saying "this one first"
+  // (owner, 2026-09-08). A finished project stays at the bottom regardless.
+  if (!doneA && a.pinned !== b.pinned) return a.pinned ? -1 : 1;
   const r = PROJECT_PRIORITY_RANK[a.priority] - PROJECT_PRIORITY_RANK[b.priority];
   if (r !== 0) return r;
   if (!doneA && a.behind !== b.behind) return a.behind ? -1 : 1;

@@ -91,6 +91,8 @@ export function useProjectMutations() {
         startDate: string | null;
         deadline: string | null;
         priority: ProjectPriorityValue;
+        /** Pinned to the top of its department. */
+        pinned: boolean;
         /** CEO only: a number by hand, or null to count the tasks again. */
         progress: number | null;
       }>;

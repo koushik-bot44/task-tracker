@@ -144,6 +144,7 @@ export function serializeProject(project: ProjectRow, taskCount = 0): ProjectDTO
     progress: project.progress,
     progressManual: project.progressManual ?? null,
     priority: project.priority,
+    pinned: project.pinned ?? false,
     taskCount,
     openTasks: project.openTasks ?? 0,
     doneTasks: project.doneTasks ?? 0,

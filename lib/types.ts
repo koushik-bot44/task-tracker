@@ -141,6 +141,8 @@ export type ProjectDTO = {
   /** The CEO's number, or null when the tasks are counted. */
   progressManual: number | null;
   priority: ProjectPriorityValue;
+  /** Pinned to the top of its department by someone who runs it. */
+  pinned: boolean;
   taskCount: number;
   openTasks: number;
   doneTasks: number;
