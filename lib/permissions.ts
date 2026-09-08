@@ -113,7 +113,7 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
     throw new HttpError(403, "Only an admin can create an admin account.");
   }
   if (newRole === "PERSON") {
-    throw new HttpError(403, "A person account is created from the Family tab.");
+    throw new HttpError(403, "A person account is created from the Well Being tab.");
   }
   if (newRole === "DIRECTOR" || newRole === "HOD" || newRole === "MANAGER" || newRole === "TEAM_LEAD" || newRole === "RESOURCE") {
     const ceiling = isAdmin(actor)

@@ -20,7 +20,7 @@ import { canSeeUserListRole, isAdminRole } from "@/lib/roles";
 
 /**
  * The shell (restructure): five tabs — Today · Projects · Calendar · People ·
- * Family — as a 220px rail on a desktop and bottom tabs on a phone. The top
+ * Well Being — as a 220px rail on a desktop and bottom tabs on a phone. The top
  * bar carries only the bell and your Face; the Face opens My notes, Account,
  * Notifications and Sign out. Nothing else lives in the chrome.
  */
@@ -34,7 +34,7 @@ function useTabs(): Tab[] {
     { href: "/projects", label: "Projects", icon: FolderKanban, show: !admin },
     { href: "/calendar", label: "Calendar", icon: CalendarDays, show: !admin },
     { href: "/people", label: "People", icon: Users, show: canSeeUserListRole(me?.role) },
-    { href: "/routine", label: "Family", icon: Sun, show: Boolean(me?.hasFamily) },
+    { href: "/routine", label: "Well Being", icon: Sun, show: Boolean(me?.hasFamily) },
   ];
 }
 
@@ -143,7 +143,7 @@ function RouteTitle() {
   if (pathname === "/projects") return <>Projects</>;
   if (pathname === "/calendar") return <>Calendar</>;
   if (pathname === "/people") return <>People</>;
-  if (pathname === "/routine") return <>Family</>;
+  if (pathname === "/routine") return <>Well Being</>;
   if (pathname === "/my-space") return <>My notes</>;
   if (pathname === "/settings/account") return <>Account</>;
 

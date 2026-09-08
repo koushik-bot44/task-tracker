@@ -7,7 +7,7 @@ import type { MeDTO, UserDTO, UserRole } from "@/lib/types";
 export const meKey = ["me"] as const;
 export const usersKey = ["users"] as const;
 
-/** The signed-in account. Drives every role-aware bit of UI, and the Family tab. */
+/** The signed-in account. Drives every role-aware bit of UI, and the Well Being tab. */
 export function useMe() {
   return useQuery({
     queryKey: meKey,

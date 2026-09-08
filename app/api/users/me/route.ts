@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Who the caller is, for the chrome and role-aware UI. `hasFamily` shows the
-    Family tab: the CEO alone (owner, 2026-09-04), whether or not a Person is
+    Well Being tab: the CEO alone (owner, 2026-09-04), whether or not a Person is
     set up yet — the tab is where they set one up. */
 export const GET = route(async () => {
   const user = await requireUser();

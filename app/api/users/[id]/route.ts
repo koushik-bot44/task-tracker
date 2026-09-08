@@ -62,7 +62,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     throw new HttpError(403, "The CEO's role can't be changed from here.");
   }
   if (role === "PERSON" && target.role !== "PERSON") {
-    throw new HttpError(403, "A person account is created from the Family tab.");
+    throw new HttpError(403, "A person account is created from the Well Being tab.");
   }
 
   const removesAuthority =

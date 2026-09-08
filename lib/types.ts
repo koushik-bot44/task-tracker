@@ -358,7 +358,7 @@ export type UserDTO = {
 
 /** The signed-in account: a UserDTO plus what the chrome needs. */
 export type MeDTO = UserDTO & {
-  /** Owns (or monitors) a Person in Well Being — shows the Family tab. */
+  /** Owns (or monitors) a Person in Well Being — shows the Well Being tab. */
   hasFamily: boolean;
 };
 
