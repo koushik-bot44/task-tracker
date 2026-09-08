@@ -9,7 +9,6 @@ import { useToday } from "@/lib/hooks/use-today";
 import { useMe } from "@/lib/hooks/use-users";
 import { isAdminRole } from "@/lib/roles";
 import { MeetingCard } from "./meeting-card";
-import { NeedsOkCard } from "./needs-ok-card";
 import { Section } from "./section";
 import { SummaryLine } from "./summary-line";
 import { TaskRows } from "./task-rows";
@@ -64,8 +63,7 @@ export function TodayPage() {
 function TodayBody({ data }: { data: NonNullable<ReturnType<typeof useToday>["data"]> }) {
   const hasTasks = data.tasks.length > 0;
   const hasMeetings = data.meetings.length > 0;
-  const hasNeedsOk = data.needsOk.length > 0;
-  const nothing = !hasTasks && !hasMeetings && !hasNeedsOk;
+  const nothing = !hasTasks && !hasMeetings;
 
   return (
     <div className="space-y-6">
@@ -90,16 +88,6 @@ function TodayBody({ data }: { data: NonNullable<ReturnType<typeof useToday>["da
               <EmptyState title="No meetings today or tomorrow." />
             )}
           </Section>
-
-          {hasNeedsOk ? (
-            <Section title="Needs your OK">
-              <div className="space-y-3">
-                {data.needsOk.map((item) => (
-                  <NeedsOkCard key={item.milestoneId} item={item} />
-                ))}
-              </div>
-            </Section>
-          ) : null}
         </>
       )}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Star } from "lucide-react";
 import { Face } from "@/components/ui/face";
 import { Check } from "@/components/ui/row";
 import { cn } from "@/lib/cn";
@@ -25,7 +25,14 @@ function TitleBlock({ task }: { task: TaskDTO }) {
   return (
     <>
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-row", done ? "text-muted" : "text-ink")}>{task.title.trim() || "Untitled task"}</span>
+        <span className={cn("flex min-w-0 items-center gap-1.5 text-row", done ? "text-muted" : "text-ink")}>
+          {/* An important task wears its star in the box, so the team can see
+              which one matters without opening it (owner, 2026-09-08). */}
+          {task.important ? (
+            <Star className="h-3.5 w-3.5 shrink-0 text-warn-ink" strokeWidth={2} fill="currentColor" aria-label="Important" />
+          ) : null}
+          <span className="min-w-0 truncate">{task.title.trim() || "Untitled task"}</span>
+        </span>
         {task.stepCount > 0 ? (
           <span className="block text-micro text-muted">
             {task.stepsDone} of {task.stepCount} steps

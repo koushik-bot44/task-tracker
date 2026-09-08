@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { canSeeProject } from "@/lib/project-visibility";
 import { canManageProject } from "@/lib/project-people";
-import { syncProvisionalTaskDates, syncReviewMeeting } from "@/lib/meetings";
+import { eventDay, syncProvisionalTaskDates, syncReviewMeeting } from "@/lib/meetings";
 import { milestoneRows } from "@/lib/milestones";
 import { serializeMilestone } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
@@ -33,7 +33,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (parsed.data.reviewDate !== undefined) {
     const d = new Date(parsed.data.reviewDate);
     if (Number.isNaN(d.getTime())) return NextResponse.json({ error: "Pick a review date" }, { status: 400 });
-    data.reviewDate = d;
+    data.reviewDate = eventDay(d);
   }
   await prisma.milestone.update({ where: { id: params.id }, data });
   if (data.reviewDate) await syncProvisionalTaskDates(params.id, data.reviewDate);

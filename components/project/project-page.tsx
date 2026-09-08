@@ -27,6 +27,7 @@ import { AddMilestoneSheet } from "@/components/sheets/add-milestone-sheet";
 import { AddPeopleSheet } from "@/components/sheets/add-people-sheet";
 import { MoveReviewSheet } from "@/components/sheets/move-review-sheet";
 import { PlanMilestonesSheet } from "@/components/sheets/plan-milestones-sheet";
+import { ReviewMilestoneSheet } from "@/components/sheets/review-milestone-sheet";
 import { SetProgressSheet } from "@/components/sheets/set-progress-sheet";
 import { useMe } from "@/lib/hooks/use-users";
 import { isFounderRole } from "@/lib/roles";
@@ -84,6 +85,8 @@ export function ProjectPage({ slug }: { slug: string }) {
   const [progressOpen, setProgressOpen] = useState(false);
   const { data: me } = useMe();
   const canSetProgress = isFounderRole(me?.role);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState<MilestoneDTO | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState<MilestoneDTO | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -293,8 +296,13 @@ export function ProjectPage({ slug }: { slug: string }) {
                         state={state}
                         tasks={byBox.get(m.id) ?? []}
                         canManage={canManage}
+                        canReview={canSetProgress}
                         onQuickAdd={(title) => quickAdd(m.id, m.reviewDate, title)}
                         onMoveReview={() => moveReview(m)}
+                        onReview={() => {
+                          setReviewTarget(m);
+                          setReviewOpen(true);
+                        }}
                         onToggleDone={toggleDone}
                         onOpenTask={openTask}
                       />
@@ -369,6 +377,13 @@ export function ProjectPage({ slug }: { slug: string }) {
         />
       ) : null}
       <MoveReviewSheet open={moveOpen} onClose={() => setMoveOpen(false)} projectId={project.id} milestone={moveTarget} />
+      <ReviewMilestoneSheet
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        milestone={reviewTarget}
+        tasks={reviewTarget ? byBox.get(reviewTarget.id) ?? [] : []}
+        projectName={project.name}
+      />
       <AddMilestoneSheet open={addOpen} onClose={() => setAddOpen(false)} projectId={project.id} previousReviewDate={lastReview} startDate={project.startDate} />
       <AddPeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} projectId={project.id} />
 

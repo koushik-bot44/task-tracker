@@ -274,20 +274,6 @@ export type TodayDTO = {
   tasks: (TaskDTO & { projectName: string; projectSlug: string })[];
   /** Today's and tomorrow's meetings the caller attends or organises. */
   meetings: CalendarEventDTO[];
-  /** Founder/director only: reviews due (review date ≤ today, no outcome yet). */
-  needsOk: NeedsOkDTO[];
-};
-
-export type NeedsOkDTO = {
-  milestoneId: string;
-  milestoneName: string;
-  projectId: string;
-  projectName: string;
-  projectSlug: string;
-  reviewDate: string;
-  progress: number;
-  tasksDone: number;
-  tasksTotal: number;
 };
 
 export type NotificationDTO = {

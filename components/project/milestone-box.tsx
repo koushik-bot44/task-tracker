@@ -27,8 +27,10 @@ export function MilestoneBox({
   state,
   tasks,
   canManage,
+  canReview = false,
   onQuickAdd,
   onMoveReview,
+  onReview,
   onToggleDone,
   onOpenTask,
 }: {
@@ -37,9 +39,12 @@ export function MilestoneBox({
   state: BoxState;
   tasks: TaskDTO[];
   canManage: boolean;
+  /** The CEO alone reviews a milestone (owner, 2026-09-08). */
+  canReview?: boolean;
   /** "Add a task": one line, Enter, next line. Resolves when the row is saved. */
   onQuickAdd: (title: string) => Promise<unknown>;
   onMoveReview: () => void;
+  onReview?: () => void;
   onToggleDone: (task: TaskDTO, done: boolean) => void;
   onOpenTask: (id: string) => void;
 }) {
@@ -78,20 +83,39 @@ export function MilestoneBox({
             <h2 className="truncate text-row font-semibold text-ink">{name}</h2>
           </div>
           {milestone ? (
-            canManage ? (
-              <button
-                type="button"
-                onClick={onMoveReview}
-                aria-label={`Review ${dateWord(milestone.reviewDate)}. Move the review date`}
-                className="press -mr-2 -mt-1 shrink-0 rounded-input px-2 py-1 text-right"
-              >
-                {dateBlock}
-              </button>
-            ) : (
-              <div className="shrink-0 text-right">{dateBlock}</div>
-            )
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              {canManage ? (
+                <button
+                  type="button"
+                  onClick={onMoveReview}
+                  aria-label={`Review ${dateWord(milestone.reviewDate)}. Move the review date`}
+                  className="press -mr-2 -mt-1 rounded-input px-2 py-1 text-right"
+                >
+                  {dateBlock}
+                </button>
+              ) : (
+                <div className="text-right">{dateBlock}</div>
+              )}
+              {canReview && onReview ? (
+                <button
+                  type="button"
+                  onClick={onReview}
+                  className="press rounded-chip bg-primary-soft px-3 py-1 text-micro font-semibold text-primary-ink"
+                >
+                  {milestone.outcome ? "Change review" : "Review"}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
+
+        {/* What the CEO decided, in everyone's sight. */}
+        {milestone?.outcome && state !== "past" ? (
+          <p className="mt-1.5 text-sm">
+            <span className="font-medium text-ink">{MILESTONE_OUTCOME_LABEL[milestone.outcome]}</span>
+            {milestone.outcomeNote ? <span className="text-muted"> · {milestone.outcomeNote}</span> : null}
+          </p>
+        ) : null}
 
         {line ? (
           <button
@@ -104,6 +128,8 @@ export function MilestoneBox({
             <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-150", expanded && "rotate-180")} strokeWidth={2} aria-hidden />
           </button>
         ) : null}
+
+        {milestone?.outcomeNote && state === "past" ? <p className="-mt-0.5 mb-1 px-1 text-sm text-muted">{milestone.outcomeNote}</p> : null}
 
         <AnimatePresence initial={false}>
           {open ? (

@@ -3,7 +3,7 @@ import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
 import { canSeeProject } from "@/lib/project-visibility";
 import { canManageProject } from "@/lib/project-people";
-import { syncReviewMeeting } from "@/lib/meetings";
+import { eventDay, syncReviewMeeting } from "@/lib/meetings";
 import { milestoneRows } from "@/lib/milestones";
 import { serializeMilestone } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
@@ -36,7 +36,9 @@ export const POST = route(async (req: Request) => {
   if (!(await canSeeProject(actor, projectId))) return NextResponse.json({ error: "Project not found" }, { status: 404 });
   if (!(await canManageProject(actor, projectId))) throw new HttpError(403, "Only the people running this project can add a milestone.");
 
-  const date = new Date(reviewDate);
+  // One representation for a review day, so the meeting and the tasks can
+  // match it exactly (owner, 2026-09-08).
+  const date = eventDay(new Date(reviewDate));
   if (Number.isNaN(date.getTime())) return NextResponse.json({ error: "Pick a review date" }, { status: 400 });
 
   const last = await prisma.milestone.findFirst({ where: { projectId }, orderBy: { orderKey: "desc" }, select: { orderKey: true } });

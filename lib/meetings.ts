@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { projectPeople, reviewAttendeeIds } from "@/lib/project-people";
+import { istDayKey } from "@/lib/timezone";
 
 /** "HH:MM" 24-hour. Used to validate a meeting's start/end times. */
 export const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -40,7 +41,13 @@ export async function validCompanyAttendeeIds(submitted: string[]): Promise<stri
 
 /** A calendar day (YYYY-MM-DD or ISO) as that day's UTC midnight — how events are stored. */
 export function eventDay(input: string | Date): Date {
-  const key = typeof input === "string" ? input.slice(0, 10) : input.toISOString().slice(0, 10);
+  // The day is the IST day. Reading it off the UTC string put every review a
+  // day early whenever the date was stored as IST midnight — 14 Sep 18:30 UTC
+  // IS 15 Sep here (owner, 2026-09-08).
+  const key =
+    typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input)
+      ? input
+      : istDayKey(typeof input === "string" ? new Date(input) : input);
   return new Date(`${key}T00:00:00.000Z`);
 }
 

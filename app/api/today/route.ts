@@ -6,15 +6,15 @@ import { isExecutiveRole } from "@/lib/roles";
 import { enrichProjects } from "@/lib/projects";
 import { TASK_INCLUDE, eventInclude, eventToDTO, serializeTask, withCounts } from "@/lib/serialize";
 import { startOfDay } from "@/lib/dates";
-import type { NeedsOkDTO, TodayDTO } from "@/lib/types";
+import type { TodayDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * Today, in one round trip: the company line (executives + HODs), your open
- * tasks (overdue first), today's + tomorrow's meetings with replies, and the
- * founder/director's reviews waiting for an outcome.
+ * tasks (overdue first), and today's + tomorrow's meetings with replies. A
+ * review is recorded on the milestone box itself (owner, 2026-09-08).
  */
 export const GET = route(async () => {
   const user = await requireUser();
@@ -24,11 +24,11 @@ export const GET = route(async () => {
   dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
   const weekEnd = new Date(today);
   weekEnd.setDate(weekEnd.getDate() + 7);
-  const twoWeeks = new Date(today);
-  twoWeeks.setDate(twoWeeks.getDate() + 14);
+  const quarter = new Date(today);
+  quarter.setDate(quarter.getDate() + 90);
   const projectFilter = visible ? { projectId: { in: [...visible] } } : {};
 
-  const [tasks, events, projects, reviews] = await Promise.all([
+  const [tasks, events, projects] = await Promise.all([
     prisma.task.findMany({
       where: {
         deletedAt: null,
@@ -44,11 +44,11 @@ export const GET = route(async () => {
     prisma.calendarEvent.findMany({
       where: {
         isMeeting: true,
-        // Stored as UTC midnight of the calendar day. Two weeks out; narrowed below to
-        // today + tomorrow plus anything later that still needs this person (no reply
-        // yet, or a "Can't" the organiser has to act on — so a moved meeting never
-        // drops out of sight before it is settled).
-        date: { gte: new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())), lt: new Date(Date.UTC(twoWeeks.getFullYear(), twoWeeks.getMonth(), twoWeeks.getDate())) },
+        // Stored as UTC midnight of the calendar day. A quarter ahead, narrowed
+        // below to today + tomorrow plus a later meeting somebody can't make and
+        // this person can move. Two weeks was too short: a "Can't" on a review a
+        // month out never reached the organiser (owner, 2026-09-08).
+        date: { gte: new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())), lt: new Date(Date.UTC(quarter.getFullYear(), quarter.getMonth(), quarter.getDate())) },
         OR: [{ attendees: { some: { userId: user.id } } }, { createdById: user.id }],
       },
       include: eventInclude,
@@ -60,13 +60,6 @@ export const GET = route(async () => {
           include: { lead: { select: { id: true, name: true } } },
         })
       : Promise.resolve(null),
-    isExecutiveRole(user.role)
-      ? prisma.milestone.findMany({
-          where: { outcome: null, reviewDate: { lt: new Date(today.getTime() + 86_400_000) } },
-          include: { project: { select: { id: true, name: true, slug: true, status: true, progressManual: true } } },
-          orderBy: { reviewDate: "asc" },
-        })
-      : Promise.resolve([]),
   ]);
 
   // Steps + note counts for the rows.
@@ -94,52 +87,13 @@ export const GET = route(async () => {
     summary = { projects: rich.length, behind: rich.filter((p) => p.behind).length, reviewsThisWeek };
   }
 
-  let needsOk: NeedsOkDTO[] = [];
-  if (reviews.length) {
-    const [counts, projectCounts] = await Promise.all([
-      prisma.task.groupBy({
-        by: ["milestoneId", "status"],
-        where: { milestoneId: { in: reviews.map((r) => r.id) }, deletedAt: null, archived: false, parentId: null },
-        _count: { _all: true },
-      }),
-      prisma.task.groupBy({
-        by: ["projectId", "status"],
-        where: { projectId: { in: reviews.map((r) => r.project.id) }, deletedAt: null, archived: false, parentId: null },
-        _count: { _all: true },
-      }),
-    ]);
-    // The project's number: the CEO's own when set by hand, else tasks done ÷ tasks.
-    const projectProgress = (projectId: string, status: string, manual: number | null) => {
-      if (manual !== null) return manual;
-      if (status === "DONE") return 100;
-      const rows = projectCounts.filter((c) => c.projectId === projectId);
-      const total = rows.reduce((n, c) => n + c._count._all, 0);
-      const done = rows.filter((c) => c.status === "DONE").reduce((n, c) => n + c._count._all, 0);
-      return total === 0 ? 0 : Math.round((done / total) * 100);
-    };
-    needsOk = reviews.map((r) => {
-      const mine = counts.filter((c) => c.milestoneId === r.id);
-      return {
-        milestoneId: r.id,
-        milestoneName: r.name,
-        projectId: r.project.id,
-        projectName: r.project.name,
-        projectSlug: r.project.slug,
-        reviewDate: r.reviewDate.toISOString(),
-        progress: projectProgress(r.project.id, r.project.status, r.project.progressManual),
-        tasksDone: mine.filter((c) => c.status === "DONE").reduce((n, c) => n + c._count._all, 0),
-        tasksTotal: mine.reduce((n, c) => n + c._count._all, 0),
-      };
-    });
-  }
-
-  // Today + tomorrow always; a later meeting only while it still needs this
-  // person: they have not replied, or someone said Can't and they can move it.
+  // Today + tomorrow. A later meeting appears only when it is waiting on THIS
+  // person to act: somebody said Can't and they are the one who can move it.
+  // "I have not replied yet" is not a reason — nobody replies to a review three
+  // weeks out, and it put every future review on Today (owner, 2026-09-08).
   const soonCutoff = Date.UTC(dayAfterTomorrow.getFullYear(), dayAfterTomorrow.getMonth(), dayAfterTomorrow.getDate());
   const meetings = events.filter((e) => {
     if (e.date.getTime() < soonCutoff) return true;
-    const mine = e.attendees.find((a) => a.userId === user.id);
-    if (mine && mine.response === null) return true;
     const canMove = isExecutiveRole(user.role) || e.createdById === user.id;
     return canMove && e.attendees.some((a) => a.response === "NO");
   });
@@ -148,7 +102,6 @@ export const GET = route(async () => {
     summary,
     tasks: sorted.map(({ row, project }) => ({ ...serializeTask(row), projectName: project?.name ?? "", projectSlug: project?.slug ?? "" })),
     meetings: meetings.map((e) => eventToDTO(e, { id: user.id, canReschedule: isExecutiveRole(user.role) })),
-    needsOk,
   };
   return NextResponse.json(payload);
 });

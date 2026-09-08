@@ -171,12 +171,13 @@ async function main() {
   const bellMoved = await prisma.notification.findFirst({ where: { userId: member.id, type: "tomorrow", title: { startsWith: "Moved" } } });
   record("F2 (b) re-sent after the move (bell)", Boolean(bellMoved));
 
-  console.log("\n── F3 review date → Needs your OK → On track → (c) ────────────────────");
+  console.log("\n── F3 review date → Review on the box → On track → (c) ─────────────");
   const m2 = await call(director, "POST", "/api/milestones", { projectId, name: "FLOW Milestone due", reviewDate: day(0) });
   const m2Id: string = m2.json?.id;
   const dToday = await call(director, "GET", "/api/today");
-  record("F3 Needs your OK lists the review", (dToday.json?.needsOk ?? []).some((n: any) => n.milestoneId === m2Id));
-  record("F3 member does NOT get Needs your OK", (today.json?.needsOk ?? []).length === 0);
+  // The review is recorded on the milestone box now, not from a card on Today
+  // (owner, 2026-09-08).
+  record("F3 Today carries no review card", dToday.json?.needsOk === undefined);
   const okByManager = await call(manager, "POST", `/api/milestones/${m2Id}/outcome`, { outcome: "ON_TRACK" });
   record("F3 manager cannot record an outcome", okByManager.status === 403, `status ${okByManager.status}`);
   const ok = await call(director, "POST", `/api/milestones/${m2Id}/outcome`, { outcome: "ON_TRACK", note: "Good pace" });

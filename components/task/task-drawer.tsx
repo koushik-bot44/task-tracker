@@ -305,7 +305,6 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
       <Sheet open={whenOpen} onClose={() => setWhenOpen(false)} title="By when?">
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => { patch({ dueDate: isoDaysFromNow(0) }); setWhenOpen(false); }}>Today</Button>
             <Button variant="secondary" onClick={() => { patch({ dueDate: isoDaysFromNow(1) }); setWhenOpen(false); }}>Tomorrow</Button>
             {milestone ? (
               <Button variant="secondary" onClick={() => { patch({ dueDate: milestone.reviewDate }); setWhenOpen(false); }}>
@@ -333,7 +332,7 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
       {/* Status */}
       <Sheet open={statusOpen} onClose={() => setStatusOpen(false)} title="Where is it?">
         <ul className="divide-y divide-line">
-          {TASK_STATUSES.map((s) => (
+          {TASK_STATUSES.filter((s) => s !== "DONE").map((s) => (
             <li key={s}>
               <button
                 type="button"
