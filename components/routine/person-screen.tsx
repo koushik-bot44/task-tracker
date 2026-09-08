@@ -61,6 +61,23 @@ export function PersonScreen() {
     <div className="relative min-h-dvh bg-bg">
       <div aria-hidden className="wb-scene wb-scene-full">
         {mounted ? <WellBeingScene night={night} /> : null}
+        {/* The same picture the CEO's Well Being wears — Arjun's screen is the
+            other half of the same room (owner, 2026-09-08). */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
+          style={{
+            backgroundImage: "url('/well-being.jpg')",
+            filter: night ? "saturate(112%) brightness(0.9)" : "saturate(108%)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: night
+              ? "linear-gradient(180deg, rgba(10,14,32,0.18) 0%, rgba(10,14,32,0.42) 100%)"
+              : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
+          }}
+        />
       </div>
       <div
         className="relative z-10 mx-auto flex min-h-dvh max-w-2xl flex-col"
