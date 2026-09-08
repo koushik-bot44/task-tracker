@@ -160,7 +160,7 @@ export function NotesThread({
 
 function NoteItem({ note, mine, onDelete, compact }: { note: CommentDTO; mine: boolean; onDelete: () => void; compact: boolean }) {
   return (
-    <li className="group flex items-start gap-2.5">
+    <li className="flex items-start gap-2.5">
       <Face name={note.author.name} size={compact ? "sm" : "md"} className="mt-0.5" />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
@@ -171,7 +171,7 @@ function NoteItem({ note, mine, onDelete, compact }: { note: CommentDTO; mine: b
               type="button"
               onClick={onDelete}
               aria-label="Delete your note"
-              className="ml-auto grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted opacity-0 transition-opacity duration-150 focus-visible:opacity-100 group-hover:opacity-100 hover:text-danger-ink"
+              className="press ml-auto grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted hover:text-danger-ink"
             >
               <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
             </button>
