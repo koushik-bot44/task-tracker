@@ -111,7 +111,6 @@ export function ProjectHeader({
           {bar}
         </div>
       )}
-      {project.progressManual !== null ? <p className="-mt-1 text-right text-micro text-muted">Set by the CEO</p> : null}
       {canManage ? <PrioritySheet open={priorityOpen} onClose={() => setPriorityOpen(false)} project={project} /> : null}
       {canManage ? <ProjectLookSheet open={lookOpen} onClose={() => setLookOpen(false)} project={project} /> : null}
       {canManage ? <ProjectDetailsSheet open={detailsOpen} onClose={() => setDetailsOpen(false)} project={project} people={people} /> : null}
