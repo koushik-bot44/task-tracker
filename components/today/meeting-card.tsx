@@ -32,7 +32,10 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
   const [changing, setChanging] = useState(false);
   const [moving, setMoving] = useState(false);
 
-  const when = [dateWord(meeting.date), meeting.startTime, meeting.projectName].filter(Boolean).join(" · ");
+  // "Milestone 1 review" says nothing on its own — the project belongs in the
+  // headline (owner, 2026-09-08).
+  const headline = meeting.projectName ? `${meeting.title} · ${meeting.projectName}` : meeting.title;
+  const when = [dateWord(meeting.date), meeting.startTime].filter(Boolean).join(" · ");
   // Whoever can move the meeting (the organiser, the founder, a director) sees
   // the replies and a Postpone button at all times — it is their call, not
   // only a reaction to someone else's "Can't" (owner, 2026-09-04).
@@ -52,7 +55,7 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
     <Card as="article" className="p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-row font-medium text-ink">{meeting.title}</p>
+          <p className="truncate text-row font-medium text-ink">{headline}</p>
           <p className="truncate text-micro text-muted">{when}</p>
         </div>
         {meeting.milestoneId ? <Chip tone="primary">Review</Chip> : null}

@@ -72,6 +72,8 @@ export function EventChip({ event, compact = false }: { event: CalendarEventDTO;
       {event.startTime ? <span className="shrink-0 tabular-nums">{event.startTime}</span> : null}
       <span className="min-w-0 truncate">
         {review && event.milestoneName ? `${event.milestoneName} review` : event.title}
+        {/* "Milestone 1 review" of WHAT? The project rides along where there is room (owner, 2026-09-08). */}
+        {!compact && event.projectName ? ` · ${event.projectName}` : ""}
       </span>
     </span>
   );
