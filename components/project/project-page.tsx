@@ -149,7 +149,9 @@ export function ProjectPage({ slug }: { slug: string }) {
           parentId: null,
           orderKey: keyAtEnd(byBox.get(milestoneId) ?? [], null),
           title,
-          dueDate: reviewDate ? startOfDay(new Date(reviewDate)).toISOString() : null,
+          // The box's own value, not a re-derived one: re-deriving shifted the
+          // day for anyone east of UTC (owner, 2026-09-08).
+          dueDate: reviewDate,
           dueProvisional: Boolean(reviewDate),
           assigneeId: null,
           milestoneId,
@@ -191,7 +193,6 @@ export function ProjectPage({ slug }: { slug: string }) {
       },
     );
   };
-  const activeReview = active ? milestones.find((m) => m.id === active.milestoneId)?.reviewDate ?? null : null;
 
   // ── States ────────────────────────────────────────────────────────────────
   if (isLoading && !project) {
@@ -325,7 +326,7 @@ export function ProjectPage({ slug }: { slug: string }) {
               </div>
             </div>
 
-            <DragOverlay dropAnimation={reduce ? null : undefined}>{active ? <TaskRowOverlay task={active} reviewDate={activeReview} /> : null}</DragOverlay>
+            <DragOverlay dropAnimation={reduce ? null : undefined}>{active ? <TaskRowOverlay task={active} /> : null}</DragOverlay>
           </DndContext>
         )}
 

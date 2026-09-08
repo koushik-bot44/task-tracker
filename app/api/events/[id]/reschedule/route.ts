@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { eventDay, nextWorkingDays } from "@/lib/meetings";
+import { eventDay, nextWorkingDays, syncProvisionalTaskDates } from "@/lib/meetings";
 import { eventInclude, eventToDTO } from "@/lib/serialize";
 import { isExecutiveRole } from "@/lib/roles";
 import { HttpError, requireUser, route } from "@/lib/session";
@@ -48,6 +48,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
     await tx.eventAttendee.updateMany({ where: { eventId: ev.id }, data: { response: null, respondedAt: null } });
     if (ev.milestoneId) await tx.milestone.update({ where: { id: ev.milestoneId }, data: { reviewDate: date } });
   });
+  // The box's tasks travel with it (owner, 2026-09-08).
+  if (ev.milestoneId) await syncProvisionalTaskDates(ev.milestoneId, date);
   const resent = await resendForMeeting(ev.id);
   const updated = await prisma.calendarEvent.findUnique({ where: { id: ev.id }, include: eventInclude });
   return NextResponse.json({ event: eventToDTO(updated!, { id: user.id, canReschedule: true }), resent });

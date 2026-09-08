@@ -22,6 +22,41 @@ function when(iso: string): string {
 
 const isImage = (type: string | null) => Boolean(type && type.startsWith("image/"));
 
+const LINK_RE = /(https?:\/\/[^\s<>()]+|www\.[^\s<>()]+)/gi;
+
+/**
+ * A note can carry a link: paste one and it is tappable (owner, 2026-09-08).
+ * Trailing punctuation stays with the sentence, not the link.
+ */
+function Linkified({ text }: { text: string }) {
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  for (const match of text.matchAll(LINK_RE)) {
+    const start = match.index ?? 0;
+    const raw = match[0];
+    const trail = /[.,;:!?)\]]+$/.exec(raw)?.[0] ?? "";
+    const url = trail ? raw.slice(0, -trail.length) : raw;
+    if (start > last) out.push(text.slice(last, start));
+    out.push(
+      <a
+        key={key++}
+        href={url.startsWith("www.") ? `https://${url}` : url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="break-all font-medium text-primary-ink underline underline-offset-2"
+      >
+        {url}
+      </a>,
+    );
+    if (trail) out.push(trail);
+    last = start + raw.length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return <>{out}</>;
+}
+
 /**
  * ONE notes thread for projects, milestones and tasks (restructure). Plain
  * text, author-only delete, a camera and a paper-clip on the composer (both
@@ -32,7 +67,7 @@ export function NotesThread({
   targetType,
   targetId,
   autoFocus = false,
-  placeholder = "Add a note…",
+  placeholder = "Add a note, or paste a link…",
   compact = false,
   attachments = true,
 }: {
@@ -183,7 +218,11 @@ function NoteItem({ note, mine, onDelete, compact }: { note: CommentDTO; mine: b
             </button>
           ) : null}
         </div>
-        {note.body ? <p className="whitespace-pre-wrap break-words text-sm text-ink">{note.body}</p> : null}
+        {note.body ? (
+          <p className="whitespace-pre-wrap break-words text-sm text-ink">
+            <Linkified text={note.body} />
+          </p>
+        ) : null}
         {note.attachmentUrl ? <Attachment url={note.attachmentUrl} name={note.attachmentName} type={note.attachmentType} /> : null}
       </div>
     </li>

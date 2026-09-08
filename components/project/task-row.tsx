@@ -5,7 +5,6 @@ import { GripVertical } from "lucide-react";
 import { Face } from "@/components/ui/face";
 import { Check } from "@/components/ui/row";
 import { cn } from "@/lib/cn";
-import { dateState, dateWord, sameDay } from "@/lib/dates";
 import { useMe } from "@/lib/hooks/use-users";
 import { isLeadOrAboveRole } from "@/lib/roles";
 import type { TaskDTO } from "@/lib/types";
@@ -18,11 +17,11 @@ export const boxIdFromDrop = (dropId: string | number): string | null => {
   return raw === "none" ? null : raw;
 };
 
-/** Title (+ "2 of 3 steps"), then the date word only when it is not the review day, then the Face. */
-function TitleBlock({ task, reviewDate }: { task: TaskDTO; reviewDate: string | null }) {
+/** Title (+ "2 of 3 steps"), then the Face. No date: a task in a box is a
+    plain line, and the box's own review day is the date that matters
+    (owner, 2026-09-08). The task's own day lives in its drawer. */
+function TitleBlock({ task }: { task: TaskDTO }) {
   const done = task.status === "DONE";
-  const showDate = Boolean(task.dueDate) && !sameDay(task.dueDate, reviewDate);
-  const late = task.dueDate ? dateState(task.dueDate, task.status) === "overdue" : false;
   return (
     <>
       <span className="min-w-0 flex-1">
@@ -33,9 +32,6 @@ function TitleBlock({ task, reviewDate }: { task: TaskDTO; reviewDate: string | 
           </span>
         ) : null}
       </span>
-      {showDate && task.dueDate ? (
-        <span className={cn("shrink-0 text-micro font-medium", late && !done ? "text-danger-ink" : "text-muted")}>{dateWord(task.dueDate)}</span>
-      ) : null}
       {task.assigneeName ? <Face name={task.assigneeName} /> : null}
     </>
   );
@@ -48,12 +44,10 @@ function TitleBlock({ task, reviewDate }: { task: TaskDTO; reviewDate: string | 
  */
 export function TaskRow({
   task,
-  reviewDate,
   onToggleDone,
   onOpen,
 }: {
   task: TaskDTO;
-  reviewDate: string | null;
   onToggleDone: (done: boolean) => void;
   onOpen: () => void;
 }) {
@@ -90,19 +84,19 @@ export function TaskRow({
       </button>
       <Check className="-ml-2" checked={done} onChange={onToggleDone} label={done ? `Mark ${title} not done` : `Mark ${title} done`} readOnly={!canTick} />
       <button type="button" onClick={onOpen} className="press flex min-h-[56px] min-w-0 flex-1 items-center gap-3 rounded-card py-1 pl-1 pr-1 text-left">
-        <TitleBlock task={task} reviewDate={reviewDate} />
+        <TitleBlock task={task} />
       </button>
     </li>
   );
 }
 
 /** What travels under the finger: the same row, lifted. */
-export function TaskRowOverlay({ task, reviewDate }: { task: TaskDTO; reviewDate: string | null }) {
+export function TaskRowOverlay({ task }: { task: TaskDTO }) {
   const done = task.status === "DONE";
   return (
     <div className="card flex min-h-[56px] items-center gap-3 px-4 shadow-lift">
       <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full border-2", done ? "border-ok bg-ok" : "border-muted")} aria-hidden />
-      <TitleBlock task={task} reviewDate={reviewDate} />
+      <TitleBlock task={task} />
     </div>
   );
 }

@@ -45,6 +45,21 @@ export function eventDay(input: string | Date): Date {
 }
 
 /**
+ * A box's tasks follow its review day. Only dates the app set itself
+ * (dueProvisional) move — a day somebody chose by hand is theirs to keep.
+ * Without this a moved review left its tasks stranded on the old day, which
+ * is what put stray dates on the rows (owner, 2026-09-08).
+ */
+export async function syncProvisionalTaskDates(milestoneId: string, reviewDate: Date): Promise<void> {
+  // The exact value the milestone holds — converting it again would shift the
+  // day for anyone east of UTC.
+  await prisma.task.updateMany({
+    where: { milestoneId, dueProvisional: true, deletedAt: null },
+    data: { dueDate: reviewDate },
+  });
+}
+
+/**
  * Keep a milestone's review meeting in step with the milestone (restructure).
  * Creates it when missing; moves it when the date changed (clearing every
  * reply, since a moved meeting is a new question); refreshes the attendee

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { canSeeProject } from "@/lib/project-visibility";
 import { canManageProject } from "@/lib/project-people";
-import { syncReviewMeeting } from "@/lib/meetings";
+import { syncProvisionalTaskDates, syncReviewMeeting } from "@/lib/meetings";
 import { milestoneRows } from "@/lib/milestones";
 import { serializeMilestone } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
@@ -36,6 +36,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     data.reviewDate = d;
   }
   await prisma.milestone.update({ where: { id: params.id }, data });
+  if (data.reviewDate) await syncProvisionalTaskDates(params.id, data.reviewDate);
   await syncReviewMeeting(params.id, actor.id);
   const row = (await milestoneRows(m.projectId)).find((r) => r.id === params.id);
   return NextResponse.json(serializeMilestone(row!));

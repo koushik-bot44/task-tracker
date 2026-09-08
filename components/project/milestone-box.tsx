@@ -47,7 +47,6 @@ export function MilestoneBox({
   const { setNodeRef, isOver } = useDroppable({ id: boxDropId(milestone?.id ?? null) });
   const [expanded, setExpanded] = useState(false);
   const open = state === "current" || state === "loose" || expanded;
-  const reviewDate = milestone?.reviewDate ?? null;
   const name = milestone?.name ?? "Not in a milestone yet";
 
   let line: string | null = null;
@@ -118,7 +117,7 @@ export function MilestoneBox({
               {tasks.length > 0 ? (
                 <ul className="mt-1">
                   {tasks.map((t) => (
-                    <TaskRow key={t.id} task={t} reviewDate={reviewDate} onToggleDone={(done) => onToggleDone(t, done)} onOpen={() => onOpenTask(t.id)} />
+                    <TaskRow key={t.id} task={t} onToggleDone={(done) => onToggleDone(t, done)} onOpen={() => onOpenTask(t.id)} />
                   ))}
                 </ul>
               ) : state === "current" || state === "loose" ? (
