@@ -21,6 +21,11 @@
 const FALLBACK = "https://orbittasktracker.vercel.app";
 
 export function getBaseUrl(): string {
+  // A dev server must never stamp the production domain into an email — the
+  // token in the link only exists in the dev database (defect, 2026-09-08).
+  if (process.env.NODE_ENV !== "production" && !process.env.APP_URL && !process.env.VERCEL_URL) {
+    return "http://localhost:3000";
+  }
   const raw =
     process.env.APP_URL ||
     process.env.VERCEL_PROJECT_PRODUCTION_URL ||
