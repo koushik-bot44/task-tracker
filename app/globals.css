@@ -370,8 +370,8 @@
   -webkit-backdrop-filter: blur(34px) saturate(185%);
 }
 .pk-day {
-  --pk-bg: rgba(255, 255, 255, 0.34);
-  --pk-border: rgba(255, 255, 255, 0.55);
+  --pk-bg: rgba(255, 255, 255, 0.38);
+  --pk-border: rgba(255, 255, 255, 0.58);
   --pk-sheen: rgba(255, 255, 255, 0.9);
   --pk-fg: #16255b;
   --pk-fg-soft: #44548a;
@@ -381,8 +381,8 @@
 }
 .pk-night {
   /* Colourless glass, not navy plastic: the picture behind supplies the colour. */
-  --pk-bg: rgba(255, 255, 255, 0.10);
-  --pk-border: rgba(255, 255, 255, 0.22);
+  --pk-bg: rgba(255, 255, 255, 0.13);
+  --pk-border: rgba(255, 255, 255, 0.26);
   --pk-sheen: rgba(255, 255, 255, 0.22);
   --pk-fg: #f7f9ff;
   --pk-fg-soft: #d7dded;

@@ -86,19 +86,20 @@ export function RoutinePage() {
           className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
           style={{
             backgroundImage: "url('/well-being.jpg')",
-            opacity: night ? 0.85 : 1,
+            opacity: 1,
             // Softened the way a wallpaper sits behind glass: recognisable, never
             // competing with the words on top. Scaled so the blur has no edge.
-            filter: night ? "blur(6px) saturate(105%) brightness(0.85)" : "blur(6px) saturate(110%)",
-            transform: "scale(1.08)",
+            // Sharp: the picture is the point. The panels do the blurring —
+            // each one frosts whatever sits behind IT (owner, 2026-09-08).
+            filter: night ? "saturate(112%) brightness(0.9)" : "saturate(108%)",
           }}
         />
         <div
           className="absolute inset-0"
           style={{
             background: night
-              ? "linear-gradient(180deg, rgba(10,14,32,0.30) 0%, rgba(10,14,32,0.52) 100%)"
-              : "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.34) 100%)",
+              ? "linear-gradient(180deg, rgba(10,14,32,0.18) 0%, rgba(10,14,32,0.42) 100%)"
+              : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
           }}
         />
       </div>
