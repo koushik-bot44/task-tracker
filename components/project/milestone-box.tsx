@@ -3,7 +3,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TaskRow, boxDropId } from "@/components/project/task-row";
 import { Card } from "@/components/ui/card";
 import { inputClass } from "@/components/ui/sheet";
@@ -142,20 +142,23 @@ export function MilestoneBox({
 function QuickAdd({ onAdd }: { onAdd: (title: string) => Promise<unknown> }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Enter clears the line and leaves the cursor where it is, so twenty tasks
+  // are twenty Enters — the field never blocks while one is saving (owner,
+  // 2026-09-08). Sends are chained so each line lands at the end of the box,
+  // in the order it was typed, and always through the freshest handler.
+  const add = useRef(onAdd);
+  useEffect(() => {
+    add.current = onAdd;
+  });
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
 
-  const submit = async () => {
+  const submit = () => {
     const text = title.trim();
-    if (!text || saving) return;
-    setSaving(true);
-    try {
-      await onAdd(text);
-      setTitle("");
-    } finally {
-      setSaving(false);
-      inputRef.current?.focus();
-    }
+    if (!text) return;
+    setTitle("");
+    queue.current = queue.current.then(() => add.current(text)).catch(() => undefined);
+    inputRef.current?.focus();
   };
 
   if (!open) {
@@ -185,19 +188,18 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => Promise<unknown> }) {
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            void submit();
+            submit();
           } else if (e.key === "Escape") {
             setTitle("");
             setOpen(false);
           }
         }}
         onBlur={() => {
-          if (!title.trim() && !saving) setOpen(false);
+          if (!title.trim()) setOpen(false);
         }}
         placeholder="What needs doing? Enter to add"
         aria-label="What needs doing"
         autoFocus
-        disabled={saving}
         className={cn(inputClass, "h-11")}
       />
     </div>
