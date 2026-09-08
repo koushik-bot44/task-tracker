@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, Plus, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { TaskRow, boxDropId } from "@/components/project/task-row";
 import { Card } from "@/components/ui/card";
@@ -53,6 +53,7 @@ export function MilestoneBox({
   const [expanded, setExpanded] = useState(false);
   const open = state === "current" || state === "loose" || expanded;
   const name = milestone?.name ?? "Not in a milestone yet";
+  const starred = tasks.filter((t) => t.important && t.status !== "DONE").length;
 
   let line: string | null = null;
   if (milestone && state === "past") {
@@ -125,6 +126,14 @@ export function MilestoneBox({
             className="press -mx-2 mt-1 flex h-11 w-[calc(100%+1rem)] items-center gap-2 rounded-input px-2 text-left text-sm text-muted"
           >
             <span className="min-w-0 flex-1 truncate">{line}</span>
+            {/* A folded box still says how many of its tasks are important, so
+                nobody has to open every box to find them (owner, 2026-09-08). */}
+            {starred > 0 ? (
+              <span className="flex shrink-0 items-center gap-1 text-warn-ink" aria-label={`${starred} important`}>
+                <Star className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" aria-hidden />
+                <span className="text-micro font-semibold tabular-nums">{starred}</span>
+              </span>
+            ) : null}
             <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-150", expanded && "rotate-180")} strokeWidth={2} aria-hidden />
           </button>
         ) : null}
