@@ -79,6 +79,14 @@ export function RoutinePage() {
     <div ref={rootRef} className={cn("wb-fs relative min-h-[calc(100dvh-4rem)]", sceneClass)}>
       <div aria-hidden className="wb-scene wb-scene-app">
         {mounted ? <WellBeingScene night={night} /> : null}
+        {/* The owner's picture over the scene: a calm hill under a wide sky
+            (owner, 2026-09-08). Dimmed at night so the glass panels keep their
+            contrast. */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
+          style={{ backgroundImage: "url('/well-being.jpg')", opacity: night ? 0.6 : 0.9 }}
+        />
+        <div className="absolute inset-0" style={{ background: night ? "rgba(8,12,28,0.42)" : "rgba(255,255,255,0.14)" }} />
       </div>
       {/* z-[1] sits above the z-0 scene but BELOW the app header (z-sticky = 10), so the
           content slides cleanly under the chrome instead of painting over it when scrolled. */}
