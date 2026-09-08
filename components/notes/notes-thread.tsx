@@ -96,7 +96,13 @@ export function NotesThread({
       ) : (
         <ul className="space-y-3">
           {(notes ?? []).map((note) => (
-            <NoteItem key={note.id} note={note} mine={me?.id === note.author.id} onDelete={() => removeComment.mutate(note.id)} compact={compact} />
+            <NoteItem
+              key={note.id}
+              note={note}
+              mine={me?.id === note.author.id || me?.role === "FOUNDER"}
+              onDelete={() => removeComment.mutate(note.id)}
+              compact={compact}
+            />
           ))}
         </ul>
       )}
