@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DeadlineMark, EventChip, TaskChip, isReview } from "@/components/calendar/chips";
+import { DeadlineMark, EventChip, isReview } from "@/components/calendar/chips";
 import { DayPanel, type DayItems } from "@/components/calendar/day-panel";
 import { ProjectFilter } from "@/components/calendar/project-filter";
 import { ScheduleMeetingSheet } from "@/components/calendar/schedule-meeting-sheet";
@@ -14,22 +14,22 @@ import { cn } from "@/lib/cn";
 import { dayKey, dayKeyOf, isSameMonth, isToday, monthDays, monthLabel, monthMatrix, payloadRange, WEEKDAYS } from "@/lib/calendar";
 import { daysUntil } from "@/lib/dates";
 import { useCalendar } from "@/lib/hooks/use-calendar";
-import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useMe } from "@/lib/hooks/use-users";
 import { isManagerRole } from "@/lib/roles";
 import type { CalendarEventDTO } from "@/lib/types";
 
-const EMPTY: DayItems = { tasks: [], events: [], deadlines: [] };
+const EMPTY: DayItems = { events: [], deadlines: [] };
 const FILTER_KEY = "orbit-calendar-projects";
 const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type SheetState = { mode: "create"; date: string } | { mode: "edit"; event: CalendarEventDTO };
 
 /**
- * The calendar: a month of reviews, meetings, project deadlines and task
- * dates. A grid on a desktop; a strip of days plus the month's agenda on a
- * phone. Tap a day for the details; managers schedule a meeting from here.
+ * The calendar: a month of meetings, reviews and project deadlines — nothing
+ * else (owner, 2026-09-08). A grid on a desktop; a strip of days plus the
+ * month's agenda on a phone. Tap a day for the details; managers schedule a
+ * meeting from here.
  */
 export function CalendarView() {
   const reduce = useReducedMotion();
@@ -41,7 +41,6 @@ export function CalendarView() {
 
   const { data: projects } = useProjects();
   const { data: me } = useMe();
-  const { openTask } = usePanelParams();
   const isManager = isManagerRole(me?.role);
 
   // The project filter is remembered between visits.
@@ -72,14 +71,13 @@ export function CalendarView() {
     const bucket = (k: string) => {
       let d = m.get(k);
       if (!d) {
-        d = { tasks: [], events: [], deadlines: [] };
+        d = { events: [], deadlines: [] };
         m.set(k, d);
       }
       return d;
     };
     for (const d of data?.deadlines ?? []) bucket(dayKey(d.deadline)).deadlines.push(d);
     for (const e of data?.events ?? []) bucket(dayKey(e.date)).events.push(e);
-    for (const t of data?.tasks ?? []) bucket(dayKey(t.dueDate)).tasks.push(t);
     // Reviews first, then by time.
     for (const d of m.values()) {
       d.events.sort((a, b) => Number(isReview(b)) - Number(isReview(a)) || (a.startTime ?? "").localeCompare(b.startTime ?? ""));
@@ -90,7 +88,7 @@ export function CalendarView() {
   const dayOf = (k: string): DayItems => buckets.get(k) ?? EMPTY;
   const countOf = (k: string) => {
     const d = dayOf(k);
-    return d.events.length + d.deadlines.length + d.tasks.length;
+    return d.events.length + d.deadlines.length;
   };
 
   const grid = useMemo(() => monthMatrix(ym.year, ym.month), [ym]);
@@ -99,7 +97,7 @@ export function CalendarView() {
     () =>
       strip.filter((d) => {
         const b = buckets.get(dayKeyOf(d));
-        return b ? b.events.length + b.deadlines.length + b.tasks.length > 0 : false;
+        return b ? b.events.length + b.deadlines.length > 0 : false;
       }),
     [strip, buckets],
   );
@@ -178,7 +176,6 @@ export function CalendarView() {
             const marks = [
               ...items.deadlines.map((x) => ({ key: `d-${x.projectId}`, node: <DeadlineMark deadline={x} compact /> })),
               ...items.events.map((x) => ({ key: `e-${x.id}`, node: <EventChip event={x} compact /> })),
-              ...items.tasks.map((x) => ({ key: `t-${x.id}`, node: <TaskChip task={x} compact /> })),
             ];
             const shown = marks.slice(0, 3);
             const more = marks.length - shown.length;
@@ -272,9 +269,6 @@ export function CalendarView() {
                     {items.events.map((x) => (
                       <EventChip key={x.id} event={x} />
                     ))}
-                    {items.tasks.map((x) => (
-                      <TaskChip key={x.id} task={x} />
-                    ))}
                   </div>
                 </button>
               );
@@ -286,13 +280,8 @@ export function CalendarView() {
       <DayPanel
         day={openDay}
         items={openDay ? dayOf(openDay) : EMPTY}
-        projects={projects ?? []}
         isManager={Boolean(isManager)}
         onClose={() => setOpenDay(null)}
-        onOpenTask={(id) => {
-          setOpenDay(null);
-          openTask(id);
-        }}
         onEditMeeting={(event) => {
           setOpenDay(null);
           setSheet({ mode: "edit", event });

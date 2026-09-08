@@ -1,4 +1,3 @@
-import type { DateState } from "./dates";
 import type { Role as AuthRole } from "./auth";
 
 /*
@@ -204,19 +203,6 @@ export type DepartmentDTO = {
 };
 
 /** A task on the calendar: its date, with the date-state and project colour the chip needs. */
-export type CalendarTaskDTO = {
-  id: string;
-  title: string;
-  dueDate: string;
-  status: TaskStatus;
-  dateState: DateState;
-  dueProvisional: boolean;
-  projectId: string;
-  projectColor: string;
-  projectSlug: string;
-};
-
-/** A project deadline on the calendar. */
 export type CalendarDeadlineDTO = {
   projectId: string;
   name: string;
@@ -261,7 +247,6 @@ export type CalendarEventDTO = {
 };
 
 export type CalendarPayload = {
-  tasks: CalendarTaskDTO[];
   events: CalendarEventDTO[];
   deadlines: CalendarDeadlineDTO[];
 };

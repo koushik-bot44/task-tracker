@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
-import { TaskChip, isReview } from "@/components/calendar/chips";
+import { isReview } from "@/components/calendar/chips";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { DeadlineChip } from "@/components/ui/chip";
@@ -13,45 +13,33 @@ import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { dateWord, shortDate } from "@/lib/dates";
 import { useMeetingReply } from "@/lib/hooks/use-today";
-import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDTO, MeetingResponse, ProjectDTO } from "@/lib/types";
+import type { CalendarDeadlineDTO, CalendarEventDTO, MeetingResponse } from "@/lib/types";
 
-export type DayItems = { tasks: CalendarTaskDTO[]; events: CalendarEventDTO[]; deadlines: CalendarDeadlineDTO[] };
+export type DayItems = { events: CalendarEventDTO[]; deadlines: CalendarDeadlineDTO[] };
 
 /**
  * One day, opened from the grid or the strip: its reviews and meetings (with
- * everyone's replies and your own), its project deadlines, and its task
- * dates. A bottom sheet on a phone, a right-hand panel on a desktop.
+ * everyone's replies and your own) and its project deadlines — nothing else
+ * (owner, 2026-09-08). A bottom sheet on a phone, a panel on a desktop.
  */
 export function DayPanel({
   day,
   items,
-  projects,
   isManager,
   onClose,
-  onOpenTask,
   onEditMeeting,
 }: {
   /** "YYYY-MM-DD", or null when closed. */
   day: string | null;
   items: DayItems;
-  projects: ProjectDTO[];
   isManager: boolean;
   onClose: () => void;
-  onOpenTask: (id: string) => void;
   onEditMeeting: (event: CalendarEventDTO) => void;
 }) {
   const iso = day ? `${day}T00:00:00` : null;
   const meetings = [...items.events].sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
 
-  const byProject = new Map<string, { name: string; color: string; tasks: CalendarTaskDTO[] }>();
-  for (const t of items.tasks) {
-    const p = projects.find((x) => x.id === t.projectId);
-    const g = byProject.get(t.projectId) ?? { name: p?.name ?? "Project", color: p?.color ?? "var(--muted)", tasks: [] };
-    g.tasks.push(t);
-    byProject.set(t.projectId, g);
-  }
-
-  const empty = meetings.length === 0 && items.deadlines.length === 0 && items.tasks.length === 0;
+  const empty = meetings.length === 0 && items.deadlines.length === 0;
 
   return (
     <Drawer
@@ -105,25 +93,6 @@ export function DayPanel({
             </section>
           ) : null}
 
-          {byProject.size > 0 ? (
-            <section>
-              <SectionLabel>Task dates</SectionLabel>
-              <div className="space-y-3">
-                {[...byProject.entries()].map(([id, group]) => (
-                  <div key={id}>
-                    <p className="mb-1.5 text-sm font-medium text-ink">{group.name}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {group.tasks.map((t) => (
-                        <button key={t.id} type="button" onClick={() => onOpenTask(t.id)} className="press hit-40 rounded-chip" aria-label={`Open ${t.title}`}>
-                          <TaskChip task={t} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
         </div>
       ) : null}
     </Drawer>

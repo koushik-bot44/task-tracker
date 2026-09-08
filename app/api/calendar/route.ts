@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { dateState } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { requireUser, route } from "@/lib/session";
 import { isExecutiveRole, isManagerRole } from "@/lib/roles";
 import { visibleProjectIds } from "@/lib/project-visibility";
 import { eventInclude, eventToDTO } from "@/lib/serialize";
-import type { CalendarDeadlineDTO, CalendarPayload, CalendarTaskDTO } from "@/lib/types";
+import type { CalendarDeadlineDTO, CalendarPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,8 +17,12 @@ const querySchema = z.object({
 });
 
 /**
- * One payload for the whole calendar window: task dates, meetings (reviews
- * included, with everyone's replies), and project deadlines. Three queries.
+ * One payload for the whole calendar window: meetings (reviews included, with
+ * everyone's replies) and project deadlines — nothing else. Task dates used to
+ * be here and buried the two things people come for (owner, 2026-09-08).
+ *
+ * Filtering by a project means THAT project: a meeting of your own on another
+ * project no longer leaks through (owner, 2026-09-08).
  */
 export const GET = route(async (req: Request) => {
   const user = await requireUser();
@@ -43,41 +46,25 @@ export const GET = route(async (req: Request) => {
     : null;
   const projectIds = visible ? (requested ?? [...visible]).filter((id) => visible.has(id)) : requested;
 
-  const [taskRows, eventRows, deadlineRows] = await Promise.all([
-    prisma.task.findMany({
-      where: {
-        deletedAt: null,
-        isPrivate: false,
-        archived: false,
-        parentId: null,
-        dueDate: { gte: from, lte: to },
-        ...(projectIds ? { projectId: { in: projectIds } } : {}),
-      },
-      select: {
-        id: true,
-        title: true,
-        dueDate: true,
-        status: true,
-        dueProvisional: true,
-        projectId: true,
-        project: { select: { color: true, slug: true } },
-      },
-    }),
+  const mine = [{ attendees: { some: { userId: user.id } } }, { createdById: user.id }];
+  const seesEveryMeeting = visible === null || isManager;
+  const eventWhere: Record<string, unknown> = { date: { gte: from, lte: to } };
+  if (requested) {
+    // Exactly the projects asked for. A meeting with no project (the company,
+    // a department, a one-to-one) belongs to none of them.
+    eventWhere.projectId = { in: projectIds ?? [] };
+    if (!seesEveryMeeting) eventWhere.OR = mine;
+  } else if (visible === null) {
+    // The CEO sees the whole company's calendar.
+  } else if (isManager) {
+    eventWhere.OR = [{ projectId: { in: projectIds ?? [] } }, ...mine];
+  } else {
+    eventWhere.OR = mine;
+  }
+
+  const [eventRows, deadlineRows] = await Promise.all([
     prisma.calendarEvent.findMany({
-      where: {
-        date: { gte: from, lte: to },
-        OR: [
-          { isMeeting: false, ...(projectIds ? { OR: [{ projectId: { in: projectIds } }, { projectId: null }] } : {}) },
-          {
-            isMeeting: true,
-            OR: [
-              { attendees: { some: { userId: user.id } } },
-              { createdById: user.id },
-              ...(isManager ? (projectIds ? [{ projectId: { in: projectIds } }] : [{}]) : []),
-            ],
-          },
-        ],
-      },
+      where: eventWhere,
       include: eventInclude,
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     }),
@@ -86,20 +73,6 @@ export const GET = route(async (req: Request) => {
       select: { id: true, name: true, slug: true, deadline: true, color: true },
     }),
   ]);
-
-  const tasks: CalendarTaskDTO[] = taskRows
-    .filter((t) => t.dueDate !== null)
-    .map((t) => ({
-      id: t.id,
-      title: t.title,
-      dueDate: (t.dueDate as Date).toISOString(),
-      status: t.status,
-      dateState: dateState((t.dueDate as Date).toISOString(), t.status),
-      dueProvisional: t.dueProvisional,
-      projectId: t.projectId ?? "",
-      projectColor: t.project?.color ?? "",
-      projectSlug: t.project?.slug ?? "",
-    }));
 
   const deadlines: CalendarDeadlineDTO[] = deadlineRows.map((p) => ({
     projectId: p.id,
@@ -110,7 +83,6 @@ export const GET = route(async (req: Request) => {
   }));
 
   const payload: CalendarPayload = {
-    tasks,
     events: eventRows.map((e) => eventToDTO(e, { id: user.id, canReschedule: isExecutiveRole(user.role) })),
     deadlines,
   };
