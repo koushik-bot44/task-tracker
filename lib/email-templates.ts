@@ -142,6 +142,19 @@ export function taskGivenEmail(opts: {
   return { subject, html, text };
 }
 
+/** Work model: a note on the task, to the people on it. */
+export function taskNoteEmail(opts: { taskRef: string; taskTitle: string; authorName: string; body: string; url: string }): EmailBody {
+  const subject = `${opts.authorName} on ${opts.taskRef}: ${opts.taskTitle}`;
+  const html = layout({
+    heading: escapeHtml(`${opts.taskRef} ${opts.taskTitle}`),
+    bodyHtml: `<p style="margin:0 0 8px"><strong>${escapeHtml(opts.authorName)}</strong> wrote:</p><p style="margin:0 0 12px;white-space:pre-wrap">${escapeHtml(opts.body)}</p>`,
+    rows: [],
+    ctas: [{ label: "Open the task", url: opts.url }],
+  });
+  const text = [subject, "", `${opts.authorName} wrote:`, opts.body, "", `Open: ${opts.url}`].join("\n");
+  return { subject, html, text };
+}
+
 /** Work model: "resolved — close it or send it back", to whoever asked. */
 export function taskResolvedEmail(opts: {
   taskRef: string;

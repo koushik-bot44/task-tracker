@@ -11,7 +11,7 @@
  */
 import { prisma } from "@/lib/prisma";
 import { bellUsers, notifyUsers, sendMessage } from "@/lib/notify";
-import { taskGivenMessage, taskResolvedMessage } from "@/lib/messages";
+import { taskGivenMessage, taskNoteMessage, taskResolvedMessage } from "@/lib/messages";
 import { RESOLUTION_CODE_LABEL, WAITING_REASON_LABEL, WORK_PRIORITY_LABEL, WORK_STATE_LABEL, workRef } from "@/lib/types";
 import type { WorkPriority, WorkState, WaitingReason, ResolutionCode } from "@prisma/client";
 
@@ -139,9 +139,11 @@ async function route(ev: WorkEvent): Promise<void> {
     case "COMMENT_ADDED": {
       const mentions = ev.payload?.mentions ?? [];
       const ids = without([t.requesterId, t.assigneeId], actorId, ...mentions);
-      const snippet = (ev.payload?.body ?? "").slice(0, 120);
-      await notifyUsers(ids, { ...base, type: "work.note", title: `${who} on ${ref}`, body: snippet || t.title, tag: `task-${t.id}`, dedupeKey: key("note") });
-      await mentioned(ev, ref, url, mentions, snippet);
+      const body = ev.payload?.body ?? "";
+      if (ids.length) {
+        await sendMessage(ids, taskNoteMessage({ taskId: t.id, taskRef: ref, taskNumber: t.number, taskTitle: t.title, authorName: who, body, activityId: ev.activityId }));
+      }
+      await mentioned(ev, ref, url, mentions, body.slice(0, 120));
       return;
     }
     case "WORK_NOTE_ADDED": {

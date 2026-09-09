@@ -83,12 +83,16 @@ export async function notifyUsers(userIds: string[], n: BellInput & { tag: strin
 export async function sendMessage(userIds: string[], msg: OutboundMessage): Promise<{ recipients: number }> {
   const ids = [...new Set(userIds)];
   if (ids.length === 0) return { recipients: 0 };
-  const active = await prisma.user.findMany({
+  const people = await prisma.user.findMany({
     where: { id: { in: ids }, disabledAt: null, role: { notIn: ["PERSON"] } },
-    select: { id: true, email: true, emailOptIn: true },
+    select: { id: true, email: true, emailOptIn: true, status: true },
   });
-  if (active.length === 0) return { recipients: 0 };
-  const activeIds = active.map((u) => u.id);
+  if (people.length === 0) return { recipients: 0 };
+  // Someone who has not joined yet (PENDING) gets the bell row only: the
+  // invite mail is the first thing they should receive, and the task is
+  // waiting when they sign in. Push, email and WhatsApp go to ACTIVE people.
+  const activeIds = people.map((u) => u.id);
+  const active = people.filter((u) => u.status === "ACTIVE");
   const keyExtra = msg.keyExtra ? `:${msg.keyExtra}` : "";
 
   // The bell row and push are deduped on the same key as email and WhatsApp
@@ -102,7 +106,8 @@ export async function sendMessage(userIds: string[], msg: OutboundMessage): Prom
     eventId: msg.eventId ?? null,
     dedupeKey: `${msg.kind}:${msg.refId}${keyExtra}`,
   });
-  if (fresh.length) void sendPushToUsers(fresh, { title: msg.title, body: msg.body, url: msg.url, tag: msg.tag });
+  const freshActive = fresh.filter((id) => active.some((u) => u.id === id));
+  if (freshActive.length) void sendPushToUsers(freshActive, { title: msg.title, body: msg.body, url: msg.url, tag: msg.tag });
 
   try {
     await Promise.all(
@@ -125,9 +130,9 @@ export async function sendMessage(userIds: string[], msg: OutboundMessage): Prom
     console.error("[notify] email send failed:", (err as Error).message);
   }
 
-  if (whatsAppConfigured()) {
+  if (whatsAppConfigured() && active.length) {
     try {
-      await sendWhatsAppToUsers(activeIds, msg.whatsapp, { kind: msg.kind, refId: msg.refId, keyExtra: msg.keyExtra, vars: msg.vars });
+      await sendWhatsAppToUsers(active.map((u) => u.id), msg.whatsapp, { kind: msg.kind, refId: msg.refId, keyExtra: msg.keyExtra, vars: msg.vars });
     } catch (err) {
       console.error("[notify] whatsapp send failed:", (err as Error).message);
     }

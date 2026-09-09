@@ -70,6 +70,18 @@ export async function sendEmail(opts: {
     return { sent: false, skipped: true };
   }
 
+  // A laptop must never mail the company. In development, mail leaves only for
+  // addresses listed in EMAIL_DEV_ALLOW (your own, for testing); everyone else
+  // is logged as sent and skipped. The rigs used to mail real people and
+  // burned the Gmail daily limit (2026-09-09).
+  if (process.env.NODE_ENV === "development") {
+    const allow = (process.env.EMAIL_DEV_ALLOW ?? "").split(",").map((a) => a.trim().toLowerCase()).filter(Boolean);
+    if (!allow.includes(opts.to.toLowerCase())) {
+      console.log(`[email] dev: not sending to ${opts.to} (add it to EMAIL_DEV_ALLOW to receive test mail)`);
+      return { sent: false, skipped: true, reason: "dev-allowlist" };
+    }
+  }
+
   try {
     await transport!.sendMail({
       from: process.env.EMAIL_FROM,

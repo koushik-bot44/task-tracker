@@ -1,5 +1,5 @@
 import { getBaseUrl } from "@/lib/base-url";
-import { reviewResultEmail, taskGivenEmail, taskResolvedEmail, tomorrowEmail, type EmailBody, type TomorrowEmailInput } from "@/lib/email-templates";
+import { reviewResultEmail, taskGivenEmail, taskNoteEmail, taskResolvedEmail, tomorrowEmail, type EmailBody, type TomorrowEmailInput } from "@/lib/email-templates";
 import { formatISTDate } from "@/lib/timezone";
 
 /**
@@ -11,7 +11,7 @@ import { formatISTDate } from "@/lib/timezone";
  *   (b) tomorrow      → one per person at 18:00 IST, only when there is something.
  *   (c) review_result → everyone on the project, when the founder records an outcome.
  */
-export type MessageKind = "task_given" | "tomorrow" | "review_result" | "task_resolved";
+export type MessageKind = "task_given" | "tomorrow" | "review_result" | "task_resolved" | "task_note";
 
 export type OutboundMessage = {
   kind: MessageKind;
@@ -62,6 +62,26 @@ export function taskGivenMessage(o: {
     email: taskGivenEmail({ taskRef: o.taskRef, taskTitle: o.taskTitle, projectName: o.projectName, giverName: o.giverName, dueDate: o.dueDate, url: abs }),
     whatsapp: [`✅ *${o.giverName} gave you a task*`, "", `${o.taskRef} ${o.taskTitle}`, `${o.projectName ?? "Direct"} · by ${when}`, "", `Open: ${abs}`].join("\n"),
     vars: { "1": `${o.giverName} gave you a task: ${o.taskRef} ${o.taskTitle}${where}`, "2": `By ${when}` },
+  };
+}
+
+/** (e) task_note — someone wrote on the task; the people on it hear it. */
+export function taskNoteMessage(o: { taskId: string; taskRef: string; taskNumber: number; taskTitle: string; authorName: string; body: string; activityId: string }): OutboundMessage {
+  const url = `/work/${o.taskNumber}`;
+  const abs = `${getBaseUrl()}${url}`;
+  const snippet = o.body.length > 300 ? `${o.body.slice(0, 300)}…` : o.body;
+  return {
+    kind: "task_note",
+    refId: o.taskId,
+    keyExtra: o.activityId,
+    taskId: o.taskId,
+    title: `${o.authorName} on ${o.taskRef}`,
+    body: snippet || o.taskTitle,
+    url,
+    tag: `task-${o.taskId}`,
+    email: taskNoteEmail({ taskRef: o.taskRef, taskTitle: o.taskTitle, authorName: o.authorName, body: snippet, url: abs }),
+    whatsapp: [`💬 *${o.authorName} on ${o.taskRef}*`, o.taskTitle, "", snippet, "", `Open: ${abs}`].join("\n"),
+    vars: { "1": `${o.authorName} on ${o.taskRef} ${o.taskTitle}`, "2": snippet.slice(0, 120) },
   };
 }
 

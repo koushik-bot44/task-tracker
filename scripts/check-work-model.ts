@@ -208,6 +208,9 @@ async function main() {
     record("…and can already be given a task", givenToOutsider.status === 201 && givenToOutsider.json?.assigneeId === newbie?.id, `status ${givenToOutsider.status}`);
     const newbieBell = await prisma.notification.count({ where: { userId: newbie?.id ?? "", type: "task_given" } });
     record("…which is waiting in their bell for their first sign-in", newbieBell === 1, `${newbieBell}`);
+    const newbieMail = await prisma.emailLog.count({ where: { userId: newbie?.id ?? "", kind: "task_given" } });
+    const inviteMail = await prisma.emailLog.count({ where: { userId: newbie?.id ?? "", kind: "invite" } });
+    record("…and NO task mail before they join — the invite mail comes first", newbieMail === 0 && inviteMail >= 1, `task mails ${newbieMail}, invite mails ${inviteMail}`);
 
     console.log("\n── the employee side: invited, joins, sees their work ──────────");
     const { issueInvite } = await import("../lib/invite");

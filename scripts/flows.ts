@@ -155,7 +155,7 @@ async function main() {
   record("F2 message (b) reached the member's bell", Boolean(bellB), bellB?.title ?? "");
   const plans = await buildTomorrow(new Date());
   const memberPlan = plans.find((p) => p.userId === member.id);
-  record("F2 (b) built for the member with a meeting + a task", Boolean(memberPlan) && memberPlan!.message.email.text.includes("FLOW Sync") && memberPlan!.message.email.text.includes("FLOW due tomorrow"));
+  record("F2 (b) built for the member with a meeting + a task", Boolean(memberPlan) && memberPlan!.message.email.text.includes("FLOW Sync") && memberPlan!.message.email.text.includes("FLOW Due Tomorrow"));
   mkdirSync("records/evidence/restructure", { recursive: true });
   if (memberPlan) {
     writeFileSync("records/evidence/restructure/message-b-email.html", memberPlan.message.email.html);
