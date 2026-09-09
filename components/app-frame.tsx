@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { CalendarDays, CircleHelp, FolderKanban, ListChecks, LogOut, NotebookPen, Settings, Sun, SunMedium, UserRound, Users } from "lucide-react";
+import { Building2, CalendarDays, CircleHelp, ListChecks, LogOut, NotebookPen, Settings, Sun, SunMedium, UserRound, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,7 +19,7 @@ import { useMe } from "@/lib/hooks/use-users";
 import { canSeeUserListRole, isAdminRole } from "@/lib/roles";
 
 /**
- * The shell (restructure): five tabs — Today · Projects · Calendar · People ·
+ * The shell (restructure): five tabs — Today · Departments · Calendar · People ·
  * Well Being — as a 220px rail on a desktop and bottom tabs on a phone. The top
  * bar carries only the bell and your Face; the Face opens My notes, Account,
  * Notifications and Sign out. Nothing else lives in the chrome.
@@ -32,7 +32,7 @@ function useTabs(): Tab[] {
   return [
     { href: "/", label: "Today", icon: SunMedium, show: !admin },
     { href: "/work", label: "Work", icon: ListChecks, show: !admin },
-    { href: "/projects", label: "Projects", icon: FolderKanban, show: !admin },
+    { href: "/projects", label: "Departments", icon: Building2, show: !admin },
     { href: "/calendar", label: "Calendar", icon: CalendarDays, show: !admin },
     { href: "/people", label: "People", icon: Users, show: canSeeUserListRole(me?.role) },
     { href: "/routine", label: "Well Being", icon: Sun, show: Boolean(me?.hasFamily) },
@@ -144,7 +144,7 @@ function RouteTitle() {
   if (pathname === "/work") return <>Work</>;
   if (pathname === "/work/rules") return <>Assignment Rules</>;
   if (pathname.startsWith("/work/")) return <>Task</>;
-  if (pathname === "/projects") return <>Projects</>;
+  if (pathname === "/projects") return <>Departments</>;
   if (pathname === "/calendar") return <>Calendar</>;
   if (pathname === "/people") return <>People</>;
   if (pathname === "/routine") return <>Well Being</>;

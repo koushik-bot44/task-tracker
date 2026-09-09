@@ -15,12 +15,16 @@ export function Drawer({
   header,
   children,
   label,
+  fill = false,
 }: {
   open: boolean;
   onClose: () => void;
   header?: React.ReactNode;
   children: React.ReactNode;
   label: string;
+  /** The panel's body manages its own height and scrolling (a conversation,
+      say, whose composer stays at the bottom). Off = the body scrolls. */
+  fill?: boolean;
 }) {
   const reduce = useReducedMotion();
 
@@ -57,10 +61,11 @@ export function Drawer({
               animate={{ opacity: 1, y: 0 }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
               transition={{ duration: reduce ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-x-0 bottom-0 z-drawer flex max-h-[92dvh] flex-col rounded-t-sheet bg-surface shadow-lift md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[28rem] md:max-w-[92vw] md:rounded-none md:rounded-l-sheet"
+              className="fixed inset-x-0 bottom-0 z-drawer flex max-h-[92dvh] flex-col rounded-t-sheet bg-surface shadow-lift md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[30rem] md:max-w-[92vw] md:rounded-none md:rounded-l-sheet md:border-l md:border-line"
             >
               <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-line md:hidden" aria-hidden />
-              <div className="flex h-14 shrink-0 items-center gap-2 px-3">
+              {/* A header reads as one: its own line, held apart from the body. */}
+              <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-3">
                 <div className="min-w-0 flex-1">{header}</div>
                 <button
                   type="button"
@@ -71,7 +76,15 @@ export function Drawer({
                   <X className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
+              <div
+                className={
+                  fill
+                    ? "flex min-h-0 flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
+                    : "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]"
+                }
+              >
+                {children}
+              </div>
             </motion.aside>
           </>
         ) : null}

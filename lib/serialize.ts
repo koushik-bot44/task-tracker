@@ -89,6 +89,9 @@ export function serializeTask(task: TaskRow): TaskDTO {
     categoryName: task.category?.name ?? null,
     requesterId: task.requesterId,
     requesterName: task.requester?.name ?? null,
+    siblingKey: task.siblingKey ?? null,
+    // Filled by whoever loads the record; a list row does not need it.
+    alsoWith: [],
     departmentId: task.departmentId,
     departmentName: task.department?.name ?? null,
     assignmentGroupId: task.assignmentGroupId,
@@ -131,13 +134,16 @@ export function withCounts(rows: TaskRow[], noteCounts: Map<string, number>): Ta
 
 /** Never carries passwordHash. There is no shape of this that includes it. */
 export function serializeUser(
-  user: User & { department?: { name: string } | null },
+  user: User & { department?: { name: string } | null; otherEmails?: { email: string }[] },
   ownedProjectCount = 0,
 ): UserDTO {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
+    // Main address first, then the person's other inboxes. A caller that did not
+    // ask for the relation still gets a correct one-address list.
+    emails: [user.email, ...(user.otherEmails ?? []).map((e) => e.email)],
     role: user.role,
     status: user.status === "PENDING" ? "PENDING" : "ACTIVE",
     createdAt: user.createdAt.toISOString(),

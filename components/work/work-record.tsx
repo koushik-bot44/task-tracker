@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiDelete, apiPost } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { dayInputValue } from "@/lib/dates";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -25,8 +26,9 @@ import {
 import { TRANSITION_LABEL } from "@/lib/work/workflow";
 import { ActivityStream } from "./activity-stream";
 import { AttachmentViewer, type Attached } from "./attachment-viewer";
+import { TaskFiles } from "./task-files";
 import { FormRow, Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
-import { AssignSheet, ConfirmSheet, WaitSheet } from "./work-sheets";
+import { AssignSheet, ConfirmSheet, MorePeopleSheet, WaitSheet } from "./work-sheets";
 
 /** The moves on the button row, in order; the rest sit under "More". */
 const PRIMARY: WorkState[] = ["IN_PROGRESS", "RESOLVED", "CLOSED", "REOPENED", "WAITING"];
@@ -70,8 +72,10 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const access = task.access ?? { canEdit: false, canAssign: false, canDelete: false, staff: false, transitions: [] };
   const { transition, assign, update, remove } = useWorkMutations(task.id);
   const { data: projects } = useProjects();
-  const { data: files } = useActivity(task.id, { type: "ATTACHMENT,COMMENT,WORK_NOTE" });
-  const attachments: Attached[] = (files ?? []).filter((a) => a.attachmentUrl).map((a) => ({ url: a.attachmentUrl!, name: a.attachmentName, type: a.attachmentType }));
+  const { data: files, refetch: refetchFiles } = useActivity(task.id, { type: "ATTACHMENT,COMMENT,WORK_NOTE" });
+  const withFiles = (files ?? []).filter((a) => a.attachmentUrl);
+  const attachments: Attached[] = withFiles.map((a) => ({ url: a.attachmentUrl!, name: a.attachmentName, type: a.attachmentType }));
+  const pinnedFiles = withFiles.filter((a) => a.pinnedAt);
   const project = task.projectId ? (projects ?? []).find((p) => p.id === task.projectId) ?? null : null;
   const { show: toast } = useToast();
   const [title, setTitle] = useState(task.title);
@@ -82,6 +86,8 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const [confirm, setConfirm] = useState<WorkState | "delete" | null>(null);
   const [viewing, setViewing] = useState<Attached | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [morePeopleOpen, setMorePeopleOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
   useEffect(() => {
     if (!moreOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
@@ -104,6 +110,38 @@ function RecordBody({ task }: { task: TaskDTO }) {
     else move(to);
   };
   const ro = !access.canEdit;
+  /** The holder plus everyone else the same task went to. */
+  const everyone = [
+    ...(task.assigneeId && task.assigneeName ? [{ id: task.assigneeId, name: task.assigneeName }] : []),
+    ...task.alsoWith,
+  ];
+
+  const takeOff = async (assigneeId: string, name: string) => {
+    setSharing(true);
+    try {
+      await apiDelete(`/api/tasks/${task.id}/people`, { assigneeId });
+      toast({ message: `${name} is off this task` });
+      router.refresh();
+    } catch (e) {
+      fail(e);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const giveToMore = async (assigneeIds: string[]) => {
+    setSharing(true);
+    try {
+      await apiPost(`/api/tasks/${task.id}/people`, { assigneeIds });
+      setMorePeopleOpen(false);
+      toast({ message: `Given to ${assigneeIds.length} more` });
+      router.refresh();
+    } catch (e) {
+      fail(e);
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <div className="w-full px-2 pb-8 pt-2 md:px-4">
@@ -194,10 +232,44 @@ function RecordBody({ task }: { task: TaskDTO }) {
                 {task.assignmentGroupName ?? <span className="text-muted">—</span>}
               </button>
             </FormRow>
-            <FormRow label="Assigned to">
-              <button type="button" disabled={!access.canAssign} onClick={() => setAssignOpen(true)} className={cn(snInput, "text-left", access.canAssign && "cursor-pointer")}>
-                {task.assigneeName ?? <span className="text-muted">—</span>}
-              </button>
+            <FormRow label={everyone.length > 1 ? `Assigned to (${everyone.length} people)` : "Assigned to"}>
+              <div className="space-y-1.5">
+                {/* This record's own holder — the one the buttons above act on. */}
+                <button type="button" disabled={!access.canAssign} onClick={() => setAssignOpen(true)} className={cn(snInput, "text-left", access.canAssign && "cursor-pointer")}>
+                  {task.assigneeName ?? <span className="text-muted">Nobody yet</span>}
+                </button>
+
+                {/* The same task given to several people is several records, so
+                    the record names the others rather than pretending it is alone.
+                    Each has their own copy, which is what the × takes away. */}
+                {task.alsoWith.length ? (
+                  <ul className="divide-y divide-line rounded-input border border-line">
+                    {task.alsoWith.map((p) => (
+                      <li key={p.id} className="flex items-center gap-2 py-1 pl-3 pr-1">
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{p.name}</span>
+                        <span className="shrink-0 text-micro text-muted">own copy</span>
+                        {access.canAssign ? (
+                          <button
+                            type="button"
+                            onClick={() => void takeOff(p.id, p.name)}
+                            disabled={sharing}
+                            aria-label={`Take ${p.name} off this task`}
+                            className="press grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted hover:text-danger-ink disabled:opacity-40"
+                          >
+                            ×
+                          </button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {access.canAssign ? (
+                  <button type="button" onClick={() => setMorePeopleOpen(true)} className="press min-h-[32px] text-micro font-medium text-primary-ink">
+                    + Give this to more people
+                  </button>
+                ) : null}
+              </div>
             </FormRow>
             <FormRow label="Due date">
               <input type="date" disabled={ro} value={task.dueDate ? dayInputValue(new Date(task.dueDate)) : ""} onChange={(e) => update.mutate({ dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : null }, { onError: fail })} className={snInput} aria-label="Due date" />
@@ -237,6 +309,25 @@ function RecordBody({ task }: { task: TaskDTO }) {
               className={cn(snInput, "h-auto resize-y py-1.5")}
             />
           </FormRow>
+          {pinnedFiles.length ? (
+            <FormRow label="Pinned files">
+              <ul className="flex flex-wrap gap-2">
+                {pinnedFiles.map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => setViewing({ url: a.attachmentUrl!, name: a.attachmentName, type: a.attachmentType })}
+                      title={a.body.trim() || undefined}
+                      className="press flex min-h-[32px] max-w-[16rem] items-center gap-1.5 rounded-chip border border-line bg-surface px-2.5 text-[13px] text-ink hover:bg-hover"
+                    >
+                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted" strokeWidth={2} aria-hidden />
+                      <span className="truncate">{a.attachmentName ?? "File"}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </FormRow>
+          ) : null}
         </div>
 
         <Tabs<Tab>
@@ -254,36 +345,18 @@ function RecordBody({ task }: { task: TaskDTO }) {
           </div>
         ) : (
           <div className="p-3">
-            {attachments.length === 0 ? (
-              <p className="text-[13px] text-muted">No attachments. Add one from the Notes tab with the paper-clip.</p>
-            ) : (
-              <table className="w-full border-collapse text-[13px]">
-                <thead>
-                  <tr className="bg-hover text-left text-muted">
-                    <th className="border-b border-line px-3 py-2 font-semibold">File</th>
-                    <th className="border-b border-line px-3 py-2 font-semibold">Type</th>
-                    <th className="border-b border-line px-3 py-2 font-semibold">Added</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(files ?? []).filter((a) => a.attachmentUrl).map((a) => (
-                    <tr key={a.id} className="border-b border-line hover:bg-hover">
-                      <td className="px-3 py-2">
-                        <button type="button" onClick={() => setViewing({ url: a.attachmentUrl!, name: a.attachmentName, type: a.attachmentType })} className={cn(snLink, "font-medium")}>
-                          {a.attachmentName ?? "File"}
-                        </button>
-                      </td>
-                      <td className="px-3 py-2 text-muted">{a.attachmentType ?? ""}</td>
-                      <td className="px-3 py-2 text-muted">{stamp(a.createdAt)} · {a.author?.name ?? "Someone who left"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <TaskFiles
+              taskId={task.id}
+              files={withFiles}
+              canPin={access.staff}
+              onOpen={setViewing}
+              onChanged={() => void refetchFiles()}
+            />
           </div>
         )}
       </Panel>
 
+      <MorePeopleSheet open={morePeopleOpen} onClose={() => setMorePeopleOpen(false)} task={task} already={everyone} busy={sharing} onAdd={(ids) => void giveToMore(ids)} />
       <AssignSheet open={assignOpen} onClose={() => setAssignOpen(false)} task={task} busy={assign.isPending} onAssign={(input) => assign.mutate(input, { onError: fail })} />
       <WaitSheet open={waitOpen} onClose={() => setWaitOpen(false)} busy={busy} onWait={(reason, note) => move("WAITING", { waitingReason: reason, waitingNote: note || null })} />
       <ConfirmSheet open={confirm === "CANCELLED"} onClose={() => setConfirm(null)} title="Cancel this task?" body="It stays on record as Canceled; nobody works on it any more." action="Cancel the task" tone="danger" onConfirm={() => move("CANCELLED")} />

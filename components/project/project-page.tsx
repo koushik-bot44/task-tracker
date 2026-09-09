@@ -388,22 +388,27 @@ export function ProjectPage({ slug }: { slug: string }) {
       <AddPeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} projectId={project.id} />
 
       <Drawer
+        fill
         open={notesOpen}
         onClose={() => setNotesOpen(false)}
         label={`${notesTarget?.name ?? "Milestone"} notes`}
         header={<h2 className="truncate text-section font-semibold text-ink">{notesTarget?.name ?? "Milestone"} notes</h2>}
       >
-        <div className="px-4 pt-1">{notesTarget ? <NotesThread targetType="MILESTONE" targetId={notesTarget.id} autoFocus /> : null}</div>
+        {notesTarget ? <NotesThread targetType="MILESTONE" targetId={notesTarget.id} autoFocus fill /> : null}
       </Drawer>
       <Drawer
         open={projectNotesOpen}
         onClose={() => setProjectNotesOpen(false)}
         label="Project notes"
-        header={<h2 className="truncate text-section font-semibold text-ink">Project notes</h2>}
+        fill
+        header={
+          <div className="min-w-0">
+            <h2 className="truncate text-section font-semibold text-ink">Project notes</h2>
+            <p className="truncate text-micro text-muted">{project.name}</p>
+          </div>
+        }
       >
-        <div className="px-4 pt-1">
-          <NotesThread targetType="PROJECT" targetId={project.id} autoFocus />
-        </div>
+        <NotesThread targetType="PROJECT" targetId={project.id} autoFocus fill />
       </Drawer>
     </Shell>
   );

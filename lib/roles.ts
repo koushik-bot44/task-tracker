@@ -17,9 +17,13 @@ import type { UserRole } from "@/lib/types";
  */
 export const isFounderRole = (r: UserRole | null | undefined): boolean => r === "FOUNDER";
 
-/** Company-wide authority: the CEO alone sees and acts on everything. */
+/**
+ * Company-wide authority: the CEO and the co-founder see and act on everything.
+ * Two things stay the CEO's ALONE and use `isFounderRole` instead — Well Being
+ * (a personal feature, not a company one) and the CEO account itself.
+ */
 export const isExecutiveRole = (r: UserRole | null | undefined): boolean =>
-  r === "FOUNDER";
+  r === "FOUNDER" || r === "CO_FOUNDER";
 
 export const isHodRole = (r: UserRole | null | undefined): boolean => r === "HOD";
 
@@ -58,6 +62,7 @@ export const canAdministerAccountsRole = (r: UserRole | null | undefined): boole
  */
 export const ROLE_RANK: Record<UserRole, number> = {
   FOUNDER: 6,
+  CO_FOUNDER: 5,
   HOD: 4,
   MANAGER: 3,
   TEAM_LEAD: 2,

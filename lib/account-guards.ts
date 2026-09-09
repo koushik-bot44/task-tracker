@@ -35,7 +35,7 @@ export async function founderAlreadyExists(): Promise<boolean> {
 export async function otherActiveAuthorities(exceptId: string): Promise<number> {
   return prisma.user.count({
     where: {
-      role: { in: ["FOUNDER", "HOD", "MANAGER"] },
+      role: { in: ["FOUNDER", "CO_FOUNDER", "HOD", "MANAGER"] },
       id: { not: exceptId },
       disabledAt: null,
       status: "ACTIVE",

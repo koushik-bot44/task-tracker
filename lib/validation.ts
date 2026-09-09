@@ -67,7 +67,24 @@ export const createProjectSchema = z.object({
   priority: projectPrioritySchema.optional(),
   /** Work model: people put on the project as it is made, and emails invited to it. */
   memberIds: z.array(z.string().min(1)).max(100).optional(),
-  invites: z.array(z.object({ name: z.string().trim().max(80).optional(), email: z.string().trim().min(3).max(320) })).max(50).optional(),
+  invites: z
+    .array(
+      z
+        .object({
+          name: z.string().trim().max(80).optional(),
+          /** One address … */
+          email: z.string().trim().min(3).max(320).optional(),
+          /** … or several belonging to the SAME person, the first being the main
+              one. A person invited with one email and a person invited with five
+              are the same person-shaped thing. */
+          emails: z.array(z.string().trim().min(3).max(320)).max(10).optional(),
+        })
+        .refine((i) => Boolean(i.email) || (i.emails?.length ?? 0) > 0, {
+          message: "An invite needs at least one email",
+        }),
+    )
+    .max(50)
+    .optional(),
 });
 
 export const updateProjectSchema = z
@@ -165,6 +182,8 @@ export const createTaskSchema = z.object({
   assigneeId: z.string().min(1).nullable().optional(),
   important: z.boolean().optional(),
   dueProvisional: z.boolean().optional(),
+  /** Shared by the records raised together when one task goes to several people. */
+  siblingKey: z.string().min(1).max(64).optional(),
 });
 
 /** Personal (private) department/project create/edit (phase 33). */

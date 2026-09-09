@@ -182,3 +182,99 @@ export function ConfirmSheet({ open, onClose, title, body, action, tone = "prima
     </Sheet>
   );
 }
+
+/**
+ * Give this same task to more people.
+ *
+ * One task per person is the model, so this ticks the people to copy it to.
+ * Anybody already on it is shown greyed and cannot be ticked twice.
+ */
+export function MorePeopleSheet({
+  open,
+  onClose,
+  task,
+  already,
+  busy = false,
+  onAdd,
+}: {
+  open: boolean;
+  onClose: () => void;
+  task: TaskDTO;
+  already: { id: string; name: string }[];
+  busy?: boolean;
+  onAdd: (assigneeIds: string[]) => void;
+}) {
+  const { data: me } = useMe();
+  const { data: groups } = useGroups(open);
+  const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
+  const { data: projectPeople } = useProjectPeople(task.projectId, open && Boolean(task.projectId));
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (open) { setPicked(new Set()); setQ(""); }
+  }, [open]);
+
+  const on = new Set(already.map((p) => p.id));
+  const group = (groups ?? []).find((g) => g.id === task.assignmentGroupId) ?? null;
+  const people = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const m of group?.members ?? []) out.set(m.id, m.name);
+    for (const p of projectPeople ?? []) out.set(p.id, p.name);
+    for (const u of users ?? []) {
+      if (u.role !== "ADMIN" && u.role !== "PERSON" && u.status === "ACTIVE" && !u.disabledAt) out.set(u.id, u.name);
+    }
+    return [...out.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [group, projectPeople, users]);
+
+  const shown = people.filter((p) => !q.trim() || p.name.toLowerCase().includes(q.trim().toLowerCase()));
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Give this to more people"
+      subtitle="Each person gets their own copy, so each can finish their own."
+      footer={
+        <Button variant="primary" full loading={busy} disabled={picked.size === 0} onClick={() => onAdd([...picked])}>
+          {picked.size ? `Give it to ${picked.size} more` : "Pick who else"}
+        </Button>
+      }
+    >
+      <div className="space-y-3">
+        {people.length > 6 ? (
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person" aria-label="Find a person" className={inputClass} />
+        ) : null}
+        <ul className="divide-y divide-line rounded-input border border-line">
+          {shown.map((p) => {
+            const has = on.has(p.id);
+            const ticked = picked.has(p.id);
+            return (
+              <li key={p.id}>
+                <label className={cn("flex min-h-[44px] items-center gap-3 px-3", has ? "cursor-default opacity-50" : "cursor-pointer")}>
+                  <input
+                    type="checkbox"
+                    disabled={has}
+                    checked={has || ticked}
+                    onChange={() =>
+                      setPicked((prev) => {
+                        const next = new Set(prev);
+                        if (ticked) next.delete(p.id);
+                        else next.add(p.id);
+                        return next;
+                      })
+                    }
+                    className="h-5 w-5 accent-[var(--primary)]"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-sm text-ink">{p.name}</span>
+                  {has ? <span className="shrink-0 text-micro text-muted">already on it</span> : null}
+                </label>
+              </li>
+            );
+          })}
+          {shown.length === 0 ? <li className="px-3 py-3 text-sm text-muted">Nobody to pick from.</li> : null}
+        </ul>
+      </div>
+    </Sheet>
+  );
+}

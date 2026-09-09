@@ -37,11 +37,15 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
   const [due, setDue] = useState("");
   const [priority, setPriority] = useState<WorkPriority>("MEDIUM");
   const [assignees, setAssignees] = useState<Set<string>>(new Set());
-  const [invites, setInvites] = useState<{ name: string; email: string }[]>([]);
+  /** People who are not on Orbit yet. One row per person; a person may hold
+      several addresses, the first being the one the invite is sent to. */
+  const [invites, setInvites] = useState<{ name: string; emails: string[] }[]>([]);
   const [peopleQ, setPeopleQ] = useState("");
   const [inviting, setInviting] = useState(false);
   const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
   const canInvite = canAdministerAccountsRole(me?.role);
+
+  const addInvitee = () => setInvites((prev) => [...prev, { name: "", emails: [""] }]);
 
   const group = (groups ?? []).find((g) => g.id === groupId) ?? null;
   // Who may be named: the team's people, else the department's, else everyone you can see.
@@ -79,14 +83,18 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
     const holders = new Set(assignees);
     // People not on Orbit yet: their accounts are made now (pending); the invite
     // mail goes first and each task waits in their bell.
-    const rows = invites.map((i) => ({ name: i.name.trim(), email: i.email.trim() })).filter((i) => i.email);
+    const rows = invites
+      .map((i) => ({ name: i.name.trim(), emails: i.emails.map((e) => e.trim()).filter(Boolean) }))
+      .filter((i) => i.emails.length > 0);
     if (rows.length) {
       setInviting(true);
       try {
         for (const i of rows) {
+          const [main, ...rest] = i.emails;
           const res = await apiPost<{ user: UserDTO }>("/api/users", {
-            name: i.name || i.email.split("@")[0],
-            email: i.email,
+            name: i.name || main.split("@")[0],
+            email: main,
+            ...(rest.length ? { emails: rest } : {}),
             role: "RESOURCE",
             departmentId: departmentId || group?.departmentId || null,
           });
@@ -109,11 +117,14 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       dueDate: due ? new Date(`${due}T00:00:00`).toISOString() : null,
       priority,
     };
-    // One record per person, so each can complete their own; none named = one unassigned record.
+    // One record per person, so each can complete their own; none named = one
+    // unassigned record. When it goes to several, one key ties them together so
+    // each record can say who else is on it.
     const list = holders.size ? [...holders] : [null];
+    const siblingKey = list.length > 1 ? (globalThis.crypto?.randomUUID?.() ?? `sib-${Date.now()}-${Math.random().toString(36).slice(2)}`) : undefined;
     try {
       const made = [];
-      for (const assigneeId of list) made.push(await raise.mutateAsync({ ...base, assigneeId }));
+      for (const assigneeId of list) made.push(await raise.mutateAsync({ ...base, assigneeId, ...(siblingKey ? { siblingKey } : {}) }));
       reset();
       onClose();
       if (made.length === 1) router.push(`/work/${made[0].number}`);
@@ -227,35 +238,105 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
                     </li>
                   );
                 })}
-              {candidates.length === 0 && !me ? <li className="px-3 py-3 text-sm text-muted">Nobody to pick from.</li> : null}
+              {candidates.length === 0 ? (
+                <li className="px-3 py-3">
+                  <p className="text-sm text-muted">{me ? "Nobody else here yet." : "Nobody to pick from."}</p>
+                  {canInvite ? (
+                    <button type="button" onClick={addInvitee} className="press mt-1.5 min-h-[32px] text-sm font-medium text-primary-ink">
+                      + Add someone new
+                    </button>
+                  ) : null}
+                </li>
+              ) : null}
             </ul>
             {assignees.size === 0 && invites.length === 0 ? <p className="border-t border-line px-3 py-2 text-micro text-muted">Nobody ticked: the task opens unassigned and the team picks it up.</p> : null}
           </div>
         </Field>
         {canInvite ? (
-          <div className="space-y-2">
-            {invites.map((inv, i) => (
-              <div key={i} className="grid grid-cols-[1fr_1.4fr_auto] items-end gap-2 rounded-input bg-hover p-3">
-                <Field label="Name">
-                  <input value={inv.name} onChange={(e) => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} placeholder="Kiran" aria-label="Their name" className={inputClass} />
-                </Field>
-                <Field label="Email">
-                  <input value={inv.email} onChange={(e) => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))} type="email" placeholder="kiran@company.com" aria-label="Their email" className={inputClass} />
-                </Field>
-                <button type="button" onClick={() => setInvites((prev) => prev.filter((_, j) => j !== i))} aria-label="Remove" className="press mb-0.5 grid h-10 w-10 place-items-center rounded-full text-muted hover:text-danger-ink">
-                  ×
-                </button>
-              </div>
-            ))}
-            <button type="button" onClick={() => setInvites((prev) => [...prev, { name: "", email: "" }])} className="press text-sm font-medium text-primary-ink">
+          <div className="space-y-3">
+            {/* One card per PERSON — stacked, so it holds up on a phone — and a
+                person may hold several addresses, the first being the one written to. */}
+            {invites.map((inv, i) => {
+              const who = inv.name.trim() || `new person ${i + 1}`;
+              return (
+                <div key={i} className="space-y-2 rounded-input bg-hover p-3">
+                  <div className="flex items-end gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Field label="Name">
+                        <input
+                          value={inv.name}
+                          onChange={(e) => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                          placeholder="Kiran"
+                          aria-label={`Name of ${who}`}
+                          autoFocus
+                          className={inputClass}
+                        />
+                      </Field>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setInvites((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label={`Remove ${who}`}
+                      className="press mb-0.5 grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <Field label={inv.emails.length > 1 ? "Emails" : "Email"} hint={inv.emails.length > 1 ? "The invite goes to the first one." : undefined}>
+                    <div className="space-y-2">
+                      {inv.emails.map((email, k) => (
+                        <div key={k} className="flex items-center gap-2">
+                          <input
+                            type="email"
+                            inputMode="email"
+                            autoComplete="off"
+                            value={email}
+                            onChange={(e) =>
+                              setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, emails: x.emails.map((y, m) => (m === k ? e.target.value : y)) } : x)))
+                            }
+                            placeholder={k === 0 ? "kiran@company.com" : "their other address"}
+                            aria-label={k === 0 ? `Email for ${who}` : `Another email for ${who}`}
+                            className={inputClass}
+                          />
+                          {inv.emails.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, emails: x.emails.filter((_, m) => m !== k) } : x)))}
+                              aria-label={`Remove this email for ${who}`}
+                              className="press grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
+                            >
+                              ×
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <button
+                    type="button"
+                    onClick={() => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, emails: [...x.emails, ""] } : x)))}
+                    className="press min-h-[32px] text-micro font-medium text-primary-ink"
+                  >
+                    + Another email for this person
+                  </button>
+                </div>
+              );
+            })}
+            <button type="button" onClick={addInvitee} className="press min-h-[32px] text-sm font-medium text-primary-ink">
               + Someone not on Orbit yet
             </button>
-            {invites.length ? <p className="text-micro text-muted">Each gets an email to set a password; their task waits for them.</p> : null}
+            {invites.length ? (
+              <p className="text-micro text-muted">
+                Each gets an email to set a password; their task waits for them. Someone with two addresses is one person — either one signs them in.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
         {!more ? (
-          <button type="button" onClick={() => setMore(true)} className="press text-sm font-medium text-primary-ink">
+          <button type="button" onClick={() => setMore(true)} className="press min-h-[36px] text-sm font-medium text-primary-ink">
             More…
           </button>
         ) : (

@@ -7,6 +7,7 @@ import { canManageProject, ensureMember, projectPeople } from "@/lib/project-peo
 import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { syncProjectReviews } from "@/lib/meetings";
 import { HttpError, requireUser, route } from "@/lib/session";
+import { addOtherEmails, dedupeEmails, isEmailShaped, findUserIdByEmail } from "@/lib/user-emails";
 import { parseBody } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -22,6 +23,8 @@ const bodySchema = z.object({
     .object({
       name: z.string().trim().min(1).max(80),
       email: z.string().trim().min(3).max(320),
+      /** The same person's other addresses; any of them signs them in. */
+      emails: z.array(z.string().trim().min(3).max(320)).max(10).optional(),
       role: z.enum(["RESOURCE", "TEAM_LEAD"]).optional(),
     })
     .optional(),
@@ -51,14 +54,19 @@ export const POST = route(async (req: Request, { params }: Params) => {
     const { name, role } = parsed.data.invite;
     // Creating an account here is creating an account: the same rule as People → Invite.
     assertCanCreateUserWithRole(actor, role === "TEAM_LEAD" ? "TEAM_LEAD" : "RESOURCE");
-    const email = parsed.data.invite.email.toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, "That email does not look right.");
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true, disabledAt: true } });
-    if (existing) {
-      if (existing.disabledAt || existing.role === "PERSON" || existing.role === "ADMIN") {
+    // One person, several addresses: the first is the main one.
+    const addresses = dedupeEmails([parsed.data.invite.email, ...(parsed.data.invite.emails ?? [])]);
+    const [email, ...others] = addresses;
+    if (!email || addresses.some((e) => !isEmailShaped(e))) throw new HttpError(400, "That email does not look right.");
+    // Any of them finds a person already here, so nobody is added twice.
+    const found = (await Promise.all(addresses.map(findUserIdByEmail))).find(Boolean);
+    if (found) {
+      const existing = await prisma.user.findUnique({ where: { id: found }, select: { id: true, role: true, disabledAt: true } });
+      if (!existing || existing.disabledAt || existing.role === "PERSON" || existing.role === "ADMIN") {
         throw new HttpError(400, "That person can't be added.");
       }
       await ensureMember(project.id, existing.id);
+      await addOtherEmails(existing.id, addresses);
       return NextResponse.json({ ok: true, emailSent: false, userId: existing.id });
     }
     const invited = await prisma.$transaction(async (tx) => {
@@ -68,6 +76,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
       await tx.projectMember.create({ data: { projectId: project.id, userId: u.id } });
       return u;
     });
+    await addOtherEmails(invited.id, others);
     const { sent } = await issueInvite({
       user: { id: invited.id, name: invited.name, email: invited.email, role: invited.role },
       inviterName: actor.name,

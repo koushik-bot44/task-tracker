@@ -177,7 +177,8 @@ export function LoginForm({ needsBootstrap }: { needsBootstrap: boolean }) {
 
           {needsBootstrap ? null : (
             <p className="text-center">
-              <a href="/forgot" className="text-sm text-muted hover:text-ink hover:underline">
+              {/* A thumb-sized target, not a 19px line of text. */}
+              <a href="/forgot" className="inline-flex min-h-[44px] items-center justify-center px-3 text-sm text-muted hover:text-ink hover:underline">
                 Forgot password?
               </a>
             </p>

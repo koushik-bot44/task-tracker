@@ -7,6 +7,7 @@ import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { PROJECT_LEAD_SELECT, serializeProject } from "@/lib/serialize";
 import { assertManager } from "@/lib/permissions";
 import { requireUser, route } from "@/lib/session";
+import { addOtherEmails, dedupeEmails, findUserIdByEmail, isEmailShaped } from "@/lib/user-emails";
 import { visibleProjectIds } from "@/lib/project-visibility";
 import { enrichProjects } from "@/lib/projects";
 import { badRequest, createProjectSchema, parseBody } from "@/lib/validation";
@@ -113,18 +114,30 @@ export const POST = route(async (req: Request) => {
     added++;
   }
   for (const inv of invites ?? []) {
-    const email = inv.email.toLowerCase().trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { skipped.push(email); continue; }
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true, disabledAt: true } });
-    if (existing) {
-      if (existing.disabledAt || existing.role === "PERSON" || existing.role === "ADMIN") skipped.push(email);
-      else { await ensureMember(project.id, existing.id); added++; }
+    // One person, however many addresses they gave: the first is the main one
+    // (the invite goes there), the rest are the same human's other inboxes.
+    const addresses = dedupeEmails([...(inv.email ? [inv.email] : []), ...(inv.emails ?? [])]);
+    const [email, ...others] = addresses;
+    if (!email || addresses.some((e) => !isEmailShaped(e))) { skipped.push(...(addresses.length ? addresses : [])); continue; }
+
+    // ANY of those addresses finds someone already on Orbit, so inviting a
+    // person by their second address adds them rather than duplicating them.
+    const found = (await Promise.all(addresses.map(findUserIdByEmail))).find(Boolean);
+    if (found) {
+      const existing = await prisma.user.findUnique({ where: { id: found }, select: { id: true, role: true, disabledAt: true } });
+      if (!existing || existing.disabledAt || existing.role === "PERSON" || existing.role === "ADMIN") { skipped.push(email); continue; }
+      await ensureMember(project.id, existing.id);
+      // Addresses named here that they did not have yet are now theirs too.
+      await addOtherEmails(existing.id, addresses);
+      added++;
       continue;
     }
+
     assertCanCreateUserWithRole(actor, "RESOURCE");
     const u = await prisma.user.create({
       data: { email, name: inv.name?.trim() || email.split("@")[0].replace(/[._-]+/g, " "), role: "RESOURCE", status: "PENDING", passwordHash: null, departmentId },
     });
+    await addOtherEmails(u.id, others);
     await ensureMember(project.id, u.id);
     await issueInvite({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
     invited++;

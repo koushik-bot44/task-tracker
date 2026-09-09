@@ -38,7 +38,8 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [inviteName, setInviteName] = useState("");
-  const [inviteEmail, setInviteEmail] = useState("");
+  /** One row per address; the first is where the invite is sent. */
+  const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
   const [inviteRole, setInviteRole] = useState<InviteRole>("RESOURCE");
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
     setQ("");
     setBusyId(null);
     setInviteName("");
-    setInviteEmail("");
+    setInviteEmails([""]);
     setInviteRole("RESOURCE");
   }, [open]);
 
@@ -99,17 +100,20 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
     );
   };
 
-  const inviteReady = inviteName.trim().length > 0 && EMAIL_SHAPE.test(inviteEmail.trim()) && !invitePerson.isPending;
+  const inviteFilled = inviteEmails.map((e) => e.trim()).filter(Boolean);
+  const inviteReady =
+    inviteName.trim().length > 0 && inviteFilled.length > 0 && inviteFilled.every((e) => EMAIL_SHAPE.test(e)) && !invitePerson.isPending;
   const invite = () => {
     if (!inviteReady) return;
     const name = inviteName.trim();
+    const [main, ...rest] = inviteFilled;
     invitePerson.mutate(
-      { projectId, name, email: inviteEmail.trim(), role: inviteRole },
+      { projectId, name, email: main, ...(rest.length ? { emails: rest } : {}), role: inviteRole },
       {
         onSuccess: (r) => {
           toast({ message: r.emailSent ? `Invite sent to ${name}` : `Added ${name}` });
           setInviteName("");
-          setInviteEmail("");
+          setInviteEmails([""]);
           setInviteRole("RESOURCE");
         },
         onError: fail,
@@ -191,22 +195,47 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
               className={inputClass}
             />
           </Field>
-          <Field label="Email">
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  invite();
-                }
-              }}
-              placeholder="name@company.com"
-              aria-label="Email"
-              autoComplete="off"
-              className={inputClass}
-            />
+          {/* One person, several addresses: the invite goes to the first. */}
+          <Field label={inviteEmails.length > 1 ? "Emails" : "Email"} hint={inviteEmails.length > 1 ? "The invite goes to the first one." : undefined}>
+            <div className="space-y-2">
+              {inviteEmails.map((value, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={value}
+                    onChange={(e) => setInviteEmails((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        invite();
+                      }
+                    }}
+                    placeholder={i === 0 ? "name@company.com" : "their other address"}
+                    aria-label={i === 0 ? "Email" : `Another email (${i + 1})`}
+                    autoComplete="off"
+                    className={inputClass}
+                    autoFocus={i > 0}
+                  />
+                  {inviteEmails.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setInviteEmails((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label="Remove this email"
+                      className="press grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setInviteEmails((prev) => [...prev, ""])}
+              className="press mt-2 min-h-[32px] text-micro font-medium text-primary-ink"
+            >
+              + Another email for this person
+            </button>
           </Field>
           <Field label="Joins as">
             <select

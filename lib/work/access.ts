@@ -11,7 +11,7 @@
  */
 import type { Role, Task, WorkState } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isLeadOrAboveRole, isManagerRole } from "@/lib/roles";
+import { isLeadOrAboveRole, isManagerRole, isExecutiveRole } from "@/lib/roles";
 import { HttpError } from "@/lib/session";
 import { isOnProject } from "@/lib/project-people";
 import { canSeeProject, visibleProjectIds } from "@/lib/project-visibility";
@@ -54,7 +54,8 @@ export async function loadScope(actor: Actor): Promise<Scope> {
   if (actor.role === "PERSON" || actor.role === "ADMIN") {
     throw new HttpError(403, "Not available for this account.");
   }
-  if (actor.role === "FOUNDER") {
+  // The CEO and the co-founder reach everything.
+  if (isExecutiveRole(actor.role)) {
     return { all: true, departmentIds: new Set(), headedDepartmentIds: new Set(), groupIds: new Set(), ledGroupIds: new Set(), projectIds: null };
   }
   const [me, headed, memberships, led, projectIds] = await Promise.all([

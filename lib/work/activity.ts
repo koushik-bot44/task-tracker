@@ -32,6 +32,7 @@ export function serializeActivity(a: ActivityRow): ActivityDTO {
     attachmentUrl: a.attachmentUrl,
     attachmentName: a.attachmentName,
     attachmentType: a.attachmentType,
+    pinnedAt: a.pinnedAt ? a.pinnedAt.toISOString() : null,
     createdAt: a.createdAt.toISOString(),
     author: a.author,
   };

@@ -10,6 +10,7 @@ import { dateWord } from "@/lib/dates";
 import { useMe } from "@/lib/hooks/use-users";
 import { useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
+import { WorkCards } from "./work-cards";
 import { NewWorkSheet } from "./new-work-sheet";
 import { Panel, PanelHeader, snButton, snInput, snLink, snPrimary } from "./sn";
 
@@ -130,7 +131,12 @@ export function WorkTable({
         <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* A phone reads the rows stacked; the wide table starts at md. */}
+          <div className="md:hidden">
+            <WorkCards items={data.items} hideProject={hideProject} />
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className={cn("w-full border-collapse text-[13px]", hideProject ? "min-w-[860px]" : "min-w-[960px]")}>
               <thead>
                 <tr className="bg-hover text-left text-muted">

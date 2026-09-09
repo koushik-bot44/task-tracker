@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { useCategories, useCategoryMutations, useGroups, useRuleMutations, useRules } from "@/lib/hooks/use-work";
-import { canSeeUserListRole } from "@/lib/roles";
+import { canSeeUserListRole, isExecutiveRole } from "@/lib/roles";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL, type AssignmentRuleDTO, type WorkPriority, type WorkType } from "@/lib/types";
 import { FormRow, Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
 
@@ -51,7 +51,7 @@ export function RulesPage() {
   const [catDept, setCatDept] = useState("");
   const [catGroup, setCatGroup] = useState("");
 
-  if (me && me.role !== "FOUNDER" && me.role !== "HOD") {
+  if (me && !isExecutiveRole(me.role) && me.role !== "HOD") {
     return (
       <div className="w-full px-2 pb-8 pt-2 md:px-4">
         <EmptyState title="Assignment Rules are the CEO's to set." />

@@ -17,5 +17,23 @@ export const GET = route(async (_req: Request, { params }: Params) => {
   const t = await prisma.task.findUnique({ where: { number: n }, select: { id: true, deletedAt: true, isPrivate: true } });
   if (!t || t.deletedAt || t.isPrivate) return NextResponse.json({ error: "Task not found" }, { status: 404 });
   const { row, access } = await loadWork(user, t.id);
-  return NextResponse.json({ ...serializeTask(row), access });
+
+  // The same task given to several people is one record each; a record should
+  // say who else is on it, so the others are looked up here (and only here —
+  // a list of 50 rows does not need 50 extra queries).
+  const alsoWith = row.siblingKey
+    ? (
+        await prisma.task.findMany({
+          where: { siblingKey: row.siblingKey, id: { not: row.id }, deletedAt: null, assigneeId: { not: null } },
+          select: { assignee: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" },
+        })
+      )
+        .map((s) => s.assignee)
+        .filter((a): a is { id: string; name: string } => Boolean(a))
+        // One entry per PERSON, and never the holder of this record twice.
+        .filter((a, i, list) => a.id !== row.assigneeId && list.findIndex((b) => b.id === a.id) === i)
+    : [];
+
+  return NextResponse.json({ ...serializeTask(row), alsoWith, access });
 });

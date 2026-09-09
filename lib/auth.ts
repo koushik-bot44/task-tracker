@@ -12,7 +12,7 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
  * role was unable to sign in at all. Deriving the type from the array means
  * the next role cannot land in one place and not the other.
  */
-export const ROLES = ["FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "ADMIN", "PERSON"] as const;
+export const ROLES = ["FOUNDER", "CO_FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "ADMIN", "PERSON"] as const;
 export type Role = (typeof ROLES)[number];
 
 export type SessionClaims = {

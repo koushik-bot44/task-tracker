@@ -31,7 +31,15 @@ export function useUserMutations() {
   };
 
   const createUser = useMutation({
-    mutationFn: (input: { name: string; email: string; role: UserRole; departmentId?: string | null }) =>
+    mutationFn: (input: {
+      name: string;
+      /** The main address — where the invite is sent. */
+      email: string;
+      /** Their other addresses, if they have any. Each one signs them in. */
+      emails?: string[];
+      role: UserRole;
+      departmentId?: string | null;
+    }) =>
       apiPost<{ user: UserDTO; emailSent: boolean }>("/api/users", input),
     onSuccess: refresh,
   });

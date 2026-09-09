@@ -46,6 +46,10 @@ enum Role {
   /// Phase 48: the top of the company chain. Sees and can act on everything;
   /// capped at exactly ONE (like ADMIN) and never mintable through the UI.
   FOUNDER
+  /// 2026-09-09: sees and acts on everything the CEO does, with two exceptions
+  /// that stay the CEO's alone — Well Being (a personal feature, not a company
+  /// one) and the CEO account itself. Only the CEO may create one.
+  CO_FOUNDER
   /// Phase 48: Head of Department. Sees and acts on every project in the
   /// department(s) whose Department.hodId points at them; nothing else beyond
   /// what they own or collaborate on.
@@ -148,7 +152,13 @@ enum ActivityVisibility {
 
 model User {
   id                 String                 @id @default(cuid())
+  /// The MAIN address: where invites and every notification are sent, and what
+  /// the People page shows. Extra addresses for the same human live in
+  /// UserEmail — one person, several inboxes.
   email              String                 @unique
+  /// Work model: the same person's other addresses. Any of them signs in, and
+  /// any of them is recognised as this person instead of making a second account.
+  otherEmails        UserEmail[]
   name               String
   /// Null only for a PENDING invitee who has not set a password yet. Existing
   /// accounts keep their hash; login rejects a null hash as bad credentials.
@@ -458,6 +468,11 @@ model Task {
   category          TaskCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   /// Who asked for this (the "Requested by" face). SetNull.
   requesterId       String?
+  /// Work model (2026-09-09): the same task given to several people is one
+  /// record each, so each can finish their own. They share this key, which is
+  /// how a record can say who else is on it and how more people are added later.
+  /// Null = a task nobody else shares.
+  siblingKey        String?
   requester         User?            @relation("TaskRequester", fields: [requesterId], references: [id], onDelete: SetNull)
   /// Department → team → person: the ownership chain.
   departmentId      String?
@@ -488,6 +503,7 @@ model Task {
   @@index([departmentId, state])
   @@index([assignmentGroupId, state])
   @@index([assigneeId, state])
+  @@index([siblingKey])
   @@index([requesterId])
   @@index([dueDate])
 }
@@ -607,6 +623,20 @@ model EventAttendee {
 /// A pending account's set-password invite (phase 10). Only a sha256 of the
 /// token is stored — the raw token lives solely in the emailed link, like a
 /// password. One live invite per user; single-use (consumedAt) and time-boxed.
+/// One person, several email addresses (2026-09-09). The main one stays on
+/// User.email; every extra address is a row here. Both tables are searched when
+/// somebody signs in, asks for a password reset, or is invited — so inviting a
+/// person by their second address finds the person, never makes a duplicate.
+model UserEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 model Invite {
   id          String    @id @default(cuid())
   userId      String    @unique
@@ -914,9 +944,14 @@ model TaskActivity {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
+  /// A file pinned to the top of the record (2026-09-09). The words that came
+  /// with it — `body` — are the file's description, shown when the row opens.
+  /// Null = an ordinary entry in the stream.
+  pinnedAt       DateTime?
   createdAt      DateTime           @default(now())
 
   @@index([taskId, createdAt])
   @@index([taskId, type])
   @@index([authorId])
+  @@index([taskId, pinnedAt])
 }

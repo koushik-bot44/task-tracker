@@ -9,7 +9,7 @@ import {
   recordFailure,
 } from "@/lib/login-attempts";
 import { verifyPassword } from "@/lib/password";
-import { prisma } from "@/lib/prisma";
+import { findUserByEmail } from "@/lib/user-emails";
 import { parseBody } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -47,8 +47,8 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, bodySchema);
   if (!parsed.ok) return parsed.response;
 
-  const email = parsed.data.email.toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email } });
+  // Any of the person's addresses signs them in — the main one or an extra.
+  const user = await findUserByEmail(parsed.data.email);
 
   // A disabled or still-PENDING account (no password set) behaves exactly like a
   // wrong password — no signal that the address is real or that an invite is out.

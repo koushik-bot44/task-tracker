@@ -144,8 +144,34 @@ export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promi
   const page = rows.slice(0, limit);
   if (f.sort === "priority") page.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
   const counts = await noteCounts(page.map((r) => r.id), true);
+
+  // The same task given to several people is one record each. Who ELSE holds it
+  // is answered here, in one query for the whole page, so a row can say so
+  // without the screen guessing from titles and without the others having to
+  // land on the same page of results.
+  const keys = [...new Set(page.map((r) => r.siblingKey).filter((k): k is string => Boolean(k)))];
+  const crew = new Map<string, { id: string; name: string }[]>();
+  if (keys.length) {
+    const siblings = await prisma.task.findMany({
+      where: { siblingKey: { in: keys }, deletedAt: null, assigneeId: { not: null } },
+      select: { siblingKey: true, assignee: { select: { id: true, name: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const s of siblings) {
+      if (!s.siblingKey || !s.assignee) continue;
+      const list = crew.get(s.siblingKey) ?? [];
+      // One entry per person, however many records they hold.
+      if (!list.some((p) => p.id === s.assignee!.id)) list.push(s.assignee);
+      crew.set(s.siblingKey, list);
+    }
+  }
+
   return {
-    items: withCounts(page, counts).map(serializeTask),
+    items: withCounts(page, counts).map((row) => {
+      const dto = serializeTask(row);
+      const all = row.siblingKey ? crew.get(row.siblingKey) ?? [] : [];
+      return { ...dto, alsoWith: all.filter((p) => p.id !== row.assigneeId) };
+    }),
     nextCursor: rows.length > limit ? page[page.length - 1].id : null,
     total,
   };

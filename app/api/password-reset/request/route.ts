@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { findUserIdByEmail } from "@/lib/user-emails";
 import { clientIp, hashIp, isRateLimited, recordFailure } from "@/lib/login-attempts";
 import { notifyUsers } from "@/lib/notify";
 import { route } from "@/lib/session";
@@ -32,11 +33,15 @@ export const POST = route(async (req: Request) => {
   const parsed = await parseBody(req, schema);
   if (!parsed.ok) return NextResponse.json(GENERIC); // don't even leak validation shape
 
-  const email = parsed.data.email.toLowerCase();
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, name: true, disabledAt: true, status: true },
-  });
+  // Any address of theirs opens the same door, so a person who forgets which
+  // one they signed up with is not stuck.
+  const userId = await findUserIdByEmail(parsed.data.email);
+  const user = userId
+    ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, disabledAt: true, status: true },
+      })
+    : null;
 
   if (user && !user.disabledAt && user.status === "ACTIVE") {
     // One pending request per user — repeats don't stack or re-notify.

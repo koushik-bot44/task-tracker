@@ -24,6 +24,7 @@ import { HttpError } from "@/lib/session";
 import {
   ROLE_RANK,
   canAdministerAccountsRole,
+  isExecutiveRole,
   canSeeUserListRole,
   isAdminRole,
   isLeadOrAboveRole,
@@ -32,7 +33,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { ensureMember, isOnProject } from "@/lib/project-people";
 
-export const CAN_LEAD: Role[] = ["FOUNDER", "HOD", "MANAGER", "TEAM_LEAD"];
+export const CAN_LEAD: Role[] = ["FOUNDER", "CO_FOUNDER", "HOD", "MANAGER", "TEAM_LEAD"];
 
 export function isManager(user: { role: Role }): boolean {
   return isManagerRole(user.role);
@@ -107,6 +108,10 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
   if (newRole === "FOUNDER") {
     throw new HttpError(403, "A founder account can't be created from here.");
   }
+  // A co-founder shares the CEO's sight, so only the CEO may appoint one.
+  if (newRole === "CO_FOUNDER" && actor.role !== "FOUNDER") {
+    throw new HttpError(403, "Only the CEO can appoint a co-founder.");
+  }
   if (newRole === "ADMIN" && !isAdmin(actor)) {
     throw new HttpError(403, "Only an admin can create an admin account.");
   }
@@ -116,7 +121,7 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
   if (newRole === "HOD" || newRole === "MANAGER" || newRole === "TEAM_LEAD" || newRole === "RESOURCE") {
     const ceiling = isAdmin(actor)
       ? ROLE_RANK.MANAGER
-      : actor.role === "FOUNDER"
+      : isExecutiveRole(actor.role)
         ? ROLE_RANK.FOUNDER
         : ROLE_RANK[actor.role] - 1;
     if (ROLE_RANK[newRole] > ceiling) {

@@ -167,6 +167,8 @@ export type ActivityDTO = {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
+  /** Set when the file is pinned to the top of the record. */
+  pinnedAt: string | null;
   createdAt: string;
   /** Null = the system did it. */
   author: { id: string; name: string; role: UserRole } | null;
@@ -263,6 +265,10 @@ export type TaskDTO = {
   /** Who asked for this. */
   requesterId: string | null;
   requesterName: string | null;
+  /** Shared by every record of one task that went to several people. */
+  siblingKey: string | null;
+  /** The OTHER people holding this same task. Empty unless the record was loaded. */
+  alsoWith: { id: string; name: string }[];
   departmentId: string | null;
   departmentName: string | null;
   /** The team it sits with. */
@@ -494,7 +500,7 @@ export type NotificationDTO = {
   snoozedUntil: string | null;
 };
 
-export const ROLES = ["FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "ADMIN", "PERSON"] as const;
+export const ROLES = ["FOUNDER", "CO_FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "ADMIN", "PERSON"] as const;
 export type UserRole = (typeof ROLES)[number];
 
 /* This list and lib/auth.ts's must stay identical: one decides what the UI
@@ -510,6 +516,7 @@ void _rolesMatch;
 /** Role words appear ONLY on the People page. */
 export const ROLE_LABEL: Record<UserRole, string> = {
   FOUNDER: "CEO",
+  CO_FOUNDER: "Co-founder",
   HOD: "Head of department",
   MANAGER: "Manager",
   TEAM_LEAD: "Team lead",
@@ -520,6 +527,7 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 
 export const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   FOUNDER: "CEO",
+  CO_FOUNDER: "Co-founder",
   HOD: "Head",
   MANAGER: "Manager",
   TEAM_LEAD: "Lead",
@@ -533,7 +541,10 @@ export type UserStatus = "ACTIVE" | "PENDING";
 export type UserDTO = {
   id: string;
   name: string;
+  /** The MAIN address: where invites and notifications go. */
   email: string;
+  /** Every address that reaches this person, the main one first. */
+  emails: string[];
   role: UserRole;
   status: UserStatus;
   createdAt: string;

@@ -11,7 +11,7 @@ import { dayInputValue } from "@/lib/dates";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useProjectMutations } from "@/lib/hooks/use-projects";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { canSeeUserListRole, isExecutiveRole, isHodRole } from "@/lib/roles";
+import { canAdministerAccountsRole, canSeeUserListRole, isExecutiveRole, isHodRole } from "@/lib/roles";
 import { PROJECT_PRIORITY_CHOICES, PROJECT_PRIORITY_LABEL, type UserDTO } from "@/lib/types";
 
 /** Who may lead a project: an active work account. */
@@ -58,7 +58,9 @@ export function NewProjectSheet({
   const [deadline, setDeadline] = useState("");
   const [pickedDepartment, setPickedDepartment] = useState("");
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
-  const [emails, setEmails] = useState("");
+  /** People who are not on Orbit yet. One row per person; a person may hold
+      several addresses, the first being the one the invite is sent to. */
+  const [newPeople, setNewPeople] = useState<{ name: string; emails: string[] }[]>([]);
   const [morePeople, setMorePeople] = useState(false);
 
   // Fresh every time it opens.
@@ -71,7 +73,7 @@ export function NewProjectSheet({
     setDeadline("");
     setPickedDepartment("");
     setMemberIds(new Set());
-    setEmails("");
+    setNewPeople([]);
     setMorePeople(false);
   }, [open]);
 
@@ -97,11 +99,16 @@ export function NewProjectSheet({
     const elsewhere = all.filter((u) => u.departmentId !== targetDepartment).sort((a, b) => a.name.localeCompare(b.name));
     return { here, elsewhere };
   }, [users, targetDepartment, me]);
-  const invites = emails
-    .split(/[\n,;]+/)
-    .map((e) => e.trim())
-    .filter(Boolean)
-    .map((email) => ({ email }));
+  const canInvite = canAdministerAccountsRole(me?.role);
+  const addPerson = () => setNewPeople((prev) => [...prev, { name: "", emails: [""] }]);
+  const editPerson = (i: number, patch: Partial<{ name: string; emails: string[] }>) =>
+    setNewPeople((prev) => prev.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+
+  // A person counts once they have at least one address; the name is optional
+  // (the server falls back to the address) but the form asks for it first.
+  const invites = newPeople
+    .map((p) => ({ name: p.name.trim(), emails: p.emails.map((e) => e.trim()).filter(Boolean) }))
+    .filter((p) => p.emails.length > 0);
 
   const submit = () => {
     if (!ready) return;
@@ -228,7 +235,16 @@ export function NewProjectSheet({
                   </li>
                 );
               })}
-              {people.here.length === 0 && !morePeople ? <li className="px-3 py-3 text-sm text-muted">Nobody is placed in this department yet.</li> : null}
+              {people.here.length === 0 && !morePeople ? (
+                <li className="px-3 py-3">
+                  <p className="text-sm text-muted">Nobody is placed in this department yet.</p>
+                  {canInvite ? (
+                    <button type="button" onClick={addPerson} className="press mt-1.5 min-h-[32px] text-sm font-medium text-primary-ink">
+                      + Add someone new
+                    </button>
+                  ) : null}
+                </li>
+              ) : null}
               {!morePeople && people.elsewhere.length ? (
                 <li>
                   <button type="button" onClick={() => setMorePeople(true)} className="press flex min-h-[44px] w-full items-center px-3 text-left text-sm font-medium text-primary-ink">
@@ -240,16 +256,89 @@ export function NewProjectSheet({
           </div>
         ) : null}
 
-        <Field label="Invite by email" hint="One per line. Each gets an email to set a password and lands on this project.">
-          <textarea
-            value={emails}
-            onChange={(e) => setEmails(e.target.value)}
-            rows={2}
-            placeholder="priya@company.com"
-            aria-label="Invite by email"
-            className={cn(inputClass, "h-auto py-2.5")}
-          />
-        </Field>
+        {canInvite ? (
+          <div>
+            <span className="mb-1.5 block text-micro font-medium text-muted">Someone not on Orbit yet</span>
+            <div className="space-y-3">
+              {newPeople.map((p, i) => {
+                const who = p.name.trim() || `new person ${i + 1}`;
+                return (
+                  <div key={i} className="space-y-2 rounded-input bg-hover p-3">
+                    <div className="flex items-end gap-2">
+                      <div className="min-w-0 flex-1">
+                        <Field label="Name">
+                          <input
+                            value={p.name}
+                            onChange={(e) => editPerson(i, { name: e.target.value })}
+                            placeholder="Kiran"
+                            aria-label={`Name of ${who}`}
+                            autoFocus
+                            className={inputClass}
+                          />
+                        </Field>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setNewPeople((prev) => prev.filter((_, j) => j !== i))}
+                        aria-label={`Remove ${who}`}
+                        className="press mb-0.5 grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* One person can hold several addresses; the first is the one written to. */}
+                    <Field label={p.emails.length > 1 ? "Emails" : "Email"} hint={p.emails.length > 1 ? "The invite goes to the first one." : undefined}>
+                      <div className="space-y-2">
+                        {p.emails.map((email, j) => (
+                          <div key={j} className="flex items-center gap-2">
+                            <input
+                              type="email"
+                              inputMode="email"
+                              autoComplete="off"
+                              value={email}
+                              onChange={(e) => editPerson(i, { emails: p.emails.map((x, k) => (k === j ? e.target.value : x)) })}
+                              placeholder={j === 0 ? "kiran@company.com" : "their other address"}
+                              aria-label={j === 0 ? `Email for ${who}` : `Another email for ${who}`}
+                              className={inputClass}
+                            />
+                            {p.emails.length > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => editPerson(i, { emails: p.emails.filter((_, k) => k !== j) })}
+                                aria-label={`Remove this email for ${who}`}
+                                className="press grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
+                              >
+                                ×
+                              </button>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </Field>
+
+                    <button
+                      type="button"
+                      onClick={() => editPerson(i, { emails: [...p.emails, ""] })}
+                      className="press min-h-[32px] text-micro font-medium text-primary-ink"
+                    >
+                      + Another email for this person
+                    </button>
+                  </div>
+                );
+              })}
+
+              <button type="button" onClick={addPerson} className="press min-h-[32px] text-sm font-medium text-primary-ink">
+                + Someone not on Orbit yet
+              </button>
+              {newPeople.length ? (
+                <p className="text-micro text-muted">
+                  Each gets an email to set a password and lands on this project. Someone with two addresses is one person — either one signs them in.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Start">

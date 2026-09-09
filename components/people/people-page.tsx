@@ -18,7 +18,7 @@ import { apiGet } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { departmentsKey } from "@/lib/hooks/use-departments";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isLeadOrAboveRole } from "@/lib/roles";
+import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole } from "@/lib/roles";
 import { DepartmentMark } from "@/components/ui/department-mark";
 import { ROLE_LABEL, type DepartmentDTO, type UserDTO } from "@/lib/types";
 
@@ -71,7 +71,7 @@ export function PeoplePage() {
     const company: UserDTO[] = [];
     for (const u of people) {
       const key = heads.get(u.id) ?? u.departmentId;
-      if (!heads.has(u.id) && u.role === "FOUNDER") company.push(u);
+      if (!heads.has(u.id) && (u.role === "FOUNDER" || u.role === "CO_FOUNDER")) company.push(u);
       else if (!key) unplaced.push(u);
       else byDept.set(key, [...(byDept.get(key) ?? []), u]);
     }
@@ -79,8 +79,12 @@ export function PeoplePage() {
     const order = (hodId: string | null) => (a: UserDTO, b: UserDTO) =>
       Number(b.id === hodId) - Number(a.id === hodId) || ROLE_RANK[b.role] - ROLE_RANK[a.role] || a.name.localeCompare(b.name);
 
+    // Every department shows, empty or not: "nobody in Accounts yet" is a fact
+    // worth seeing, and it is where you go to fix it. While a search is running,
+    // the empty ones drop out so the results stay readable.
+    const searching = Boolean(q);
     const sections: Section[] = depts
-      .filter((d) => byDept.has(d.id))
+      .filter((d) => byDept.has(d.id) || !searching)
       .map((d) => ({ id: d.id, name: d.name, hodId: d.hodId, people: [...(byDept.get(d.id) ?? [])].sort(order(d.hodId)) }));
     // A department the list doesn't know (visibility) still gets its people shown.
     for (const [id, rows] of byDept) {
@@ -141,19 +145,23 @@ export function PeoplePage() {
                 {s.name}
               </h2>
               <Card className="divide-y divide-line overflow-hidden">
-                {s.people.map((u) => (
-                  <PersonRow
-                    key={u.id}
-                    user={u}
-                    isHead={u.id === s.hodId}
-                    isSelf={u.id === me.id}
-                    canOpen={canAdministerTarget(me.role, u.role)}
-                    onOpen={() => setPersonId(u.id)}
-                  />
-                ))}
+                {s.people.length === 0 ? (
+                  <p className="px-3 py-3 text-sm text-muted">Nobody is in {s.name} yet.</p>
+                ) : (
+                  s.people.map((u) => (
+                    <PersonRow
+                      key={u.id}
+                      user={u}
+                      isHead={u.id === s.hodId}
+                      isSelf={u.id === me.id}
+                      canOpen={canAdministerTarget(me.role, u.role)}
+                      onOpen={() => setPersonId(u.id)}
+                    />
+                  ))
+                )}
               </Card>
               {s.id !== "company" && !isAdminActor ? (
-                <TeamsSection departmentId={s.id} people={s.people} canShape={me.role === "FOUNDER" || (me.role === "HOD" && s.hodId === me.id)} />
+                <TeamsSection departmentId={s.id} people={s.people} canShape={isExecutiveRole(me.role) || (me.role === "HOD" && s.hodId === me.id)} />
               ) : null}
             </section>
           ))}
@@ -216,9 +224,12 @@ function PersonRow({
         </span>
         <span className="block truncate text-micro text-muted">{ranked ? user.email : ROLE_LABEL[user.role]}</span>
       </span>
-      {/* Everyone who carries responsibility — the CEO down to a team lead —
-          wears their rank; a team member's row stays plain (owner, 2026-09-08). */}
-      {ranked ? <Chip tone="primary">{isHead ? "Head of department" : ROLE_LABEL[user.role]}</Chip> : null}
+      {/* A head of department down to a team lead wears their rank. The top of
+          the company does not: the name is the whole story there (owner,
+          2026-09-09), and a team member's row stays plain (owner, 2026-09-08). */}
+      {ranked && !isExecutiveRole(user.role) ? (
+        <Chip tone="primary">{isHead ? "Head of department" : ROLE_LABEL[user.role]}</Chip>
+      ) : null}
       {user.status === "PENDING" ? <Chip>Invited</Chip> : null}
       {disabled ? <Chip>Disabled</Chip> : null}
     </>

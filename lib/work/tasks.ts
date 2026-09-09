@@ -226,6 +226,8 @@ export type CreateWorkInput = {
   dueProvisional?: boolean;
   important?: boolean;
   orderKey?: string;
+  /** Shared by the records raised together when one task goes to several people. */
+  siblingKey?: string;
   /** The old screens' four words; translated into moves after the row exists. */
   status?: TaskStatus;
 };
@@ -342,6 +344,7 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
         givenById: assigneeId ? actor.id : null,
         dueDate: due,
         dueProvisional: due ? guessed : false,
+        siblingKey: input.siblingKey ?? null,
         ...(routed.escalate ? { escalatedAt: now } : {}),
       },
     });

@@ -209,8 +209,11 @@ async function main() {
     const newbieBell = await prisma.notification.count({ where: { userId: newbie?.id ?? "", type: "task_given" } });
     record("…which is waiting in their bell for their first sign-in", newbieBell === 1, `${newbieBell}`);
     const newbieMail = await prisma.emailLog.count({ where: { userId: newbie?.id ?? "", kind: "task_given" } });
-    const inviteMail = await prisma.emailLog.count({ where: { userId: newbie?.id ?? "", kind: "invite" } });
-    record("…and NO task mail before they join — the invite mail comes first", newbieMail === 0 && inviteMail >= 1, `task mails ${newbieMail}, invite mails ${inviteMail}`);
+    // The invite itself is the proof, not a ledger row: these rig inboxes are at
+    // a reserved domain that is never mailed (lib/email.ts), and since 2026-09-09
+    // the ledger only records mail actually handed to the relay.
+    const invited = await prisma.invite.count({ where: { userId: newbie?.id ?? "" } });
+    record("…and NO task mail before they join — the invite comes first", newbieMail === 0 && invited === 1, `task mails ${newbieMail}, invites ${invited}`);
 
     console.log("\n── the employee side: invited, joins, sees their work ──────────");
     const { issueInvite } = await import("../lib/invite");

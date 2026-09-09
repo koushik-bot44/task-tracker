@@ -12,6 +12,7 @@ export function RoleChip({ role, className }: { role: UserRole; className?: stri
         // HOD/manager in progressively quieter tints, everyone else
         // neutral. Admin is neutral too — accounts power, not chain power.
         role === "FOUNDER" && "bg-primary text-on-primary",
+        role === "CO_FOUNDER" && "bg-primary-soft text-primary-ink",
         role === "HOD" && "bg-info-soft text-info-ink",
         role === "MANAGER" && "bg-warn-soft text-warn-ink",
         (role === "TEAM_LEAD" || role === "RESOURCE" || role === "ADMIN" || role === "PERSON") &&

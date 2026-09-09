@@ -69,6 +69,11 @@ export function useProjectMutations() {
       priority?: "HIGH" | "MEDIUM" | "LOW";
       description?: string;
       color?: string;
+      /** People already on Orbit, ticked at creation. */
+      memberIds?: string[];
+      /** People who are not on Orbit yet. One entry per PERSON; a person may
+          hold several addresses, and the first is where the invite is sent. */
+      invites?: { name?: string; emails: string[] }[];
     }) => apiPost<ProjectDTO>("/api/projects", input),
     onSettled: refresh,
   });
@@ -132,8 +137,8 @@ export function useProjectMutations() {
   });
 
   const invitePerson = useMutation({
-    mutationFn: ({ projectId, name, email, role }: { projectId: string; name: string; email: string; role?: "RESOURCE" | "TEAM_LEAD" }) =>
-      apiPost<{ ok: true; emailSent: boolean }>(`/api/projects/${projectId}/members`, { invite: { name, email, role } }),
+    mutationFn: ({ projectId, name, email, emails, role }: { projectId: string; name: string; email: string; emails?: string[]; role?: "RESOURCE" | "TEAM_LEAD" }) =>
+      apiPost<{ ok: true; emailSent: boolean }>(`/api/projects/${projectId}/members`, { invite: { name, email, emails, role } }),
     onSettled: (_d, _e, v) => {
       void qc.invalidateQueries({ queryKey: ["project-people", v.projectId] });
       void qc.invalidateQueries({ queryKey: ["users"] });

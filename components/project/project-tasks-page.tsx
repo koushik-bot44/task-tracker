@@ -95,10 +95,19 @@ export function ProjectTasksPage({ slug }: { slug: string }) {
       {canSetProgress ? (
         <SetProgressSheet open={progressOpen} onClose={() => setProgressOpen(false)} project={project} done={roots.filter((t) => t.status === "DONE").length} total={roots.length} />
       ) : null}
-      <Drawer open={notesOpen} onClose={() => setNotesOpen(false)} label="Project notes" header={<h2 className="truncate text-section font-semibold text-ink">Project notes</h2>}>
-        <div className="px-4 pt-1">
-          <NotesThread targetType="PROJECT" targetId={project.id} autoFocus />
-        </div>
+      <Drawer
+        open={notesOpen}
+        onClose={() => setNotesOpen(false)}
+        label="Project notes"
+        fill
+        header={
+          <div className="min-w-0">
+            <h2 className="truncate text-section font-semibold text-ink">Project notes</h2>
+            <p className="truncate text-micro text-muted">{project.name}</p>
+          </div>
+        }
+      >
+        <NotesThread targetType="PROJECT" targetId={project.id} autoFocus fill />
       </Drawer>
     </Shell>
   );
