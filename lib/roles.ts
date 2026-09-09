@@ -17,13 +17,18 @@ import type { UserRole } from "@/lib/types";
  */
 export const isFounderRole = (r: UserRole | null | undefined): boolean => r === "FOUNDER";
 
-/**
- * Company-wide authority: the CEO and the co-founder see and act on everything.
- * Two things stay the CEO's ALONE and use `isFounderRole` instead — Well Being
- * (a personal feature, not a company one) and the CEO account itself.
- */
+/** Company-wide sight: the CEO alone sees inside everything. */
 export const isExecutiveRole = (r: UserRole | null | undefined): boolean =>
-  r === "FOUNDER" || r === "CO_FOUNDER";
+  r === "FOUNDER";
+
+/**
+ * Oversight without entry (owner, 2026-09-09). A co-founder sees the SHAPE of
+ * the company — every department and how much work sits in each — but opens
+ * only the projects he has been put on, like anybody else. He may still invite
+ * people and run what he is on; Well Being and the CEO account stay the CEO's.
+ */
+export const oversesCompanyRole = (r: UserRole | null | undefined): boolean =>
+  isExecutiveRole(r) || r === "CO_FOUNDER";
 
 export const isHodRole = (r: UserRole | null | undefined): boolean => r === "HOD";
 
@@ -31,7 +36,7 @@ export const isHodRole = (r: UserRole | null | undefined): boolean => r === "HOD
     MANAGER. What each may reach is scoped by lib/project-visibility (executives
     all, HOD their department, manager owned ∪ collaborations). */
 export const isManagerRole = (r: UserRole | null | undefined): boolean =>
-  isExecutiveRole(r) || isHodRole(r) || r === "MANAGER";
+  isExecutiveRole(r) || r === "CO_FOUNDER" || isHodRole(r) || r === "MANAGER";
 
 export const isAdminRole = (r: UserRole | null | undefined): boolean => r === "ADMIN";
 

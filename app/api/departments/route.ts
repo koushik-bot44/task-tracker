@@ -3,7 +3,7 @@ import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
 import { DEPARTMENT_HOD_SELECT, serializeDepartment } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
-import { isExecutiveRole } from "@/lib/roles";
+import { isExecutiveRole, oversesCompanyRole } from "@/lib/roles";
 import { visibleProjectIds } from "@/lib/project-visibility";
 import { createDepartmentSchema, parseBody } from "@/lib/validation";
 
@@ -34,6 +34,8 @@ export const GET = route(async () => {
         where: visible ? { id: { in: [...visible] } } : undefined,
         select: { id: true },
       },
+      // The real size of the department, for whoever oversees the company.
+      _count: { select: { projects: true } },
     },
   });
 
@@ -41,9 +43,12 @@ export const GET = route(async () => {
   // Everyone else sees their own department, a department they head, and a
   // department holding a project they are on — nothing more.
   const executive = isExecutiveRole(user.role);
+  // A co-founder oversees: every department shows, with how much work is really
+  // in it, even though only the projects he is on will open.
+  const oversees = oversesCompanyRole(user.role);
   const out = departments
-    .filter((d) => executive || d.id === user.departmentId || d.hodId === user.id || d.projects.length > 0)
-    .map((d) => serializeDepartment(d, d.projects.length));
+    .filter((d) => oversees || d.id === user.departmentId || d.hodId === user.id || d.projects.length > 0)
+    .map((d) => serializeDepartment(d, executive || !oversees ? d.projects.length : d._count.projects));
 
   return NextResponse.json(out);
 });

@@ -51,24 +51,38 @@ async function main() {
   record("the co-founder can sign in", coCookie.startsWith("orbit_session="), "");
   record("the CEO can sign in", ceoCookie.startsWith("orbit_session="), "");
 
-  /* ---- what Rahul sees, he sees ---- */
-  const ceoWork = await call(ceoCookie, "GET", "/api/work?limit=200");
-  const coWork = await call(coCookie, "GET", "/api/work?limit=200");
-  record("the co-founder sees the same body of work as the CEO", coWork.json?.total === ceoWork.json?.total, `co ${coWork.json?.total} vs ceo ${ceoWork.json?.total}`);
-  const coDepts = new Set((coWork.json?.items ?? []).map((t: any) => t.departmentId));
-  record("…across every department, not just one", coDepts.size > 1, `${coDepts.size} departments`);
-
-  const ceoProjects = await call(ceoCookie, "GET", "/api/projects");
-  const coProjects = await call(coCookie, "GET", "/api/projects");
-  record("every project the CEO sees", (coProjects.json ?? []).length === (ceoProjects.json ?? []).length, `${(coProjects.json ?? []).length} vs ${(ceoProjects.json ?? []).length}`);
-
-  const ceoPeople = await call(ceoCookie, "GET", "/api/users");
-  const coPeople = await call(coCookie, "GET", "/api/users");
-  record("every person the CEO sees", (coPeople.json ?? []).length === (ceoPeople.json ?? []).length, `${(coPeople.json ?? []).length} vs ${(ceoPeople.json ?? []).length}`);
-  record("the co-founder is listed at company level", (coPeople.json ?? []).some((u: any) => u.id === co.id && u.role === "CO_FOUNDER"), "");
-
+  /* ---- oversight, not entry ----
+     He sees the SHAPE of the company — every department and how much work is
+     in each — but opens only the projects he has been put on. */
   const departments = await call(coCookie, "GET", "/api/departments");
-  record("every department", (departments.json ?? []).length > 1, `${(departments.json ?? []).length}`);
+  const all = await prisma.department.count();
+  record("the co-founder sees every department", (departments.json ?? []).length === all, `${(departments.json ?? []).length} of ${all}`);
+
+  const dev = (departments.json ?? []).find((d: any) => d.name === "Development");
+  const realCount = await prisma.project.count({ where: { departmentId: dev?.id } });
+  record("…with the real number of projects in each", dev?.projectCount === realCount, `shows ${dev?.projectCount}, really ${realCount}`);
+
+  const onProjects = await prisma.projectMember.count({ where: { userId: co.id } });
+  const coProjects = await call(coCookie, "GET", "/api/projects");
+  const ceoProjects = await call(ceoCookie, "GET", "/api/projects");
+  record("…but opens only the projects he is on", (coProjects.json ?? []).length === onProjects, `${(coProjects.json ?? []).length} open, ${onProjects} memberships`);
+  record("…which is fewer than the CEO's", (coProjects.json ?? []).length < (ceoProjects.json ?? []).length, `${(coProjects.json ?? []).length} vs ${(ceoProjects.json ?? []).length}`);
+
+  const notHis = await prisma.project.findFirst({
+    where: { members: { none: { userId: co.id } }, leadId: { not: co.id }, ownerId: { not: co.id } },
+    select: { id: true, slug: true, name: true },
+  });
+  if (notHis) {
+    const peek = await call(coCookie, "GET", `/api/projects/${notHis.id}/members`);
+    record("a project he is not on stays closed", peek.status === 404 || peek.status === 403, `${notHis.name} -> ${peek.status}`);
+  } else {
+    record("a project he is not on stays closed", true, "he is on all of them");
+  }
+
+  const coWork = await call(coCookie, "GET", "/api/work?limit=200");
+  const ceoWork = await call(ceoCookie, "GET", "/api/work?limit=200");
+  record("he sees less work than the CEO", (coWork.json?.total ?? 0) < (ceoWork.json?.total ?? 0), `co ${coWork.json?.total} vs ceo ${ceoWork.json?.total}`);
+  record("…and all of it is on projects he is on", (coWork.json?.items ?? []).every((t: any) => !t.projectId || (coProjects.json ?? []).some((p: any) => p.id === t.projectId)), "");
 
   /* ---- Well Being is Rahul's alone ---- */
   const wellBeing = await call(coCookie, "GET", "/api/routine");
@@ -102,6 +116,8 @@ async function main() {
   record("…and start a project in any department", madeProject.status === 201, `status ${madeProject.status}`);
   const hod = await call(coCookie, "POST", "/api/users", { name: "CF Head", email: `${PREFIX}head@orbit.local`, role: "HOD", departmentId: dept!.id });
   record("…and appoint people below them", hod.status === 201, `status ${hod.status}`);
+  const invited = await call(coCookie, "POST", "/api/users", { name: "CF Invitee", email: `${PREFIX}invitee@orbit.local`, emails: [`${PREFIX}invitee-alt@orbit.local`], role: "RESOURCE", departmentId: dept!.id });
+  record("…and invite somebody with several addresses", invited.status === 201, `status ${invited.status}`);
 }
 
 main()

@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { useMe } from "@/lib/hooks/use-users";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
-import { isAdminRole, isExecutiveRole, isLeadOrAboveRole } from "@/lib/roles";
+import { isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
 import { DepartmentBoard } from "./department-board";
 import { DepartmentTree } from "./department-tree";
@@ -120,7 +120,7 @@ export function WorkPage() {
   // their own, and is shown no picker at all.
   const departmentChoices = useMemo(() => {
     const all = departments ?? [];
-    if (isExecutiveRole(me?.role)) return all;
+    if (oversesCompanyRole(me?.role)) return all;
     const mine = all.filter((d) => d.hodId === me?.id || d.id === me?.departmentId);
     return [...new Map(mine.map((d) => [d.id, d] as const)).values()];
   }, [departments, me]);
@@ -207,7 +207,7 @@ export function WorkPage() {
           title={<span>Tasks</span>}
           right={
             <>
-              {isExecutiveRole(me?.role) || me?.role === "HOD" ? (
+              {oversesCompanyRole(me?.role) || me?.role === "HOD" ? (
                 <Link href="/work?view=departments" className={snButton}>
                   By department
                 </Link>
