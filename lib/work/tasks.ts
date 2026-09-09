@@ -37,6 +37,11 @@ import { canTransition, pathToStatus, stateAfterAssignment, statusOf, transition
 
 type ActorUser = Pick<User, "id" | "role" | "name">;
 
+/** A short description reads "Fix The Login Page": the first letter, and every letter after a space, in capitals (developer, 2026-09-09). */
+export function titleCase(s: string): string {
+  return s.replace(/(^|\s)(\p{L})/gu, (_m, sp: string, ch: string) => sp + ch.toUpperCase());
+}
+
 /* ------------------------------------------------------------------ reads */
 
 /** A task with its people joined and its step/note counts filled. */
@@ -318,7 +323,7 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
         projectId,
         parentId: parent?.id ?? null,
         milestoneId,
-        title: input.title ?? "",
+        title: titleCase(input.title ?? ""),
         descriptionMd: input.descriptionMd ?? "",
         orderKey: orderKey!,
         status: statusOf(state),
@@ -417,7 +422,7 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
   if (!mayAssign) throw new HttpError(403, "You can't change who holds this.");
 
   const data: Prisma.TaskUncheckedUpdateInput = {};
-  if (patch.title !== undefined) data.title = patch.title;
+  if (patch.title !== undefined) data.title = titleCase(patch.title);
   if (patch.descriptionMd !== undefined) data.descriptionMd = patch.descriptionMd;
   if (patch.orderKey !== undefined) data.orderKey = patch.orderKey;
   if (patch.deliverableUrl !== undefined) data.deliverableUrl = patch.deliverableUrl;

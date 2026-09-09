@@ -20,12 +20,12 @@ const isImage = (type: string | null) => Boolean(type && type.startsWith("image/
  * note (staff only) stays with the people working it. Paper-clip attaches a
  * file; @ names someone, who is told.
  */
-export function ActivityComposer({ task, staff }: { task: TaskDTO; staff: boolean }) {
+export function ActivityComposer({ task }: { task: TaskDTO }) {
   const { data: me } = useMe();
   const { addNote } = useWorkMutations(task.id);
   const { data: uploads } = useUploadsEnabled();
   const { show: toast } = useToast();
-  const [internal, setInternal] = useState(false);
+  const internal = false;
   const [draft, setDraft] = useState("");
   const [mentions, setMentions] = useState<{ id: string; name: string }[]>([]);
   const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
@@ -85,27 +85,6 @@ export function ActivityComposer({ task, staff }: { task: TaskDTO; staff: boolea
 
   return (
     <div className="space-y-2">
-      {staff ? (
-        <div role="tablist" aria-label="Who reads this" className="flex h-9 w-fit items-center gap-1 rounded-input bg-hover p-1">
-          {[
-            { v: false, label: "Note" },
-            { v: true, label: "Team note" },
-          ].map((o) => (
-            <button
-              key={o.label}
-              type="button"
-              role="tab"
-              aria-selected={internal === o.v}
-              onClick={() => setInternal(o.v)}
-              className={cn("press h-7 rounded-[8px] px-3 text-micro font-medium", internal === o.v ? (o.v ? "bg-warn-soft text-warn-ink shadow-e1" : "bg-surface text-ink shadow-e1") : "text-muted hover:text-ink")}
-            >
-              {o.label}
-            </button>
-          ))}
-          <span className="px-2 text-micro text-muted">{internal ? "Only the people working this task" : "Everyone on this task"}</span>
-        </div>
-      ) : null}
-
       {pending ? (
         <div className="flex items-center gap-2 rounded-input bg-hover px-3 py-2 text-micro text-ink">
           {isImage(pending.type) ? (

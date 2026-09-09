@@ -13,7 +13,7 @@ import { useGroups, useRaiseWork } from "@/lib/hooks/use-work";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
 import type { UserDTO } from "@/lib/types";
-import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL, type WorkPriority, type WorkType } from "@/lib/types";
+import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL, titleCase, type WorkPriority, type WorkType } from "@/lib/types";
 
 /**
  * Raise a task with no project: what, what kind, which team. Everything else
@@ -135,7 +135,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
     >
       <div className="space-y-4">
         <Field label="Short description">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="What needs doing" aria-label="Short description" autoFocus className={inputClass} />
+          <input value={title} onChange={(e) => setTitle(titleCase(e.target.value))} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="What needs doing" aria-label="Short description" autoFocus className={inputClass} />
         </Field>
         {(projects ?? []).length ? (
           <Field label="Project" hint="Tasks are raised inside a project; its department comes with it.">

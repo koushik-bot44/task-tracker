@@ -21,7 +21,6 @@ type Filter = "all" | "notes" | "team" | "changes" | "files" | "mentions";
 const FILTERS: { key: Filter; label: string; staffOnly?: boolean }[] = [
   { key: "all", label: "All" },
   { key: "notes", label: "Notes" },
-  { key: "team", label: "Team notes", staffOnly: true },
   { key: "changes", label: "Changes" },
   { key: "files", label: "Files" },
   { key: "mentions", label: "Mentions" },
@@ -123,7 +122,7 @@ export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; sta
         </ol>
       )}
 
-      <ActivityComposer task={task} staff={staff} />
+      <ActivityComposer task={task} />
     </section>
   );
 }

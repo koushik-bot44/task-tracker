@@ -71,7 +71,7 @@ async function main() {
   check("its meeting is on the same day", Boolean(row!.reviewEvent) && istDayKey(row!.reviewEvent!.date) === "2026-09-25", row!.reviewEvent ? istDayKey(row!.reviewEvent.date) : "no meeting");
 
   // ── 2. Tasks typed into the box take the box's day ──────────────────────
-  for (const title of ["e2e task one", "e2e task two"]) {
+  for (const title of ["E2e Task One", "E2e Task Two"]) {
     const t = await ceo("/api/tasks", {
       method: "POST",
       body: JSON.stringify({ projectId, milestoneId, title, dueDate: row!.reviewDate.toISOString(), dueProvisional: true, parentId: null }),
@@ -90,11 +90,11 @@ async function main() {
   check("the tasks followed the review", tasks.every((t) => t.dueDate && istDayKey(t.dueDate) === "2026-10-02"), tasks.map((t) => istDayKey(t.dueDate!)).join(","));
 
   // A date somebody set by hand must NOT be dragged along.
-  await prisma.task.updateMany({ where: { milestoneId, title: "e2e task two" }, data: { dueProvisional: false, dueDate: new Date("2026-10-09T00:00:00.000Z") } });
+  await prisma.task.updateMany({ where: { milestoneId, title: "E2e Task Two" }, data: { dueProvisional: false, dueDate: new Date("2026-10-09T00:00:00.000Z") } });
   await ceo(`/api/milestones/${milestoneId}`, { method: "PATCH", body: JSON.stringify({ reviewDate: "2026-10-05" }) });
   tasks = await prisma.task.findMany({ where: { milestoneId, deletedAt: null }, select: { title: true, dueDate: true, dueProvisional: true } });
-  const byHand = tasks.find((t) => t.title === "e2e task two")!;
-  const auto = tasks.find((t) => t.title === "e2e task one")!;
+  const byHand = tasks.find((t) => t.title === "E2e Task Two")!;
+  const auto = tasks.find((t) => t.title === "E2e Task One")!;
   check("a hand-set date is left alone", istDayKey(byHand.dueDate!) === "2026-10-09", istDayKey(byHand.dueDate!));
   check("an automatic date still follows", istDayKey(auto.dueDate!) === "2026-10-05", istDayKey(auto.dueDate!));
 
@@ -197,11 +197,11 @@ async function main() {
   // ── 11. An important task carries its star through the API ──────────────
   const starred = await ceo("/api/tasks", {
     method: "POST",
-    body: JSON.stringify({ projectId, milestoneId, title: "e2e important", important: true, parentId: null }),
+    body: JSON.stringify({ projectId, milestoneId, title: "E2e Important", important: true, parentId: null }),
   });
   check("a task can be marked important", starred.status === 201 && starred.body.important === true, `status ${starred.status}`);
   const taskList = await ceo(`/api/tasks?projectId=${projectId}`);
-  const starRow = (Array.isArray(taskList.body) ? taskList.body : taskList.body?.tasks ?? []).find((t: any) => t.title === "e2e important");
+  const starRow = (Array.isArray(taskList.body) ? taskList.body : taskList.body?.tasks ?? []).find((t: any) => t.title === "E2e Important");
   check("the box's rows carry the star", starRow?.important === true, JSON.stringify(starRow?.important));
 
   // ── teardown ────────────────────────────────────────────────────────────

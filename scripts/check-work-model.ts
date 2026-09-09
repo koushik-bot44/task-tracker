@@ -204,7 +204,7 @@ async function main() {
     record("a project is made with people and an outside email in one go", projWithPeople.status === 201 && projWithPeople.json?.added === 2 && projWithPeople.json?.invited === 1, `status ${projWithPeople.status} · ${projWithPeople.json?.added}/${projWithPeople.json?.invited}`);
     const newbie = await prisma.user.findUnique({ where: { email: `${PREFIX}outside@orbit.local` }, select: { id: true, status: true } });
     record("…the newbie has a pending account with an invite", newbie?.status === "PENDING" && (await prisma.invite.count({ where: { userId: newbie?.id ?? "" } })) === 1, `${newbie?.status}`);
-    const givenToOutsider = await call(managerA, "POST", "/api/tasks", { projectId: projWithPeople.json?.id, title: "WM newbie task", assigneeId: newbie?.id });
+    const givenToOutsider = await call(managerA, "POST", "/api/tasks", { projectId: projWithPeople.json?.id, title: "WM Newbie Task", assigneeId: newbie?.id });
     record("…and can already be given a task", givenToOutsider.status === 201 && givenToOutsider.json?.assigneeId === newbie?.id, `status ${givenToOutsider.status}`);
     const newbieBell = await prisma.notification.count({ where: { userId: newbie?.id ?? "", type: "task_given" } });
     record("…which is waiting in their bell for their first sign-in", newbieBell === 1, `${newbieBell}`);
@@ -218,11 +218,11 @@ async function main() {
       record("the invited person sets a password from the link", accept.status === 200, `status ${accept.status}`);
       const joined: Actor = { label: "joiner", id: joiner.id, email: joiner.email, cookie: await signIn(joiner.email, "joiner-pass-Xy7!") };
       const theirWork = await call(joined, "GET", "/api/work?mine=assigned");
-      record("…and 'Your work' already lists the task given before they joined", theirWork.status === 200 && (theirWork.json?.items ?? []).some((t: any) => t.title === "WM newbie task"), JSON.stringify((theirWork.json?.items ?? []).map((t: any) => [t.title, t.state, t.assigneeId === joiner.id])));
+      record("…and 'Your work' already lists the task given before they joined", theirWork.status === 200 && (theirWork.json?.items ?? []).some((t: any) => t.title === "WM Newbie Task"), JSON.stringify((theirWork.json?.items ?? []).map((t: any) => [t.title, t.state, t.assigneeId === joiner.id])));
       const theirBell = await call(joined, "GET", "/api/notifications");
       record("…with the 'gave you a task' waiting in their bell", theirBell.status === 200 && (theirBell.json?.items ?? []).some((n: any) => n.type === "task_given"), `${theirBell.json?.unread}`);
       const theirToday = await call(joined, "GET", "/api/today");
-      record("…and on their Today", theirToday.status === 200 && (theirToday.json?.tasks ?? []).some((t: any) => t.title === "WM newbie task"), JSON.stringify((theirToday.json?.tasks ?? []).map((t: any) => t.title)));
+      record("…and on their Today", theirToday.status === 200 && (theirToday.json?.tasks ?? []).some((t: any) => t.title === "WM Newbie Task"), JSON.stringify((theirToday.json?.tasks ?? []).map((t: any) => t.title)));
     } else record("the invited person exists", false);
 
     console.log("\n── the queue and the dashboard ────────────────────────────────");

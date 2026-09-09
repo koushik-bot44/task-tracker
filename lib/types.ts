@@ -89,6 +89,11 @@ export const WORK_TYPE_PREFIX: Record<WorkType, string> = {
   APPROVAL: "APR",
   SUPPORT: "TASK",
 };
+/** "Fix The Login Page": the first letter, and every letter after a space, in capitals. */
+export function titleCase(s: string): string {
+  return s.replace(/(^|\s)(\p{L})/gu, (_m, sp: string, ch: string) => sp + ch.toUpperCase());
+}
+
 /** "TASK0001024" — the number the way a service desk writes it, on every screen and in every message. */
 export function workRef(type: WorkType, number: number): string {
   return `${WORK_TYPE_PREFIX[type]}${String(number).padStart(7, "0")}`;

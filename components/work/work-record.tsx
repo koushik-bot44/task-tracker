@@ -17,6 +17,7 @@ import {
   WORK_PRIORITY_LABEL,
   WORK_STATE_LABEL,
   WORK_TYPE_LABEL,
+  titleCase,
   type TaskDTO,
   type WorkPriority,
   type WorkState,
@@ -176,7 +177,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
               <input
                 value={title}
                 readOnly={ro}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => setTitle(titleCase(e.target.value))}
                 onBlur={() => { if (!ro && title.trim() !== task.title) update.mutate({ title: title.trim() }, { onError: fail }); }}
                 onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                 aria-label="Short description"
