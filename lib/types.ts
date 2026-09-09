@@ -248,6 +248,8 @@ export type TaskDTO = {
   /** Who gave the task — the giver Face on Today. */
   givenById: string | null;
   givenByName: string | null;
+  /** Who the work came from — the giver, or whoever raised it on a self-pickup. */
+  assignedByName: string | null;
   hasDescription: boolean;
   noteCount: number;
   /** Steps under a root task (0 for a step itself). */

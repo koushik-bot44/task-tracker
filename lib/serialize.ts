@@ -76,6 +76,14 @@ export function serializeTask(task: TaskRow): TaskDTO {
     assigneeName: task.assignee?.name ?? null,
     givenById: task.givenById,
     givenByName: task.givenBy?.name ?? null,
+    /* "Assigned by" — who the work came FROM, which is what a reader wants.
+       Normally whoever handed it over. But somebody who picks up an unassigned
+       task hands it to themselves, and "assigned by koushik to koushik" says
+       nothing; in that case the person who raised it is the answer. */
+    assignedByName:
+      task.givenById && task.givenById !== task.assigneeId
+        ? task.givenBy?.name ?? null
+        : task.requester?.name ?? task.givenBy?.name ?? null,
     hasDescription: task.descriptionMd.trim().length > 0,
     noteCount: task.noteCount ?? 0,
     stepCount: task.stepCount ?? task._count?.children ?? 0,

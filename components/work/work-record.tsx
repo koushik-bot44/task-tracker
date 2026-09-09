@@ -204,7 +204,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
             <FormRow label="Number"><input value={task.ref} readOnly className={snInput} /></FormRow>
             {/* Who handed it over. On a task raised straight onto somebody they are
                 the same person; when nobody was named yet, whoever raised it stands. */}
-            <FormRow label="Assigned by"><input value={task.givenByName ?? task.requesterName ?? ""} readOnly className={snInput} /></FormRow>
+            <FormRow label="Assigned by"><input value={task.assignedByName ?? ""} readOnly className={snInput} /></FormRow>
             <FormRow label="Type"><input value={WORK_TYPE_LABEL[task.type]} readOnly className={snInput} /></FormRow>
             <FormRow label="Category"><input value={task.categoryName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
             <FormRow label="Department"><input value={task.departmentName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
@@ -249,7 +249,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
                     {task.alsoWith.map((p) => (
                       <li key={p.id} className="flex items-center gap-2 py-1 pl-3 pr-1">
                         <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{p.name}</span>
-                        <span className="shrink-0 text-micro text-muted">own copy</span>
                         {access.canAssign ? (
                           <button
                             type="button"

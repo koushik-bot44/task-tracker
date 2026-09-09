@@ -110,7 +110,7 @@ function RowLine({ t, sharedWith }: { t: TaskDTO; sharedWith?: string[] }) {
       </td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.givenByName ?? ""}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedByName ?? ""}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">
         {sharedWith && sharedWith.length > 1 ? (
           <Tooltip content={<PeopleList title={`This task went to ${sharedWith.length} people`} names={sharedWith} />}>

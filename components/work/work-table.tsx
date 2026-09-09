@@ -218,7 +218,7 @@ function RowLine({ t, hideProject }: { t: TaskDTO; hideProject: boolean }) {
       )}
       <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.givenByName ?? ""}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedByName ?? ""}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assigneeName ?? ""}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedAt ? formatDMY(t.assignedAt) : ""}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", late ? "text-danger-ink" : "text-ink")}>{t.dueDate ? dateWord(t.dueDate) : ""}</td>
