@@ -331,7 +331,10 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
         departmentId: routed.departmentId,
         assignmentGroupId: routed.assignmentGroupId,
         assigneeId,
-        givenById: actor.id,
+        // "Given by" is the act of handing it to someone; raising a task for
+        // yourself or your team is not giving (it would make the requester its
+        // assigner).
+        givenById: assigneeId ? actor.id : null,
         dueDate: due,
         dueProvisional: due ? guessed : false,
         ...(routed.escalate ? { escalatedAt: now } : {}),

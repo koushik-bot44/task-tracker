@@ -428,6 +428,41 @@ export type TodayDTO = {
   meetings: CalendarEventDTO[];
 };
 
+/** Today's work half (work model): counters over what the caller runs, then the lists. */
+export type WorkCountersDTO = {
+  open: number;
+  unassigned: number;
+  highPriority: number;
+  dueToday: number;
+  overdue: number;
+  waiting: number;
+  resolvedToday: number;
+  newToday: number;
+};
+export type DepartmentWorkLineDTO = { id: string; name: string; color: string; open: number; inProgress: number; waiting: number; overdue: number; unassigned: number };
+export type DashboardTodayDTO = {
+  /** What the counters cover. */
+  level: "company" | "department" | "team" | "mine";
+  counters: WorkCountersDTO;
+  myWork: TaskDTO[];
+  myWorkTotal: number;
+  teamWork: TaskDTO[];
+  teamWorkTotal: number;
+  teams: { id: string; name: string }[];
+  /** Heads and the CEO: unheld work in their departments. */
+  departmentWork: TaskDTO[];
+  departmentWorkTotal: number;
+  departments: DepartmentWorkLineDTO[];
+  /** The CEO only: every open task in the company. */
+  everythingTotal: number | null;
+};
+
+export type WorkTallyDTO = { open: number; inProgress: number; waiting: number; overdue: number; unassigned: number };
+export type PersonWorkDTO = { id: string; name: string } & WorkTallyDTO;
+export type TeamWorkDTO = { id: string; name: string; leadId: string | null; leadName: string | null; people: PersonWorkDTO[] } & WorkTallyDTO;
+export type DepartmentWorkDTO = { id: string; name: string; color: string; hodId: string | null; hodName: string | null; teams: TeamWorkDTO[]; unteamed: WorkTallyDTO } & WorkTallyDTO;
+export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: number };
+
 export type NotificationDTO = {
   id: string;
   type: string;
