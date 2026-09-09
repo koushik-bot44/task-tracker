@@ -148,11 +148,34 @@ function RecordBody({ task }: { task: TaskDTO }) {
       <Panel>
         <PanelHeader
           title={
-            <span className="flex items-center gap-2">
-              <Link href="/work" className={cn(snLink, "text-[13px] font-normal")}>Tasks</Link>
-              <span className="text-muted">›</span>
+            /* Where this task sits, walked back the way it was reached:
+               department → project → the task itself. Each step is a link, so
+               going "up" lands on the thing above it rather than on every task
+               in the company. */
+            <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+              {task.departmentId ? (
+                <>
+                  <Link href={`/projects?d=${task.departmentId}`} className={cn(snLink, "text-[13px] font-normal")}>
+                    {task.departmentName ?? "Department"}
+                  </Link>
+                  <span className="text-muted">›</span>
+                </>
+              ) : null}
+              {task.projectSlug ? (
+                <>
+                  <Link href={`/project/${task.projectSlug}`} className={cn(snLink, "text-[13px] font-normal")}>
+                    {task.projectName}
+                  </Link>
+                  <span className="text-muted">›</span>
+                </>
+              ) : (
+                <>
+                  <Link href="/work" className={cn(snLink, "text-[13px] font-normal")}>Tasks</Link>
+                  <span className="text-muted">›</span>
+                </>
+              )}
               <span>{task.ref}</span>
-              <span className="truncate font-normal text-muted">{task.title || "(empty)"}</span>
+              <span className="min-w-0 truncate font-normal text-muted">{task.title || "(empty)"}</span>
             </span>
           }
           right={

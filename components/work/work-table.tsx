@@ -1,18 +1,15 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import { dateWord, formatDMY } from "@/lib/dates";
 import { useMe } from "@/lib/hooks/use-users";
 import { useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
-import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
-import { WorkCards } from "./work-cards";
+import { TaskTable, collapseSiblings } from "./task-table";
 import { NewWorkSheet } from "./new-work-sheet";
-import { Panel, PanelHeader, snButton, snInput, snLink, snPrimary } from "./sn";
+import { Panel, PanelHeader, snButton, snInput, snPrimary } from "./sn";
 
 export type Slice = "open" | "unassigned" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
 
@@ -85,8 +82,17 @@ export function WorkTable({
   const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: slice === "overdue" ? "due" : "updated", limit: PAGE, cursor };
   const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me));
   const from = pages.length * PAGE + 1;
-  const to = data ? Math.min(from + data.items.length - 1, data.total) : 0;
-  const cols = hideProject ? 9 : 10;
+  // A task given to several people is several records; the list shows it once,
+  // so the count has to say tasks too.
+  const sharedWith = new Map<string, string[]>();
+  for (const t of data?.items ?? []) {
+    if (!t.siblingKey) continue;
+    const names = [...(t.assigneeName ? [t.assigneeName] : []), ...t.alsoWith.map((x) => x.name)];
+    if (names.length > 1) sharedWith.set(t.id, names);
+  }
+  const shownRows = data ? collapseSiblings(data.items).length : 0;
+  const hidden = data ? data.items.length - shownRows : 0;
+  const to = data ? Math.min(from + shownRows - 1, data.total - hidden) : 0;
 
   return (
     <Panel>
@@ -131,44 +137,16 @@ export function WorkTable({
         <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
       ) : (
         <>
-          {/* A phone reads the rows stacked; the wide table starts at md. */}
-          <div className="md:hidden">
-            <WorkCards items={data.items} hideProject={hideProject} />
-          </div>
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className={cn("w-full border-collapse text-[13px]", hideProject ? "min-w-[860px]" : "min-w-[960px]")}>
-              <thead>
-                <tr className="bg-hover text-left text-muted">
-                  <Th>Number</Th>
-                  <Th className="w-[26%]">Short description</Th>
-                  <Th>Department</Th>
-                  {hideProject ? null : <Th>Project</Th>}
-                  <Th>State</Th>
-                  <Th>Priority</Th>
-                  <Th>Assigned by</Th>
-                  <Th>Assigned to</Th>
-                  <Th>Assigned</Th>
-                  <Th>Due</Th>
-                  <Th>Updated</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((t) => (
-                  <RowLine key={t.id} t={t} hideProject={hideProject} />
-                ))}
-                {data.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={cols} className="px-3 py-8 text-center text-muted">
-                      {q ? "No records match your search." : "No records to display."}
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          {/* One list, shared with the queue: the same columns everywhere, one
+              row per task, stacked rows on a phone. */}
+          <TaskTable
+            items={data.items}
+            sharedWith={sharedWith}
+            hideProject={hideProject}
+            empty={q ? "No records match your search." : "No records to display."}
+          />
           <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
-            <span>{data.total === 0 ? "0 records" : `${from} to ${to} of ${data.total}`}</span>
+            <span>{data.total === 0 ? "0 tasks" : `${from} to ${to} of ${data.total - hidden}`}</span>
             <span className="flex items-center gap-1">
               <button type="button" disabled={pages.length === 0} onClick={() => setPages((p) => p.slice(0, -1))} className={snButton} aria-label="Previous page">
                 <ChevronLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
@@ -186,45 +164,6 @@ export function WorkTable({
   );
 }
 
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("border-b border-line px-3 py-2 font-semibold", className)}>{children}</th>;
-}
 
-function RowLine({ t, hideProject }: { t: TaskDTO; hideProject: boolean }) {
-  const late = t.dueDate && t.status !== "DONE" && new Date(t.dueDate).getTime() < Date.now() - 86_400_000;
-  return (
-    <tr className="border-b border-line hover:bg-hover">
-      <td className="whitespace-nowrap px-3 py-2">
-        <Link href={`/work/${t.number}`} className={cn(snLink, "font-medium")}>
-          {t.ref}
-        </Link>
-      </td>
-      <td className="max-w-0 truncate px-3 py-2 text-ink">
-        <Link href={`/work/${t.number}`} className="hover:underline">
-          {t.title.trim() || "(empty)"}
-        </Link>
-      </td>
-      <td className="max-w-[10rem] truncate whitespace-nowrap px-3 py-2 text-ink">{t.departmentName ?? ""}</td>
-      {hideProject ? null : (
-        <td className="max-w-[12rem] truncate whitespace-nowrap px-3 py-2 text-ink">
-          {t.projectSlug ? (
-            <Link href={`/project/${t.projectSlug}`} className={snLink}>
-              {t.projectName}
-            </Link>
-          ) : (
-            ""
-          )}
-        </td>
-      )}
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
-      <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedByName ?? ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assigneeName ?? ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedAt ? formatDMY(t.assignedAt) : ""}</td>
-      <td className={cn("whitespace-nowrap px-3 py-2", late ? "text-danger-ink" : "text-ink")}>{t.dueDate ? dateWord(t.dueDate) : ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-muted">{formatDMY(t.updatedAt)}</td>
-    </tr>
-  );
-}
 
 export { EmptyState as WorkEmpty };

@@ -15,20 +15,42 @@ import { snLink } from "./sn";
  * eleven columns, so a row means the same thing wherever it is read. On a phone
  * it becomes stacked rows instead (WorkCards) — the same facts, not fewer.
  */
+/**
+ * One row per TASK, not per record.
+ *
+ * A task given to several people is one record each — so each can finish their
+ * own — but a list that shows the same words four times reads as four tasks.
+ * The records that share a key collapse into the first of them; the row names
+ * everybody on it.
+ */
+export function collapseSiblings(items: TaskDTO[]): TaskDTO[] {
+  const seen = new Set<string>();
+  return items.filter((t) => {
+    if (!t.siblingKey) return true;
+    if (seen.has(t.siblingKey)) return false;
+    seen.add(t.siblingKey);
+    return true;
+  });
+}
+
 export function TaskTable({
   items,
   sharedWith,
   empty = "No records to display.",
+  hideProject = false,
 }: {
   items: TaskDTO[];
   /** Everyone holding the same task, keyed by task id. */
   sharedWith?: Map<string, string[]>;
   empty?: string;
+  /** On a project's own page the project column would say the same thing twice. */
+  hideProject?: boolean;
 }) {
+  const rows = collapseSiblings(items);
   return (
     <>
       <div className="md:hidden">
-        <WorkCards items={items} sharedWith={sharedWith} />
+        <WorkCards items={rows} sharedWith={sharedWith} hideProject={hideProject} />
       </div>
 
       <div className="hidden overflow-x-auto md:block">
@@ -38,7 +60,7 @@ export function TaskTable({
               <Th>Number</Th>
               <Th className="w-[26%]">Short description</Th>
               <Th>Department</Th>
-              <Th>Project</Th>
+              {hideProject ? null : <Th>Project</Th>}
               <Th>State</Th>
               <Th>Priority</Th>
               <Th>Assigned by</Th>
@@ -49,12 +71,12 @@ export function TaskTable({
             </tr>
           </thead>
           <tbody>
-            {items.map((t) => (
-              <RowLine key={t.id} t={t} sharedWith={sharedWith?.get(t.id)} />
+            {rows.map((t) => (
+              <RowLine key={t.id} t={t} sharedWith={sharedWith?.get(t.id)} hideProject={hideProject} />
             ))}
-            {items.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-3 py-8 text-center text-muted">
+                <td colSpan={hideProject ? 10 : 11} className="px-3 py-8 text-center text-muted">
                   {empty}
                 </td>
               </tr>
@@ -84,7 +106,7 @@ function PeopleList({ title, names }: { title: string; names: string[] }) {
   );
 }
 
-function RowLine({ t, sharedWith }: { t: TaskDTO; sharedWith?: string[] }) {
+function RowLine({ t, sharedWith, hideProject = false }: { t: TaskDTO; sharedWith?: string[]; hideProject?: boolean }) {
   const late = t.dueDate && t.status !== "DONE" && new Date(t.dueDate).getTime() < Date.now() - 86_400_000;
   return (
     <tr className="border-b border-line hover:bg-hover">
@@ -99,6 +121,7 @@ function RowLine({ t, sharedWith }: { t: TaskDTO; sharedWith?: string[] }) {
         </Link>
       </td>
       <td className="max-w-[10rem] truncate whitespace-nowrap px-3 py-2 text-ink">{t.departmentName ?? ""}</td>
+      {hideProject ? null : (
       <td className="max-w-[12rem] truncate whitespace-nowrap px-3 py-2 text-ink">
         {t.projectSlug ? (
           <Link href={`/project/${t.projectSlug}`} className={snLink}>
@@ -108,6 +131,7 @@ function RowLine({ t, sharedWith }: { t: TaskDTO; sharedWith?: string[] }) {
           ""
         )}
       </td>
+      )}
       <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedByName ?? ""}</td>

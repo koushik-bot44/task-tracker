@@ -14,7 +14,7 @@ import { isAdminRole, isExecutiveRole, isLeadOrAboveRole } from "@/lib/roles";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
 import { DepartmentBoard } from "./department-board";
 import { DepartmentTree } from "./department-tree";
-import { TaskTable } from "./task-table";
+import { TaskTable, collapseSiblings } from "./task-table";
 import { NewWorkSheet } from "./new-work-sheet";
 import { Panel, PanelHeader, Tabs, snButton, snInput, snPrimary } from "./sn";
 
@@ -181,7 +181,11 @@ export function WorkPage() {
   }
 
   const from = pages.length * PAGE + 1;
-  const to = data ? Math.min(from + data.items.length - 1, data.total) : 0;
+  // A task given to several people is several records; the list shows it once,
+  // so the count has to say tasks too.
+  const shownRows = data ? collapseSiblings(data.items).length : 0;
+  const hidden = data ? data.items.length - shownRows : 0;
+  const to = data ? Math.min(from + shownRows - 1, data.total - hidden) : 0;
 
   if (params.get("view") === "departments") {
     return (
@@ -342,7 +346,7 @@ export function WorkPage() {
         ) : (
           <>
             <TaskTable items={data.items} sharedWith={sharedWith} empty={q ? "No records match your search." : "No records to display."} />           <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
-              <span>{data.total === 0 ? "0 records" : `${from} to ${to} of ${data.total}`}</span>
+              <span>{data.total === 0 ? "0 tasks" : `${from} to ${to} of ${data.total - hidden}`}</span>
               <span className="flex items-center gap-1">
                 <button type="button" disabled={pages.length === 0} onClick={() => { const prev = [...pages]; prev.pop(); setPages(prev); set({ cursor: prev[prev.length - 1] ?? null }); }} className={snButton} aria-label="Previous page">
                   <ChevronLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
