@@ -6,6 +6,7 @@ import { isExecutiveRole } from "@/lib/roles";
 import { enrichProjects } from "@/lib/projects";
 import { TASK_INCLUDE, eventInclude, eventToDTO, serializeTask, withCounts } from "@/lib/serialize";
 import { startOfDay } from "@/lib/dates";
+import { istDayKey } from "@/lib/timezone";
 import type { TodayDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -19,13 +20,15 @@ export const dynamic = "force-dynamic";
 export const GET = route(async () => {
   const user = await requireUser();
   const visible = await visibleProjectIds(user);
-  const today = startOfDay(new Date());
+  // The day is the IST day, held as UTC midnight — how meetings and review
+  // dates are stored — so a UTC host does not run a day behind until 05:30.
+  const today = new Date(`${istDayKey(new Date())}T00:00:00.000Z`);
   const dayAfterTomorrow = new Date(today);
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+  dayAfterTomorrow.setUTCDate(dayAfterTomorrow.getUTCDate() + 2);
   const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 7);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
   const quarter = new Date(today);
-  quarter.setDate(quarter.getDate() + 90);
+  quarter.setUTCDate(quarter.getUTCDate() + 90);
   const projectFilter = visible ? { projectId: { in: [...visible] } } : {};
 
   const [tasks, events, projects] = await Promise.all([
@@ -48,7 +51,7 @@ export const GET = route(async () => {
         // below to today + tomorrow plus a later meeting somebody can't make and
         // this person can move. Two weeks was too short: a "Can't" on a review a
         // month out never reached the organiser (owner, 2026-09-08).
-        date: { gte: new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())), lt: new Date(Date.UTC(quarter.getFullYear(), quarter.getMonth(), quarter.getDate())) },
+        date: { gte: today, lt: quarter },
         OR: [{ attendees: { some: { userId: user.id } } }, { createdById: user.id }],
       },
       include: eventInclude,
@@ -91,7 +94,7 @@ export const GET = route(async () => {
   // person to act: somebody said Can't and they are the one who can move it.
   // "I have not replied yet" is not a reason — nobody replies to a review three
   // weeks out, and it put every future review on Today (owner, 2026-09-08).
-  const soonCutoff = Date.UTC(dayAfterTomorrow.getFullYear(), dayAfterTomorrow.getMonth(), dayAfterTomorrow.getDate());
+  const soonCutoff = dayAfterTomorrow.getTime();
   const meetings = events.filter((e) => {
     if (e.date.getTime() < soonCutoff) return true;
     const canMove = isExecutiveRole(user.role) || e.createdById === user.id;

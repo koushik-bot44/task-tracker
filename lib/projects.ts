@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { startOfDay } from "@/lib/dates";
 import { projectPeople } from "@/lib/project-people";
+import { istDayKey, istDayRange } from "@/lib/timezone";
 import type { ProjectRow } from "@/lib/serialize";
 
 /**
@@ -15,7 +15,10 @@ import type { ProjectRow } from "@/lib/serialize";
 export async function enrichProjects(rows: ProjectRow[]): Promise<ProjectRow[]> {
   const ids = rows.map((r) => r.id);
   if (ids.length === 0) return rows;
-  const today = startOfDay(new Date());
+  // "Today" is the IST day (work model): a UTC host called every hand-picked
+  // date late from 05:30 IST on its own day.
+  const dayStart = istDayRange(istDayKey(new Date())).start;
+  const before = (d: Date) => d.getTime() < dayStart.getTime();
   const [tasks, milestones, people] = await Promise.all([
     prisma.task.findMany({
       where: { projectId: { in: ids }, deletedAt: null, archived: false, parentId: null },
@@ -33,11 +36,11 @@ export async function enrichProjects(rows: ProjectRow[]): Promise<ProjectRow[]> 
     const mine = tasks.filter((t) => t.projectId === r.id);
     const openTasks = mine.filter((t) => t.status !== "DONE").length;
     const doneTasks = mine.filter((t) => t.status === "DONE").length;
-    const overdueTasks = mine.filter((t) => t.status !== "DONE" && t.dueDate && startOfDay(t.dueDate) < today).length;
+    const overdueTasks = mine.filter((t) => t.status !== "DONE" && t.dueDate && before(t.dueDate)).length;
     const ms = milestones.filter((m) => m.projectId === r.id);
-    const next = ms.find((m) => m.outcome === null && startOfDay(m.reviewDate) >= today) ?? ms.find((m) => m.outcome === null) ?? null;
-    const missedReview = ms.some((m) => m.outcome === null && startOfDay(m.reviewDate) < today);
-    const pastDeadline = Boolean(r.deadline && r.status !== "DONE" && startOfDay(r.deadline) < today);
+    const next = ms.find((m) => m.outcome === null && !before(m.reviewDate)) ?? ms.find((m) => m.outcome === null) ?? null;
+    const missedReview = ms.some((m) => m.outcome === null && before(m.reviewDate));
+    const pastDeadline = Boolean(r.deadline && r.status !== "DONE" && before(r.deadline));
     // How far along = the CEO's own number when they set one by hand, else tasks
     // done over tasks in the project (owner, 2026-09-04).
     const total = openTasks + doneTasks;

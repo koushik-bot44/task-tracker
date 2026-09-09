@@ -17,13 +17,15 @@
     "perm-matrix": "tsx --env-file=.env.local scripts/perm-matrix.ts",
     "flows": "tsx --env-file=.env.local scripts/flows.ts",
     "overlays": "tsx --env-file=.env.local scripts/overlay-check.ts",
-    "integrity": "tsx scripts/integrity.ts",
-    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
-    "db:seed": "prisma db seed",
+    "integrity": "tsx --env-file=.env.local scripts/integrity.ts",
+    "db:migrate": "sh scripts/db-deploy.sh",
+    "db:seed": "tsx --env-file=.env.local prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:start": "sh scripts/db.sh start",
     "db:stop": "sh scripts/db.sh stop",
     "e2e": "tsx --env-file=.env.local scripts/e2e-restructure.ts",
+    "check:work": "tsx --env-file=.env.local scripts/check-work-model.ts",
+    "db:dryrun": "tsx --env-file=.env.local scripts/work-model-dryrun.ts",
     "db:deploy": "sh scripts/db-deploy.sh"
   },
   "prisma": {
