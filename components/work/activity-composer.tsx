@@ -4,7 +4,7 @@ import { AtSign, Camera, FileText, Loader2, Paperclip, SendHorizontal, X } from 
 import { useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/toast";
 import { Face } from "@/components/ui/face";
-import { Sheet } from "@/components/ui/sheet";
+import { Sheet, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { uploadFile, useUploadsEnabled } from "@/lib/hooks/use-comments";
 import { useProjectPeople } from "@/lib/hooks/use-projects";
@@ -31,6 +31,7 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
   const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
+  const [pickQ, setPickQ] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -38,17 +39,31 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
   const { data: users } = useUsers(pickOpen && canSeeUserListRole(me?.role));
   const { data: groups } = useGroups(pickOpen);
   const { data: projectPeople } = useProjectPeople(task.projectId, pickOpen && Boolean(task.projectId));
+  /* Everyone who could be meant, nearest first: the people on this task, then
+     its team and project, then everybody visible. Each carries a hint — their
+     department or address — because two people can share a first name. */
   const candidates = useMemo(() => {
-    const out = new Map<string, string>();
-    if (task.requesterId && task.requesterName) out.set(task.requesterId, task.requesterName);
-    if (task.assigneeId && task.assigneeName) out.set(task.assigneeId, task.assigneeName);
+    const out = new Map<string, { name: string; hint: string }>();
+    const add = (id: string, name: string, hint = "") => {
+      if (!out.has(id) || (hint && !out.get(id)!.hint)) out.set(id, { name, hint });
+    };
+    if (task.requesterId && task.requesterName) add(task.requesterId, task.requesterName, "asked for this");
+    if (task.assigneeId && task.assigneeName) add(task.assigneeId, task.assigneeName, "holds this");
     const team = (groups ?? []).find((g) => g.id === task.assignmentGroupId);
-    for (const m of team?.members ?? []) out.set(m.id, m.name);
-    for (const p of projectPeople ?? []) out.set(p.id, p.name);
-    for (const u of users ?? []) if (u.role !== "ADMIN" && u.role !== "PERSON" && u.status === "ACTIVE" && !u.disabledAt) out.set(u.id, u.name);
+    for (const m of team?.members ?? []) add(m.id, m.name, team?.name ?? "");
+    for (const p of projectPeople ?? []) add(p.id, p.name, "on this project");
+    for (const u of users ?? []) {
+      if (u.role !== "ADMIN" && u.role !== "PERSON" && u.status === "ACTIVE" && !u.disabledAt) add(u.id, u.name, u.departmentName ?? u.email);
+    }
     if (me) out.delete(me.id);
-    return [...out.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return [...out.entries()].map(([id, v]) => ({ id, name: v.name, hint: v.hint })).sort((a, b) => a.name.localeCompare(b.name));
   }, [task, groups, projectPeople, users, me]);
+
+  const found = useMemo(() => {
+    const needle = pickQ.trim().toLowerCase();
+    if (!needle) return candidates;
+    return candidates.filter((c) => c.name.toLowerCase().includes(needle) || c.hint.toLowerCase().includes(needle));
+  }, [candidates, pickQ]);
 
   const attach = async (file: File | undefined) => {
     if (!file) return;
@@ -139,18 +154,41 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
         </button>
       </div>
 
-      <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title="Mention someone">
-        <ul className="divide-y divide-line">
-          {candidates.map((p) => (
-            <li key={p.id}>
-              <button type="button" onClick={() => mention(p)} className="press flex min-h-[56px] w-full items-center gap-3 px-2 text-left">
-                <Face name={p.name} />
-                <span className="min-w-0 flex-1 truncate text-row text-ink">{p.name}</span>
-              </button>
-            </li>
-          ))}
-          {candidates.length === 0 ? <li className="py-6 text-center text-sm text-muted">Nobody to mention here.</li> : null}
-        </ul>
+      <Sheet
+        open={pickOpen}
+        onClose={() => { setPickOpen(false); setPickQ(""); }}
+        title="Mention someone"
+        subtitle={candidates.length > 1 ? `${candidates.length} people` : undefined}
+      >
+        <div className="space-y-3">
+          {/* A company of any size needs a way to find one person. */}
+          <input
+            value={pickQ}
+            onChange={(e) => setPickQ(e.target.value)}
+            placeholder="Find a person"
+            aria-label="Find a person to mention"
+            autoFocus
+            className={inputClass}
+          />
+          <ul className="max-h-[60vh] divide-y divide-line overflow-y-auto rounded-input border border-line">
+            {found.map((p) => (
+              <li key={p.id}>
+                <button type="button" onClick={() => { mention(p); setPickQ(""); }} className="press flex min-h-[56px] w-full items-center gap-3 px-3 text-left hover:bg-hover">
+                  <Face name={p.name} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-row text-ink">{p.name}</span>
+                    {p.hint ? <span className="block truncate text-micro text-muted">{p.hint}</span> : null}
+                  </span>
+                </button>
+              </li>
+            ))}
+            {found.length === 0 ? (
+              <li className="py-6 text-center text-sm text-muted">
+                {candidates.length === 0 ? "Nobody to mention here." : `Nobody matches “${pickQ.trim()}”.`}
+              </li>
+            ) : null}
+          </ul>
+        </div>
       </Sheet>
     </div>
   );

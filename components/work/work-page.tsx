@@ -4,21 +4,19 @@ import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { Tooltip } from "@/components/tooltip";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import { dateWord, formatDMY } from "@/lib/dates";
 import { useMe } from "@/lib/hooks/use-users";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { isAdminRole, isExecutiveRole, isLeadOrAboveRole } from "@/lib/roles";
-import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_STATE_LABEL, WORK_TYPES, WORK_TYPE_LABEL, type TaskDTO } from "@/lib/types";
+import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
 import { DepartmentBoard } from "./department-board";
 import { DepartmentTree } from "./department-tree";
-import { WorkCards } from "./work-cards";
+import { TaskTable } from "./task-table";
 import { NewWorkSheet } from "./new-work-sheet";
-import { Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
+import { Panel, PanelHeader, Tabs, snButton, snInput, snPrimary } from "./sn";
 
 type Scope = "assigned" | "requested" | "team" | "department" | "all";
 type Slice = "open" | "unassigned" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
@@ -147,6 +145,14 @@ export function WorkPage() {
   }, [slice, q, params, scope, cursor]);
 
   const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me) && !admin);
+
+  /* What the grouped view narrows by: everything set above except the paging
+     and the department/project, which the grouping itself supplies. */
+  const groupedFilter: WorkQuery = useMemo(() => {
+    const { cursor: _c, limit: _l, departmentId: _d, projectId: _p, mine: _m, ...rest } = query;
+    void _c; void _l; void _d; void _p; void _m;
+    return rest;
+  }, [query]);
 
   /* The same task given to several people is several records — one each, so
      each can finish their own. They share a key, so a row can say how many
@@ -327,51 +333,15 @@ export function WorkPage() {
           </div>
         ) : null}
 
-        {scope === "department" && !params.get("departmentId") && !q ? (
-          <DepartmentTree departments={departmentChoices} />
+        {scope === "department" && !params.get("departmentId") ? (
+          <DepartmentTree departments={departmentChoices} filter={groupedFilter} />
         ) : isLoading || !me ? (
           <div className="p-3"><Skeleton rows={6} /></div>
         ) : isError || !data ? (
           <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
         ) : (
           <>
-            {/* A phone reads the rows stacked; the ten-column table starts at md. */}
-            <div className="md:hidden">
-              <WorkCards items={data.items} sharedWith={sharedWith} />
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[960px] border-collapse text-[13px]">
-                <thead>
-                  <tr className="bg-hover text-left text-muted">
-                    <Th>Number</Th>
-                    <Th className="w-[26%]">Short description</Th>
-                    <Th>Department</Th>
-                    <Th>Project</Th>
-                    <Th>State</Th>
-                    <Th>Priority</Th>
-                    <Th>Assigned by</Th>
-                    <Th>Assigned to</Th>
-                    <Th>Assigned</Th>
-                    <Th>Due</Th>
-                    <Th>Updated</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.items.map((t) => (
-                    <RowLine key={t.id} t={t} sharedWith={sharedWith.get(t.id)} />
-                  ))}
-                  {data.items.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="px-3 py-8 text-center text-muted">
-                        {q ? "No records match your search." : "No records to display."}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
+            <TaskTable items={data.items} sharedWith={sharedWith} empty={q ? "No records match your search." : "No records to display."} />           <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
               <span>{data.total === 0 ? "0 records" : `${from} to ${to} of ${data.total}`}</span>
               <span className="flex items-center gap-1">
                 <button type="button" disabled={pages.length === 0} onClick={() => { const prev = [...pages]; prev.pop(); setPages(prev); set({ cursor: prev[prev.length - 1] ?? null }); }} className={snButton} aria-label="Previous page">
@@ -390,70 +360,5 @@ export function WorkPage() {
   );
 }
 
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("border-b border-line px-3 py-2 font-semibold", className)}>{children}</th>;
-}
 
-/** The names behind a count, one per line, so a hover answers "who exactly?". */
-function PeopleList({ title, names }: { title: string; names: string[] }) {
-  return (
-    <span className="block text-left">
-      <span className="block font-medium">{title}</span>
-      {names.map((n, i) => (
-        <span key={`${n}-${i}`} className="block">
-          {n}
-        </span>
-      ))}
-    </span>
-  );
-}
 
-function RowLine({ t, sharedWith }: { t: TaskDTO; sharedWith?: string[] }) {
-  const late = t.dueDate && t.status !== "DONE" && new Date(t.dueDate).getTime() < Date.now() - 86_400_000;
-  return (
-    <tr className="border-b border-line hover:bg-hover">
-      <td className="whitespace-nowrap px-3 py-2">
-        <Link href={`/work/${t.number}`} className={cn(snLink, "font-medium")}>
-          {t.ref}
-        </Link>
-      </td>
-      <td className="max-w-0 truncate px-3 py-2 text-ink">
-        <Link href={`/work/${t.number}`} className="hover:underline">
-          {t.title.trim() || "(empty)"}
-        </Link>
-      </td>
-      <td className="max-w-[10rem] truncate whitespace-nowrap px-3 py-2 text-ink">{t.departmentName ?? ""}</td>
-      <td className="max-w-[12rem] truncate whitespace-nowrap px-3 py-2 text-ink">
-        {t.projectSlug ? (
-          <Link href={`/project/${t.projectSlug}`} className={snLink}>
-            {t.projectName}
-          </Link>
-        ) : (
-          ""
-        )}
-      </td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
-      <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.givenByName ?? ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">
-        {sharedWith && sharedWith.length > 1 ? (
-          <Tooltip content={<PeopleList title={`This task went to ${sharedWith.length} people`} names={sharedWith} />}>
-            <span className="underline decoration-dotted underline-offset-2">
-              {/* This record may hold nobody while the others do; the row still
-                  has to say how many people the task went to. */}
-              {t.assigneeName ?? `${sharedWith.length} people`}
-              {t.assigneeName ? (
-                <span className="ml-1 rounded-chip bg-hover px-1.5 py-0.5 text-micro font-medium text-muted">+{sharedWith.length - 1}</span>
-              ) : null}
-            </span>
-          </Tooltip>
-        ) : (
-          t.assigneeName ?? ""
-        )}
-      </td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedAt ? formatDMY(t.assignedAt) : ""}</td>
-      <td className={cn("whitespace-nowrap px-3 py-2", late ? "text-danger-ink" : "text-ink")}>{t.dueDate ? dateWord(t.dueDate) : ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-muted">{formatDMY(t.updatedAt)}</td>
-    </tr>
-  );
-}

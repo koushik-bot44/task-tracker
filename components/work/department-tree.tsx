@@ -1,15 +1,15 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { DepartmentMark } from "@/components/ui/department-mark";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { formatDMY } from "@/lib/dates";
 import { useProjects } from "@/lib/hooks/use-projects";
-import { useWorkList } from "@/lib/hooks/use-work";
-import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type DepartmentDTO, type ProjectDTO } from "@/lib/types";
+import { useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
+import { TaskTable } from "./task-table";
+import type { DepartmentDTO, ProjectDTO } from "@/lib/types";
 
 /**
  * Departments, opened up.
@@ -18,8 +18,12 @@ import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type DepartmentDTO, type Project
  * hardest first — critical at the top, then high, and so on. Nothing is
  * fetched until it is opened, so a company with nine departments costs one
  * request until somebody actually looks inside one.
+ *
+ * Everything set above — the Show slice, the search, and anything under More
+ * filters — narrows what appears inside, so the grouping is a way of reading
+ * the same list rather than an escape from it.
  */
-export function DepartmentTree({ departments }: { departments: DepartmentDTO[] }) {
+export function DepartmentTree({ departments, filter }: { departments: DepartmentDTO[]; filter: WorkQuery }) {
   const { data: projects } = useProjects();
   const [openDept, setOpenDept] = useState<string | null>(departments.length === 1 ? departments[0].id : null);
   const [openProject, setOpenProject] = useState<string | null>(null);
@@ -58,6 +62,7 @@ export function DepartmentTree({ departments }: { departments: DepartmentDTO[] }
                     departmentId={d.id}
                     open={openProject === p.id}
                     onToggle={() => setOpenProject(openProject === p.id ? null : p.id)}
+                    filter={filter}
                   />
                 ))}
                 {/* Work in the department that belongs to no project still has to be findable. */}
@@ -67,6 +72,7 @@ export function DepartmentTree({ departments }: { departments: DepartmentDTO[] }
                   departmentId={d.id}
                   open={openProject === `none:${d.id}`}
                   onToggle={() => setOpenProject(openProject === `none:${d.id}` ? null : `none:${d.id}`)}
+                  filter={filter}
                 />
               </ul>
             ) : null}
@@ -82,12 +88,14 @@ function ProjectRow({
   departmentId,
   open,
   onToggle,
+  filter,
 }: {
   /** Null = the department's work that sits in no project. */
   project: ProjectDTO | null;
   departmentId: string;
   open: boolean;
   onToggle: () => void;
+  filter: WorkQuery;
 }) {
   return (
     <li className="border-b border-line last:border-b-0">
@@ -103,43 +111,39 @@ function ProjectRow({
         </span>
         {project?.deadline ? <span className="shrink-0 text-micro text-muted">due {formatDMY(project.deadline)}</span> : null}
       </button>
-      {open ? <TasksInProject departmentId={departmentId} projectId={project?.id ?? null} /> : null}
+      {open ? <TasksInProject departmentId={departmentId} projectId={project?.id ?? null} filter={filter} /> : null}
     </li>
   );
 }
 
-/** A project's tasks, hardest first. Only asked for once it is opened. */
-function TasksInProject({ departmentId, projectId }: { departmentId: string; projectId: string | null }) {
+/**
+ * A project's tasks, hardest first — shown in the ordinary list, so a row here
+ * reads exactly as it does in the queue. Only asked for once it is opened.
+ */
+function TasksInProject({ departmentId, projectId, filter }: { departmentId: string; projectId: string | null; filter: WorkQuery }) {
+  // The page's own filters, narrowed to this department and project. Hardest
+  // first unless the reader chose another order above.
   const { data, isLoading } = useWorkList(
-    { departmentId, sort: "priority", limit: 100, open: "false", ...(projectId ? { projectId } : {}) },
+    { ...filter, departmentId, sort: filter.sort ?? "priority", limit: 100, ...(projectId ? { projectId } : {}) },
     true,
   );
 
-  if (isLoading) return <div className="py-2 pl-14 pr-3"><Skeleton rows={2} /></div>;
+  if (isLoading) return <div className="p-3"><Skeleton rows={2} /></div>;
   // Without a project id the list still carries the whole department, so the
   // ones already filed under a project are dropped here.
   const items = (data?.items ?? []).filter((t) => (projectId ? t.projectId === projectId : t.projectId === null));
-  if (items.length === 0) return <p className="py-2 pl-14 pr-3 text-micro text-muted">No tasks here.</p>;
+
+  // Everyone holding the same task, so the row can say so here too.
+  const sharedWith = new Map<string, string[]>();
+  for (const t of items) {
+    if (!t.siblingKey) continue;
+    const names = [...(t.assigneeName ? [t.assigneeName] : []), ...t.alsoWith.map((p) => p.name)];
+    if (names.length > 1) sharedWith.set(t.id, names);
+  }
 
   return (
-    <ul className="border-t border-line bg-surface">
-      {items.map((t) => (
-        <li key={t.id}>
-          <Link href={`/work/${t.number}`} className="press flex min-h-[40px] items-center gap-2 py-1.5 pl-14 pr-3 hover:bg-hover">
-            <span
-              className={cn(
-                "shrink-0 rounded-chip px-1.5 py-0.5 text-[10px] font-semibold",
-                t.priority === "CRITICAL" ? "bg-danger-soft text-danger-ink" : t.priority === "HIGH" ? "bg-warn-soft text-warn-ink" : "bg-hover text-muted",
-              )}
-            >
-              {WORK_PRIORITY_LABEL[t.priority]}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{t.title.trim() || "(empty)"}</span>
-            <span className="hidden shrink-0 text-micro text-muted sm:inline">{t.assigneeName ?? "Nobody yet"}</span>
-            <span className="shrink-0 text-micro text-muted">{WORK_STATE_LABEL[t.state]}</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="border-t border-line bg-surface">
+      <TaskTable items={items} sharedWith={sharedWith} empty="No tasks here." />
+    </div>
   );
 }

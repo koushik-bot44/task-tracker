@@ -153,7 +153,11 @@ export const createCommentSchema = z
     targetType: commentTargetSchema,
     targetId: z.string().min(1),
     body: z.string().trim().max(4000),
-    attachmentUrl: z.string().url().max(2000).nullable().optional(),
+    /* An uploaded file's URL is relative when it is served by this app
+       (/api/uploads/...) and absolute when Blob storage holds it. Requiring an
+       absolute one refused every locally stored file, so a project note could
+       never carry an attachment (defect, 2026-09-09). Same shape as noteSchema. */
+    attachmentUrl: z.string().trim().max(2000).regex(/^(https?:\/\/\S+|\/api\/uploads\/\S+)$/i, "Must be an http(s) link").nullable().optional(),
     attachmentName: z.string().trim().max(200).nullable().optional(),
     attachmentType: z.string().trim().max(120).nullable().optional(),
   })
