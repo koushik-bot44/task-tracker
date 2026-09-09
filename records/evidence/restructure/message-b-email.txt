@@ -2,10 +2,10 @@ Hi Flow member — tomorrow, 10 Sept 2026
 
 Meetings tomorrow:
 - FLOW Sync · FLOW Project · 10:00
-  I'll be there: http://localhost:3000/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiWUVTIiwic3ViIjoiY210dHZ4N3NlMDFoZjBkazFxZmZ4MDUweCIsImlhdCI6MTc4ODk0NTQ0MiwiZXhwIjoxNzg5NTUwMjQyfQ.aSN4vPVs_O5zxZL-_iW5xK_qOdSiMhyzgbBsbEIlmUE
-  Can't: http://localhost:3000/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiTk8iLCJzdWIiOiJjbXR0dng3c2UwMWhmMGRrMXFmZngwNTB4IiwiaWF0IjoxNzg4OTQ1NDQyLCJleHAiOjE3ODk1NTAyNDJ9.pN9RlBliUJWXuL7mft6QZ5vHi4nO0-Y6ptwJQzROabY
+  I'll be there: http://localhost:3000/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiWUVTIiwic3ViIjoiY210dHpuNW5jMDBzaTBkZzdiMDY5dnllaiIsImlhdCI6MTc4ODk1MTY4NCwiZXhwIjoxNzg5NTU2NDg0fQ.nMFMTAZ_BvcUMrI1hfhG22X-h47PySgVhlbrLOxahGA
+  Can't: http://localhost:3000/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiTk8iLCJzdWIiOiJjbXR0em41bmMwMHNpMGRnN2IwNjl2eWVqIiwiaWF0IjoxNzg4OTUxNjg0LCJleHAiOjE3ODk1NTY0ODR9.YbXwcoRoZNL3Ljy5gw7Bir-PFWq4GLsnGbXdQdPDnTI
 
 Due tomorrow:
-- FLOW due tomorrow · FLOW Project  http://localhost:3000/project/flow-project?task=cmttvx7t001hk0dk17w44x1e1
+- FLOW Due Tomorrow · FLOW Project  http://localhost:3000/project/flow-project?task=cmttzn5r400sn0dg7v8savcco
 
 Today: http://localhost:3000/
