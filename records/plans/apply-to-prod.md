@@ -55,3 +55,25 @@ then redeploy the `baseline-phase49b` tag.
 - Migration `20260904160000_progress_manual` (one nullable column) runs with the rest.
 - After migrating: `npx tsx scripts/promote-founder.ts <the real CEO's email>` makes the one CEO; then every `Person.managerId` must point at the CEO (`UPDATE "Person" SET "managerId" = <ceo id>`), because Well Being is the CEO's alone now.
 - There must be exactly one FOUNDER and no DIRECTOR accounts left on the ladder.
+
+## Work model (2026-09-09) — additions to this runbook
+
+Production has NOT received the work model. When the owner says so:
+
+1. `npx tsx --env-file=.env scripts/prod-backup.ts` (records/snapshots/prod-backup-<stamp>).
+2. Expected pending migrations after the restructure set: `20260904160000_progress_manual`,
+   `20260904170000_project_logo`, `20260908150000_result_url`,
+   `20260908160000_drop_director`, `20260908170000_project_pinned`,
+   `20260909120000_work_model`. Check with `npx prisma migrate status` against `.env`.
+3. Rehearse the work-model migration on a fresh clone of the backup
+   (`scripts/dev-restore-backup.ts` recipe in its header), then
+   `npx tsx --env-file=.env.local scripts/work-model-dryrun.ts --audit-only` and
+   compare the counts with `records/verdicts/work-model.md`.
+4. Apply deliberately: `DATABASE_URL=… DATABASE_URL_UNPOOLED=… npx prisma migrate deploy`.
+5. Smoke: sign in as the CEO → Work → By department; open a task record; post
+   a note; People → a department → + Team.
+6. Rollback: the migration is additive — `DROP TABLE "TaskActivity", "AssignmentGroupMember",
+   "AssignmentGroup", "TaskCategory", "AssignmentRule"; ALTER TABLE "Task" DROP COLUMN …`
+   for the columns in the migration; task notes are restorable from the backup's
+   Comment.json (targetType TASK).
+

@@ -116,6 +116,9 @@ export function useTaskMutations(scope: MutationScope) {
     void qc.invalidateQueries({ queryKey: ["today"] });
     void qc.invalidateQueries({ queryKey: ["projects"] });
     void qc.invalidateQueries({ queryKey: ["milestones"] });
+    void qc.invalidateQueries({ queryKey: ["work"] });
+    void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    void qc.invalidateQueries({ queryKey: ["activity"] });
   };
 
   const createTask = useMutation({

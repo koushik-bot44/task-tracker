@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { CalendarDays, CircleHelp, FolderKanban, LogOut, NotebookPen, Settings, Sun, SunMedium, UserRound, Users } from "lucide-react";
+import { CalendarDays, CircleHelp, FolderKanban, ListChecks, LogOut, NotebookPen, Settings, Sun, SunMedium, UserRound, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +31,7 @@ function useTabs(): Tab[] {
   const admin = isAdminRole(me?.role);
   return [
     { href: "/", label: "Today", icon: SunMedium, show: !admin },
+    { href: "/work", label: "Work", icon: ListChecks, show: !admin },
     { href: "/projects", label: "Projects", icon: FolderKanban, show: !admin },
     { href: "/calendar", label: "Calendar", icon: CalendarDays, show: !admin },
     { href: "/people", label: "People", icon: Users, show: canSeeUserListRole(me?.role) },
@@ -140,6 +141,8 @@ function RouteTitle() {
   const { data: projects } = useProjects();
 
   if (pathname === "/") return <>Today</>;
+  if (pathname === "/work") return <>Work</>;
+  if (pathname.startsWith("/work/")) return <>Task</>;
   if (pathname === "/projects") return <>Projects</>;
   if (pathname === "/calendar") return <>Calendar</>;
   if (pathname === "/people") return <>People</>;

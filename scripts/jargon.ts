@@ -21,6 +21,14 @@ const WORDS = [
   /\bhealth\b/i,
   /\ball-hands\b/i,
   /\bsprint\b/i,
+  // Work model (2026-09-09): borrowed from service desks, never for a screen.
+  /\btickets?\b/i,
+  /\bincidents?\b/i,
+  /\bSLAs?\b/,
+  /\bqueue\b/i,
+  /\bassignment groups?\b/i,
+  /\bcatalog(?:ue)?\b/i,
+  /\bwork ?notes?\b/i,
 ];
 
 function walk(dir: string, out: string[]): string[] {

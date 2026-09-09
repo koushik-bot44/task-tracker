@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRightLeft, ExternalLink, MessageSquare, Plus, Star, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { NotesThread } from "@/components/notes/notes-thread";
 import { useToast } from "@/components/toast";
@@ -153,6 +154,13 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
         </div>
       )}
 
+      {!task.isPrivate && task.number ? (
+        <Link href={`/work/${task.number}`} className="press -mt-3 inline-flex h-9 items-center gap-1 rounded-chip bg-hover px-3 text-micro font-medium text-ink">
+          {task.ref} · Open the full record
+          <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+        </Link>
+      ) : null}
+
       {/* Steps */}
       {!isStep ? (
         <section>
@@ -298,6 +306,19 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
             </li>
           ))}
           {(people ?? []).length === 0 ? <li className="py-6 text-center text-sm text-muted">Nobody is on this project yet.</li> : null}
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                patch({ assigneeId: null });
+                setWhoOpen(false);
+              }}
+              className={cn("press flex min-h-[56px] w-full items-center gap-3 px-2 text-left", task.assigneeId === null && "bg-primary-soft")}
+            >
+              <span className="grid h-8 w-8 place-items-center rounded-full border border-dashed border-muted" aria-hidden />
+              <span className="text-row text-muted">No one</span>
+            </button>
+          </li>
         </ul>
       </Sheet>
 

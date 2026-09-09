@@ -273,6 +273,8 @@ export type TaskDTO = {
   resolvedAt: string | null;
   closedAt: string | null;
   escalatedAt: string | null;
+  /** Present on a single-task read: what the caller may do. */
+  access?: TaskAccessDTO;
 };
 
 export type ProjectPersonDTO = {
@@ -426,6 +428,16 @@ export type TodayDTO = {
   tasks: (TaskDTO & { projectName: string; projectSlug: string })[];
   /** Today's and tomorrow's meetings the caller attends or organises. */
   meetings: CalendarEventDTO[];
+};
+
+/** What the caller may do to a task — the record page hides exactly what the server refuses. */
+export type TaskAccessDTO = {
+  canEdit: boolean;
+  canAssign: boolean;
+  canDelete: boolean;
+  /** May read team notes. */
+  staff: boolean;
+  transitions: WorkState[];
 };
 
 /** Today's work half (work model): counters over what the caller runs, then the lists. */

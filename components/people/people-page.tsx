@@ -6,6 +6,7 @@ import { Fragment, useMemo, useState } from "react";
 import { InviteSheet } from "@/components/people/invite-sheet";
 import { PersonSheet, canAdministerTarget } from "@/components/people/person-sheet";
 import { ResetRequestQueue } from "@/components/people/reset-requests";
+import { TeamsSection } from "@/components/people/teams-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
@@ -151,6 +152,9 @@ export function PeoplePage() {
                   />
                 ))}
               </Card>
+              {s.id !== "company" && !isAdminActor ? (
+                <TeamsSection departmentId={s.id} people={s.people} canShape={me.role === "FOUNDER" || (me.role === "HOD" && s.hodId === me.id)} />
+              ) : null}
             </section>
           ))}
 

@@ -15,6 +15,7 @@ import { isLeadOrAboveRole, isManagerRole } from "@/lib/roles";
 import { HttpError } from "@/lib/session";
 import { isOnProject } from "@/lib/project-people";
 import { canSeeProject, visibleProjectIds } from "@/lib/project-visibility";
+import type { TaskAccessDTO } from "@/lib/types";
 import { canTransition, isFinished, TRANSITIONS } from "@/lib/work/workflow";
 
 export type Actor = { id: string; role: Role };
@@ -209,15 +210,7 @@ export async function allowedTransitions(actor: Actor, t: TaskAccessRow, scope: 
   return out;
 }
 
-/** The access summary a DTO carries so the screen hides what the server would refuse. */
-export type TaskAccessDTO = {
-  canEdit: boolean;
-  canAssign: boolean;
-  canDelete: boolean;
-  /** May read team notes. */
-  staff: boolean;
-  transitions: WorkState[];
-};
+export type { TaskAccessDTO };
 
 export async function taskAccess(actor: Actor, t: TaskAccessRow, scope: Scope): Promise<TaskAccessDTO> {
   const [canEdit, canAssign, canDelete, staff, transitions] = await Promise.all([

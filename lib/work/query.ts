@@ -42,6 +42,7 @@ export type WorkFilter = {
   milestoneId?: string;
   unassigned?: boolean;
   overdue?: boolean;
+  dueToday?: boolean;
   dueFrom?: string;
   dueTo?: string;
   createdFrom?: string;
@@ -73,6 +74,10 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   if (f.milestoneId) and.push({ milestoneId: f.milestoneId });
   if (f.unassigned) and.push({ assigneeId: null });
   if (f.overdue) and.push({ dueDate: { lt: istDayRange(istDayKey(now)).start }, state: { in: [...OPEN_STATES] } });
+  if (f.dueToday) {
+    const day = istDayRange(istDayKey(now));
+    and.push({ dueDate: { gte: day.start, lte: day.end } });
+  }
   if (f.dueFrom || f.dueTo) and.push({ dueDate: { ...(f.dueFrom ? { gte: new Date(f.dueFrom) } : {}), ...(f.dueTo ? { lte: new Date(f.dueTo) } : {}) } });
   if (f.createdFrom || f.createdTo) and.push({ createdAt: { ...(f.createdFrom ? { gte: new Date(f.createdFrom) } : {}), ...(f.createdTo ? { lte: new Date(f.createdTo) } : {}) } });
   switch (f.mine) {
@@ -261,6 +266,7 @@ export function parseFilter(params: URLSearchParams): WorkFilter {
     milestoneId: str("milestoneId"),
     unassigned: bool("unassigned"),
     overdue: bool("overdue"),
+    dueToday: bool("dueToday"),
     dueFrom: str("dueFrom"),
     dueTo: str("dueTo"),
     createdFrom: str("createdFrom"),

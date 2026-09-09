@@ -28,7 +28,7 @@ const LINK_RE = /(https?:\/\/[^\s<>()]+|www\.[^\s<>()]+)/gi;
  * A note can carry a link: paste one and it is tappable (owner, 2026-09-08).
  * Trailing punctuation stays with the sentence, not the link.
  */
-function Linkified({ text }: { text: string }) {
+export function Linkified({ text }: { text: string }) {
   const out: React.ReactNode[] = [];
   let last = 0;
   let key = 0;
