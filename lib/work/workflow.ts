@@ -99,7 +99,7 @@ export const TRANSITION_LABEL: Record<WorkState, string> = {
   ASSIGNED: "Stop Work",
   IN_PROGRESS: "Start Work",
   WAITING: "On Hold",
-  RESOLVED: "Resolve",
+  RESOLVED: "Mark Complete",
   CLOSED: "Close",
   CANCELLED: "Cancel",
   ESCALATED: "Escalate",

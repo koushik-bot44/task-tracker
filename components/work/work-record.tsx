@@ -1,6 +1,6 @@
 "use client";
 
-import { Paperclip, Star } from "lucide-react";
+import { ChevronDown, Paperclip, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -28,7 +28,9 @@ import { AttachmentViewer, type Attached } from "./attachment-viewer";
 import { FormRow, Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
 import { AssignSheet, ConfirmSheet, WaitSheet } from "./work-sheets";
 
-const ORDER: WorkState[] = ["IN_PROGRESS", "RESOLVED", "CLOSED", "WAITING", "REOPENED", "ESCALATED", "ASSIGNED", "NEW", "CANCELLED"];
+/** The moves on the button row, in order; the rest sit under "More". */
+const PRIMARY: WorkState[] = ["IN_PROGRESS", "RESOLVED", "CLOSED", "REOPENED", "WAITING"];
+const SECONDARY: WorkState[] = ["ESCALATED", "ASSIGNED", "NEW", "CANCELLED"];
 
 function stamp(iso: string | null): string {
   if (!iso) return "";
@@ -79,6 +81,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const [waitOpen, setWaitOpen] = useState(false);
   const [confirm, setConfirm] = useState<WorkState | "delete" | null>(null);
   const [viewing, setViewing] = useState<Attached | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => setTitle(task.title), [task.title]);
   useEffect(() => setDescribe(task.descriptionMd), [task.descriptionMd]);
 
@@ -86,7 +89,9 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const move = (to: WorkState, extra: Record<string, unknown> = {}) => transition.mutate({ to, ...extra }, { onError: fail });
   const busy = transition.isPending || assign.isPending;
   // "Stop Work" keeps the holder; "Return to Queue" lets go. Stop Work only makes sense with a holder.
-  const moves = ORDER.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "ASSIGNED" && !task.assigneeId));
+  const allowed = (list: WorkState[]) => list.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "ASSIGNED" && !task.assigneeId));
+  const moves = allowed(PRIMARY);
+  const more = allowed(SECONDARY);
   const press = (to: WorkState) => {
     if (to === "WAITING") setWaitOpen(true);
     else if (to === "CANCELLED" || to === "REOPENED") setConfirm(to);
@@ -117,10 +122,34 @@ function RecordBody({ task }: { task: TaskDTO }) {
                   {TRANSITION_LABEL[to]}
                 </button>
               ))}
-              {access.canDelete ? (
-                <button type="button" onClick={() => setConfirm("delete")} className={cn(snButton, "text-danger-ink")}>
-                  Delete
-                </button>
+              {more.length || access.canDelete ? (
+                <span className="relative">
+                  <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-haspopup="menu" aria-expanded={moreOpen} className={snButton}>
+                    More
+                    <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                  </button>
+                  {moreOpen ? (
+                    <>
+                      <span className="fixed inset-0 z-sticky" onClick={() => setMoreOpen(false)} aria-hidden />
+                      <ul role="menu" className="absolute right-0 top-9 z-drawer min-w-[12rem] border border-line bg-surface py-1 shadow-e2">
+                        {more.map((to) => (
+                          <li key={to}>
+                            <button type="button" role="menuitem" disabled={busy} onClick={() => { setMoreOpen(false); press(to); }} className="press flex h-9 w-full items-center px-3 text-left text-[13px] text-ink hover:bg-hover">
+                              {TRANSITION_LABEL[to]}
+                            </button>
+                          </li>
+                        ))}
+                        {access.canDelete ? (
+                          <li>
+                            <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setConfirm("delete"); }} className="press flex h-9 w-full items-center px-3 text-left text-[13px] text-danger-ink hover:bg-hover">
+                              Delete
+                            </button>
+                          </li>
+                        ) : null}
+                      </ul>
+                    </>
+                  ) : null}
+                </span>
               ) : null}
             </>
           }
