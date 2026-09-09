@@ -3,6 +3,7 @@
 import { ChevronLeft, MoreHorizontal, Plus } from "lucide-react";
 import { useState } from "react";
 import { ProjectCard } from "@/components/projects/project-card";
+import { WorkTable } from "@/components/work/work-table";
 import { Button, IconButton } from "@/components/ui/button";
 import { DepartmentMark } from "@/components/ui/department-mark";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -132,6 +133,9 @@ export function DepartmentView({
           )}
         </>
       )}
+
+      {/* Work model: the department's tasks, every one of them, under its projects. */}
+      <WorkTable fixed={{ departmentId: department.id }} title={<span>Tasks · {department.name}</span>} defaultSlice="everything" presetDepartmentId={department.id} />
     </div>
   );
 }

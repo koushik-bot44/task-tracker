@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { ProjectPage } from "@/components/project/project-page";
+import { ProjectTasksPage } from "@/components/project/project-tasks-page";
 
 export default function Page({ params }: { params: { slug: string } }) {
   return (
     <Suspense fallback={null}>
-      <ProjectPage slug={params.slug} />
+      <ProjectTasksPage slug={params.slug} />
     </Suspense>
   );
 }

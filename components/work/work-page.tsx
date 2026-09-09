@@ -197,7 +197,8 @@ export function WorkPage() {
                 <thead>
                   <tr className="bg-hover text-left text-muted">
                     <Th>Number</Th>
-                    <Th className="w-[34%]">Short description</Th>
+                    <Th className="w-[30%]">Short description</Th>
+                    <Th>Project</Th>
                     <Th>State</Th>
                     <Th>Priority</Th>
                     <Th>Assignment group</Th>
@@ -213,7 +214,7 @@ export function WorkPage() {
                   ))}
                   {data.items.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-3 py-8 text-center text-muted">
+                      <td colSpan={10} className="px-3 py-8 text-center text-muted">
                         {q ? "No records match your search." : "No records to display."}
                       </td>
                     </tr>
@@ -257,6 +258,15 @@ function RowLine({ t }: { t: TaskDTO }) {
         <Link href={`/work/${t.number}`} className="hover:underline">
           {t.title.trim() || "(empty)"}
         </Link>
+      </td>
+      <td className="max-w-[12rem] truncate whitespace-nowrap px-3 py-2 text-ink">
+        {t.projectSlug ? (
+          <Link href={`/project/${t.projectSlug}`} className={snLink}>
+            {t.projectName}
+          </Link>
+        ) : (
+          ""
+        )}
       </td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>

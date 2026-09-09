@@ -257,5 +257,5 @@ export function ProjectsPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-content px-4 pb-8 pt-4">{children}</div>;
+  return <div className="mx-auto w-full max-w-[1200px] px-4 pb-8 pt-4">{children}</div>;
 }

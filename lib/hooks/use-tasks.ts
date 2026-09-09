@@ -199,6 +199,8 @@ export function useTaskMutations(scope: MutationScope) {
         resolvedAt: null,
         closedAt: null,
         escalatedAt: null,
+        projectName: null,
+        projectSlug: null,
       };
       const prior = writeLists((rows) => [...rows, optimistic]);
       return { prior };

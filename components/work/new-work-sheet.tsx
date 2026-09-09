@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { apiPost } from "@/lib/api";
 import { useDepartments } from "@/lib/hooks/use-departments";
+import { useProjects } from "@/lib/hooks/use-projects";
 import { useGroups, useRaiseWork } from "@/lib/hooks/use-work";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
@@ -18,12 +19,14 @@ import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL, type
  * Raise a task with no project: what, what kind, which team. Everything else
  * is under "More" so the two-tap path stays (owner: the simplest screen wins).
  */
-export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepartmentId = null }: { open: boolean; onClose: () => void; presetProjectId?: string | null; presetDepartmentId?: string | null }) {
   const router = useRouter();
   const { data: me } = useMe();
   const { data: groups } = useGroups(open);
   const { data: departments } = useDepartments();
+  const { data: projects } = useProjects();
   const raise = useRaiseWork();
+  const [projectId, setProjectId] = useState("");
   const { show: toast } = useToast();
   const [title, setTitle] = useState("");
   const [type, setType] = useState<WorkType>("GENERAL");
@@ -50,6 +53,12 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
         .filter((u) => !departmentId || u.departmentId === departmentId)
         .map((u) => ({ id: u.id, name: u.name }));
 
+  useEffect(() => {
+    if (!open) return;
+    if (presetProjectId) setProjectId(presetProjectId);
+    if (presetDepartmentId) setDepartmentId(presetDepartmentId);
+  }, [open, presetProjectId, presetDepartmentId]);
+
   const reset = () => {
     setTitle("");
     setType("GENERAL");
@@ -60,6 +69,7 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
     setDue("");
     setPriority("MEDIUM");
     setAssigneeId("");
+    setProjectId("");
     setInviteOpen(false);
     setInviteName("");
     setInviteEmail("");
@@ -91,6 +101,7 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
       {
         title: what,
         type,
+        projectId: projectId || null,
         assignmentGroupId: groupId || null,
         departmentId: departmentId || undefined,
         assigneeId: holder,
@@ -126,6 +137,25 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
         <Field label="Short description">
           <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="What needs doing" aria-label="Short description" autoFocus className={inputClass} />
         </Field>
+        {(projects ?? []).length ? (
+          <Field label="Project" hint="Tasks are raised inside a project; its department comes with it.">
+            <select value={projectId} onChange={(e) => { setProjectId(e.target.value); const pr = (projects ?? []).find((x) => x.id === e.target.value); if (pr?.departmentId) setDepartmentId(pr.departmentId); }} className={inputClass} aria-label="Project">
+              <option value="">No project</option>
+              {(departments ?? []).map((d) => {
+                const inDept = (projects ?? []).filter((pr) => pr.departmentId === d.id && pr.status !== "DONE");
+                return inDept.length ? (
+                  <optgroup key={d.id} label={d.name}>
+                    {inDept.map((pr) => (
+                      <option key={pr.id} value={pr.id}>
+                        {pr.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null;
+              })}
+            </select>
+          </Field>
+        ) : null}
         <Field label="Type">
           <div className="flex flex-wrap gap-2">
             {types.map((t) => (
@@ -146,7 +176,7 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
               ))}
             </select>
           </Field>
-        ) : (departments ?? []).length ? (
+        ) : (departments ?? []).length && !projectId ? (
           <Field label="Department">
             <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className={inputClass} aria-label="Department">
               <option value="">My own</option>

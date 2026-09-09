@@ -42,7 +42,7 @@ export const GET = route(async () => {
         assigneeId: user.id,
         ...projectFilter,
       },
-      include: { ...TASK_INCLUDE, project: { select: { name: true, slug: true } } },
+      include: { ...TASK_INCLUDE, project: { select: { id: true, name: true, slug: true } } },
     }),
     prisma.calendarEvent.findMany({
       where: {

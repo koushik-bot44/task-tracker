@@ -25,6 +25,7 @@ export type TaskRow = Task & {
   department?: { id: string; name: string } | null;
   assignmentGroup?: { id: string; name: string } | null;
   category?: { id: string; name: string } | null;
+  project?: { id: string; name: string; slug: string } | null;
   _count?: { children?: number };
   /** Steps done, computed by the caller when it has the sibling list. */
   stepsDone?: number;
@@ -42,6 +43,7 @@ export const TASK_INCLUDE = {
   department: { select: { id: true, name: true } },
   assignmentGroup: { select: { id: true, name: true } },
   category: { select: { id: true, name: true } },
+  project: { select: { id: true, name: true, slug: true } },
 } as const;
 /** Back-compat name for the few callers that still use it. */
 export const COMPLETED_BY_SELECT = TASK_INCLUDE;
@@ -101,6 +103,8 @@ export function serializeTask(task: TaskRow): TaskDTO {
     resolvedAt: task.resolvedAt ? task.resolvedAt.toISOString() : null,
     closedAt: task.closedAt ? task.closedAt.toISOString() : null,
     escalatedAt: task.escalatedAt ? task.escalatedAt.toISOString() : null,
+    projectName: task.project?.name ?? null,
+    projectSlug: task.project?.slug ?? null,
   };
 }
 

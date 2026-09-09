@@ -273,6 +273,9 @@ export type TaskDTO = {
   resolvedAt: string | null;
   closedAt: string | null;
   escalatedAt: string | null;
+  /** The project it sits in (work model: shown on the list). */
+  projectName: string | null;
+  projectSlug: string | null;
   /** Present on a single-task read: what the caller may do. */
   access?: TaskAccessDTO;
 };
