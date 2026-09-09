@@ -25,7 +25,7 @@ export const POST = route(async (_req: Request, { params }: Params) => {
   if (!target) throw new HttpError(404, "User not found");
 
   // Account admins only; only an admin could touch an admin account (n/a here).
-  assertCanAdministerTarget(actor, target);
+  await assertCanAdministerTarget(actor, target);
 
   if (target.status !== "PENDING") {
     throw new HttpError(409, "This account is already active.");

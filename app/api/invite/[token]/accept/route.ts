@@ -55,7 +55,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
   });
 
   // Sign them straight in, like a fresh login.
-  const token = await createSessionToken({ userId: user.id, role: user.role, name: user.name });
+  const token = await createSessionToken({ userId: user.id, role: user.role, name: user.name, version: user.sessionVersion });
   const res = NextResponse.json({
     ok: true,
     user: { id: user.id, name: user.name, email: user.email, role: user.role },

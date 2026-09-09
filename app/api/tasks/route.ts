@@ -2,39 +2,26 @@ import { NextResponse } from "next/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
 import { TASK_INCLUDE, serializeTask, withCounts, type TaskRow } from "@/lib/serialize";
-import { assertCanAssign } from "@/lib/permissions";
 import { requireUser, route } from "@/lib/session";
 import { visibleProjectIds } from "@/lib/project-visibility";
 import { flattenToOneLevel } from "@/lib/steps";
-import { syncProjectReviews } from "@/lib/meetings";
-import { sendMessage } from "@/lib/notify";
-import { taskGivenMessage } from "@/lib/messages";
+import { noteCounts } from "@/lib/work/activity";
+import { createWork } from "@/lib/work/tasks";
 import { badRequest, createTaskSchema, parseBody } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Note counts for a set of tasks, in one grouped query. */
-async function noteCountsFor(ids: string[]): Promise<Map<string, number>> {
-  if (ids.length === 0) return new Map();
-  const grouped = await prisma.comment.groupBy({
-    by: ["targetId"],
-    where: { targetType: "TASK", targetId: { in: ids } },
-    _count: { _all: true },
-  });
-  return new Map(grouped.map((g) => [g.targetId, g._count._all]));
-}
-
 async function finish(rows: TaskRow[], flatten: boolean) {
   const flat = flatten ? flattenToOneLevel(rows) : rows;
-  const counts = await noteCountsFor(flat.map((r) => r.id));
+  const counts = await noteCounts(flat.map((r) => r.id), true);
   return withCounts(flat, counts).map(serializeTask);
 }
 
 /**
  * Flat list for one project (steps carry parentId = their root task). `?view=all`
  * widens that to every visible project — what Today needs. `?scope=private`
- * is the caller's My notes.
+ * is the caller's My notes. The work queue with its filters is GET /api/work.
  */
 export const GET = route(async (req: Request) => {
   const user = await requireUser();
@@ -77,10 +64,10 @@ export const GET = route(async (req: Request) => {
 });
 
 /**
- * Give a task (restructure). Anyone on the project gives a task to anyone on
- * it; the chain and leads may name someone not yet on it (they are added).
- * A root task carries the assignee, the date (default: its milestone's review
- * date) and who gave it; a step carries neither an assignee nor a message.
+ * Open a task (work model). With a projectId it is a project task (anyone on
+ * the project; a step needs the same); without one it stands on its own and
+ * is routed Department → Team → Person by the rules. Every rule lives in
+ * lib/work/tasks.ts — this handler only parses.
  */
 export const POST = route(async (req: Request) => {
   const user = await requireUser();
@@ -92,122 +79,11 @@ export const POST = route(async (req: Request) => {
     return createPrivateTask(user.id, parsed.data);
   }
 
-  const { id, projectId, parentId, milestoneId, title, orderKey, status, dueDate, assigneeId, dueProvisional, important } = parsed.data;
-
-  if (!projectId) {
-    return badRequest([{ path: ["projectId"], message: "A projectId is required" }]);
-  }
-  const visible = await visibleProjectIds(user);
-  if (visible && !visible.has(projectId)) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-  if (parentId && assigneeId) {
-    return NextResponse.json({ error: "A step belongs to its task's person" }, { status: 400 });
-  }
-
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, name: true, slug: true },
-  });
-  if (!project) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-
-  let due: Date | null = null;
-  if (dueDate) {
-    due = new Date(dueDate);
-    if (Number.isNaN(due.getTime())) {
-      return NextResponse.json({ error: "dueDate is not a date" }, { status: 400 });
-    }
-  }
-  let guessed = dueProvisional === true;
-
-  let effectiveMilestoneId: string | null = milestoneId ?? null;
-  let parentRoot: string | null = null;
-  if (parentId) {
-    const parent = await prisma.task.findFirst({
-      where: { id: parentId, projectId, deletedAt: null },
-      select: { id: true, parentId: true, dueDate: true, dueProvisional: true, milestoneId: true },
-    });
-    if (!parent) {
-      return NextResponse.json({ error: "Parent not found" }, { status: 400 });
-    }
-    // One level deep: a step of a step is a step of the root task.
-    parentRoot = parent.parentId ?? parent.id;
-    effectiveMilestoneId = parent.milestoneId;
-    if (!due) {
-      due = parent.dueDate;
-      if (due) guessed = parent.dueProvisional;
-    }
-  } else if (effectiveMilestoneId) {
-    const m = await prisma.milestone.findFirst({ where: { id: effectiveMilestoneId, projectId }, select: { reviewDate: true } });
-    if (!m) return NextResponse.json({ error: "Milestone not found" }, { status: 400 });
-    // "By when?" defaults to the box's review date.
-    if (!due) {
-      due = m.reviewDate;
-      guessed = true;
-    }
-  }
-
-  let assignTo: string | null = null;
-  if (!parentId) {
-    assignTo = assigneeId === undefined ? user.id : assigneeId;
-    await assertCanAssign(user, projectId, assignTo);
-  }
-
-  let key = orderKey;
-  if (!key) {
-    const last = await prisma.task.findFirst({
-      where: { projectId, parentId: parentRoot ?? null, deletedAt: null },
-      orderBy: { orderKey: "desc" },
-      select: { orderKey: true },
-    });
-    key = generateKeyBetween(last?.orderKey ?? null, null);
-  }
-
-  const task = await prisma.task.create({
-    data: {
-      ...(id ? { id } : {}),
-      projectId,
-      parentId: parentRoot,
-      milestoneId: effectiveMilestoneId,
-      title: title ?? "",
-      orderKey: key,
-      status: status ?? "TODO",
-      dueDate: due,
-      dueProvisional: due ? guessed : false,
-      important: important ?? false,
-      assigneeId: assignTo,
-      givenById: user.id,
-      ...(status === "DONE" ? { completedAt: new Date(), completedById: user.id } : {}),
-    },
-    include: TASK_INCLUDE,
-  });
-
-  // (a) task_given — instant, to the person it was given to (never to yourself).
-  if (assignTo && assignTo !== user.id && (title ?? "").trim().length > 0) {
-    try {
-      await sendMessage(
-        [assignTo],
-        taskGivenMessage({
-          taskId: task.id,
-          taskTitle: task.title,
-          projectName: project.name,
-          projectSlug: project.slug,
-          giverName: user.name,
-          dueDate: task.dueDate,
-        }),
-      );
-    } catch (err) {
-      console.error("[tasks] task_given failed:", (err as Error).message);
-    }
-  }
-  // The milestone's review meeting invites everyone holding a task in it.
-  if (assignTo && effectiveMilestoneId) {
-    syncProjectReviews(projectId, user.id).catch(() => undefined);
-  }
-
-  return NextResponse.json(serializeTask({ ...task, stepCount: 0, stepsDone: 0, noteCount: 0 }), { status: 201 });
+  const { isPrivate: _p, personalProjectId: _pp, ...input } = parsed.data;
+  void _p;
+  void _pp;
+  const row = await createWork(user, input);
+  return NextResponse.json(serializeTask(row), { status: 201 });
 });
 
 /**
@@ -269,6 +145,8 @@ async function createPrivateTask(
     key = generateKeyBetween(last?.orderKey ?? null, null);
   }
 
+  // A private note keeps the old four words; state mirrors them so nothing reads odd.
+  const st = status ?? "TODO";
   const task = await prisma.task.create({
     data: {
       ...(id ? { id } : {}),
@@ -280,11 +158,15 @@ async function createPrivateTask(
       title: title ?? "",
       descriptionMd: descriptionMd ?? "",
       orderKey: key,
-      status: status ?? "TODO",
+      status: st,
+      state: st === "DONE" ? "CLOSED" : st === "DOING" ? "IN_PROGRESS" : st === "STUCK" ? "WAITING" : "NEW",
+      type: "GENERAL",
+      requesterId: ownerId,
       dueDate: due,
       dueProvisional: false,
       assigneeId: null,
-      ...(status === "DONE" ? { completedAt: new Date(), completedById: ownerId } : {}),
+      ...(st === "DONE" ? { completedAt: new Date(), completedById: ownerId, resolvedAt: new Date(), closedAt: new Date(), resolutionCode: "COMPLETED" } : {}),
+      ...(st === "STUCK" ? { waitingReason: "OTHER" } : {}),
     },
     include: TASK_INCLUDE,
   });

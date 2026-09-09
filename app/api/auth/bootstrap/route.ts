@@ -87,6 +87,7 @@ export async function POST(req: Request) {
     userId: user.id,
     role: user.role,
     name: user.name,
+    version: user.sessionVersion,
   });
 
   const res = NextResponse.json({

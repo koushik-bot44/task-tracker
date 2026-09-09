@@ -18,12 +18,40 @@ import { formatISTDate } from "@/lib/timezone";
  * Every send is guarded: a dead SMTP or Twilio never 500s the action.
  */
 
-export async function bellUsers(
-  userIds: string[],
-  n: { type: string; title: string; body: string; url: string; data?: Record<string, unknown> },
-): Promise<void> {
-  const ids = [...new Set(userIds)];
-  if (ids.length === 0) return;
+export type BellInput = {
+  type: string;
+  title: string;
+  body: string;
+  url: string;
+  data?: Record<string, unknown>;
+  /** Work model: the task / meeting this is about, so deletes can sweep it. */
+  taskId?: string | null;
+  eventId?: string | null;
+  /**
+   * Work model: when set, the same key never writes the same person twice —
+   * a cron re-run or a double tap adds nothing. Stored as `${key}:${userId}`.
+   */
+  dedupeKey?: string | null;
+};
+
+/**
+ * Write the bell rows. Returns the ids that actually received one (with a
+ * dedupeKey, the people who already had it are left out), so push follows
+ * the same list.
+ */
+export async function bellUsers(userIds: string[], n: BellInput): Promise<string[]> {
+  let ids = [...new Set(userIds)];
+  if (ids.length === 0) return [];
+  if (n.dedupeKey) {
+    const key = n.dedupeKey;
+    const have = await prisma.notification.findMany({
+      where: { dedupeKey: { in: ids.map((id) => `${key}:${id}`) } },
+      select: { userId: true },
+    });
+    const seen = new Set(have.map((h) => h.userId));
+    ids = ids.filter((id) => !seen.has(id));
+    if (ids.length === 0) return [];
+  }
   await prisma.notification.createMany({
     data: ids.map((userId) => ({
       userId,
@@ -31,17 +59,18 @@ export async function bellUsers(
       title: n.title,
       body: n.body,
       data: { url: n.url, ...(n.data ?? {}) },
+      taskId: n.taskId ?? null,
+      eventId: n.eventId ?? null,
+      dedupeKey: n.dedupeKey ? `${n.dedupeKey}:${userId}` : null,
     })),
+    skipDuplicates: true,
   });
+  return ids;
 }
 
-export async function notifyUsers(
-  userIds: string[],
-  n: { type: string; title: string; body: string; url: string; tag: string },
-): Promise<void> {
-  const ids = [...new Set(userIds)];
+export async function notifyUsers(userIds: string[], n: BellInput & { tag: string }): Promise<void> {
+  const ids = await bellUsers(userIds, n);
   if (ids.length === 0) return;
-  await bellUsers(ids, n);
   void sendPushToUsers(ids, { title: n.title, body: n.body, url: n.url, tag: n.tag });
 }
 
@@ -60,11 +89,21 @@ export async function sendMessage(userIds: string[], msg: OutboundMessage): Prom
   });
   if (active.length === 0) return { recipients: 0 };
   const activeIds = active.map((u) => u.id);
-
-  await bellUsers(activeIds, { type: msg.kind, title: msg.title, body: msg.body, url: msg.url });
-  void sendPushToUsers(activeIds, { title: msg.title, body: msg.body, url: msg.url, tag: msg.tag });
-
   const keyExtra = msg.keyExtra ? `:${msg.keyExtra}` : "";
+
+  // The bell row and push are deduped on the same key as email and WhatsApp
+  // (work model): a re-run of the evening digest adds nothing.
+  const fresh = await bellUsers(activeIds, {
+    type: msg.kind,
+    title: msg.title,
+    body: msg.body,
+    url: msg.url,
+    taskId: msg.taskId ?? null,
+    eventId: msg.eventId ?? null,
+    dedupeKey: `${msg.kind}:${msg.refId}${keyExtra}`,
+  });
+  if (fresh.length) void sendPushToUsers(fresh, { title: msg.title, body: msg.body, url: msg.url, tag: msg.tag });
+
   try {
     await Promise.all(
       active
@@ -156,6 +195,7 @@ export async function notifyEvent(event: EventRow, kind: EventKind, projectName:
     body: `${formatISTDate(event.date)}${timePart} · ${projectName ?? "Everyone"}`,
     url: "/calendar",
     data: { eventId: event.id },
+    eventId: event.id,
   });
   return { recipients };
 }

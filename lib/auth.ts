@@ -19,6 +19,8 @@ export type SessionClaims = {
   userId: string;
   role: Role;
   name: string;
+  /** Work model: User.sessionVersion at mint time; a password set or reset bumps it and ends older sessions. */
+  version: number;
 };
 
 function secretKey(): Uint8Array {
@@ -31,7 +33,7 @@ function secretKey(): Uint8Array {
 
 /** Mint a 30-day session token carrying who the holder is. */
 export async function createSessionToken(claims: SessionClaims): Promise<string> {
-  return new SignJWT({ role: claims.role, name: claims.name })
+  return new SignJWT({ role: claims.role, name: claims.name, v: claims.version })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(claims.userId)
     .setIssuedAt()
@@ -62,7 +64,8 @@ export async function readSessionToken(
     if (typeof role !== "string") return null;
     if (!(ROLES as readonly string[]).includes(role)) return null;
 
-    return { userId, role: role as Role, name: typeof name === "string" ? name : "" };
+    const version = typeof payload.v === "number" ? payload.v : 0;
+    return { userId, role: role as Role, name: typeof name === "string" ? name : "", version };
   } catch {
     return null;
   }

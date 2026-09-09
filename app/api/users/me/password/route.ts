@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createSessionToken, sessionCookie } from "@/lib/auth";
 import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
@@ -38,10 +39,13 @@ export const POST = route(async (req: Request) => {
     );
   }
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hashPassword(parsed.data.next) },
+    // Every other session the old password opened ends; this one gets a fresh cookie.
+    data: { passwordHash: await hashPassword(parsed.data.next), sessionVersion: { increment: 1 } },
   });
 
-  return NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(sessionCookie(await createSessionToken({ userId: updated.id, role: updated.role, name: updated.name, version: updated.sessionVersion })));
+  return res;
 });

@@ -28,6 +28,8 @@ async function loadSessionUser(): Promise<User> {
 
   const user = await prisma.user.findUnique({ where: { id: claims.userId } });
   if (!user || user.disabledAt) throw new HttpError(401, "Unauthorized");
+  // A password set or reset bumps the version: every cookie minted before it stops working.
+  if (user.sessionVersion !== claims.version) throw new HttpError(401, "Unauthorized");
 
   return user;
 }

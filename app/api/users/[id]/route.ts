@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeUser } from "@/lib/serialize";
 import type { UserRole } from "@/lib/types";
 import { HttpError, requireAccountAdmin, route } from "@/lib/session";
-import { assertCanAdministerTarget, isAdmin } from "@/lib/permissions";
+import { assertCanAdministerTarget, assertCanGrantRole, isAdmin } from "@/lib/permissions";
 import { adminAlreadyExists, otherActiveAuthorities, otherAdmins } from "@/lib/account-guards";
 import { isManagerRole } from "@/lib/roles";
 import { parseBody, phoneInput, roleSchema } from "@/lib/validation";
@@ -49,7 +49,9 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  assertCanAdministerTarget(actor, target);
+  await assertCanAdministerTarget(actor, target);
+  // The NEW role must sit below the actor too (a manager could mint a head).
+  if (role !== undefined && role !== target.role && role !== "FOUNDER" && role !== "PERSON") assertCanGrantRole(actor, role);
 
   if (disable === true && target.id === actor.id) {
     throw new HttpError(403, "You cannot disable your own account.");
@@ -111,7 +113,12 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     data.passwordHash = await hashPassword(tempPassword);
   }
 
-  const updated = await prisma.user.update({ where: { id: params.id }, data, include: { department: { select: { name: true } } } });
+  const updated = await prisma.user.update({
+    where: { id: params.id },
+    // A reset ends every session the old password opened (work model).
+    data: { ...data, ...(reset ? { sessionVersion: { increment: 1 } } : {}) },
+    include: { department: { select: { name: true } } },
+  });
   return NextResponse.json({
     user: serializeUser(updated),
     ...(tempPassword ? { tempPassword } : {}),
@@ -131,7 +138,7 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
   if (!target) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
-  assertCanAdministerTarget(actor, target);
+  await assertCanAdministerTarget(actor, target);
   if (target.id === actor.id) {
     throw new HttpError(403, "You cannot delete your own account.");
   }

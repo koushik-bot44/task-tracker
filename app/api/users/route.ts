@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeUser } from "@/lib/serialize";
 import { assertCanCreateUserWithRole, assertCanListUsers } from "@/lib/permissions";
 import { adminAlreadyExists } from "@/lib/account-guards";
-import { isAdminRole, isExecutiveRole } from "@/lib/roles";
+import { canAdministerAccountsRole, isAdminRole, isExecutiveRole } from "@/lib/roles";
 import { requireUser, route } from "@/lib/session";
 import { parseBody, roleSchema } from "@/lib/validation";
 
@@ -53,7 +53,14 @@ export const GET = route(async () => {
     ? await prisma.project.groupBy({ by: ["ownerId"], where: { ownerId: { in: managerIds } }, _count: { _all: true } })
     : [];
   const owned = new Map(grouped.map((g) => [g.ownerId, g._count._all]));
-  return NextResponse.json(users.map((u) => serializeUser(u, owned.get(u.id) ?? 0)));
+  // A phone number is for whoever runs accounts, and for the person themselves.
+  const admin = canAdministerAccountsRole(actor.role);
+  return NextResponse.json(
+    users.map((u) => {
+      const dto = serializeUser(u, owned.get(u.id) ?? 0);
+      return admin || u.id === actor.id ? dto : { ...dto, phone: null };
+    }),
+  );
 });
 
 /**

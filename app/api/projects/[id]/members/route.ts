@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { issueInvite } from "@/lib/invite";
 import { canSeeProject } from "@/lib/project-visibility";
 import { canManageProject, ensureMember, projectPeople } from "@/lib/project-people";
+import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { syncProjectReviews } from "@/lib/meetings";
 import { HttpError, requireUser, route } from "@/lib/session";
 import { parseBody } from "@/lib/validation";
@@ -48,6 +49,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
 
   if (parsed.data.invite) {
     const { name, role } = parsed.data.invite;
+    // Creating an account here is creating an account: the same rule as People → Invite.
+    assertCanCreateUserWithRole(actor, role === "TEAM_LEAD" ? "TEAM_LEAD" : "RESOURCE");
     const email = parsed.data.invite.email.toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, "That email does not look right.");
     const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true, disabledAt: true } });
@@ -84,7 +87,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
     update: parsed.data.canManage !== undefined ? { canManage: parsed.data.canManage } : {},
     create: { projectId: params.id, userId: parsed.data.userId, canManage: parsed.data.canManage ?? false },
   });
-  syncProjectReviews(params.id, actor.id).catch(() => undefined);
+  // Awaited: serverless freezes work started after the response (work model).
+  await syncProjectReviews(params.id, actor.id).catch(() => undefined);
   return NextResponse.json({ ok: true });
 });
 
@@ -98,6 +102,7 @@ export const DELETE = route(async (req: Request, { params }: Params) => {
 
   await prisma.projectMember.deleteMany({ where: { projectId: params.id, userId: parsed.data.userId } });
   const assignedCount = await prisma.task.count({ where: { projectId: params.id, assigneeId: parsed.data.userId, deletedAt: null } });
-  syncProjectReviews(params.id, actor.id).catch(() => undefined);
+  // Awaited: serverless freezes work started after the response (work model).
+  await syncProjectReviews(params.id, actor.id).catch(() => undefined);
   return NextResponse.json({ ok: true, stillAssignedTasks: assignedCount });
 });

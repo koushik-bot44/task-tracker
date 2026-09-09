@@ -115,9 +115,9 @@ async function main() {
   const makeTask = async (title: string) =>
     prisma.task.create({ data: { title, projectId: project.id, orderKey: "a0", status: "TODO", assigneeId: A.id, givenById: M.id } });
   const waLogs = (refId: string) => prisma.whatsAppLog.count({ where: { refId } });
-  const bells = (taskId: string) => prisma.notification.count({ where: { type: "task_given", data: { path: ["url"], string_contains: taskId } } });
-  const messageFor = (t: { id: string; title: string }) =>
-    taskGivenMessage({ taskId: t.id, taskTitle: t.title, projectName: project.name, projectSlug: project.slug, giverName: "P32 owner", dueDate: null });
+  const bells = (taskId: string) => prisma.notification.count({ where: { type: "task_given", taskId } });
+  const messageFor = (t: { id: string; title: string; number: number }) =>
+    taskGivenMessage({ taskId: t.id, taskRef: `P-${t.number}`, taskNumber: t.number, taskTitle: t.title, projectName: project.name, giverName: "P32 owner", dueDate: null });
 
   console.log("\n-- Part A: sender filtering + task_given wiring (mock Twilio = ok) --");
   mockMode = "ok";

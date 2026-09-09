@@ -249,7 +249,7 @@ async function main() {
   await prisma.comment.deleteMany({ where: { authorId: { in: ids } } });
   await prisma.task.deleteMany({ where: { ownerId: { in: ids }, isPrivate: true } });
   if (projectId) {
-    await prisma.notification.deleteMany({ where: { OR: [{ task: { projectId } }, { event: undefined, userId: { in: ids } }] } }).catch(() => undefined);
+    await prisma.notification.deleteMany({ where: { task: { projectId } } }).catch(() => undefined);
     await prisma.calendarEvent.deleteMany({ where: { projectId } });
     await prisma.project.delete({ where: { id: projectId } }).catch(() => undefined);
   }

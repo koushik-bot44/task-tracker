@@ -121,21 +121,44 @@ export function inviteEmail(opts: {
 
 /** (a) task_given */
 export function taskGivenEmail(opts: {
+  taskRef?: string;
   taskTitle: string;
-  projectName: string;
+  projectName: string | null;
   giverName: string;
   dueDate: Date | null;
   url: string;
 }): EmailBody {
   const when = opts.dueDate ? formatISTDate(opts.dueDate) : "No date yet";
-  const subject = `${opts.giverName} gave you a task: ${opts.taskTitle}`;
+  const ref = opts.taskRef ? `${opts.taskRef} ` : "";
+  const subject = `${opts.giverName} gave you a task: ${ref}${opts.taskTitle}`;
+  const where = opts.projectName ? ` in <strong>${escapeHtml(opts.projectName)}</strong>` : "";
   const html = layout({
-    heading: escapeHtml(opts.taskTitle),
-    bodyHtml: `<p style="margin:0 0 12px">${escapeHtml(opts.giverName)} gave you this in <strong>${escapeHtml(opts.projectName)}</strong>.</p>`,
+    heading: escapeHtml(`${ref}${opts.taskTitle}`),
+    bodyHtml: `<p style="margin:0 0 12px">${escapeHtml(opts.giverName)} gave you this${where}.</p>`,
     rows: [["By when", when]],
     ctas: [{ label: "Open the task", url: opts.url }],
   });
-  const text = [subject, "", `Project: ${opts.projectName}`, `By when: ${when}`, "", `Open: ${opts.url}`].join("\n");
+  const text = [subject, "", ...(opts.projectName ? [`Project: ${opts.projectName}`] : []), `By when: ${when}`, "", `Open: ${opts.url}`].join("\n");
+  return { subject, html, text };
+}
+
+/** Work model: "resolved — close it or send it back", to whoever asked. */
+export function taskResolvedEmail(opts: {
+  taskRef: string;
+  taskTitle: string;
+  resolverName: string;
+  resolutionLabel: string;
+  resolutionNotes: string | null;
+  url: string;
+}): EmailBody {
+  const subject = `${opts.resolverName} resolved ${opts.taskRef}: ${opts.taskTitle}`;
+  const html = layout({
+    heading: escapeHtml(`${opts.taskRef} ${opts.taskTitle}`),
+    bodyHtml: `<p style="margin:0 0 12px">${escapeHtml(opts.resolverName)} marked this resolved. If it is sorted, close it; if not, reopen it and say what is still wrong.</p>`,
+    rows: [["Resolution", opts.resolutionLabel], ...(opts.resolutionNotes ? [["Notes", opts.resolutionNotes] as [string, string]] : [])],
+    ctas: [{ label: "Open the task", url: opts.url }],
+  });
+  const text = [subject, "", `Resolution: ${opts.resolutionLabel}`, ...(opts.resolutionNotes ? [`Notes: ${opts.resolutionNotes}`] : []), "", `Open: ${opts.url}`].join("\n");
   return { subject, html, text };
 }
 

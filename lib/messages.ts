@@ -1,5 +1,5 @@
 import { getBaseUrl } from "@/lib/base-url";
-import { reviewResultEmail, taskGivenEmail, tomorrowEmail, type EmailBody, type TomorrowEmailInput } from "@/lib/email-templates";
+import { reviewResultEmail, taskGivenEmail, taskResolvedEmail, tomorrowEmail, type EmailBody, type TomorrowEmailInput } from "@/lib/email-templates";
 import { formatISTDate } from "@/lib/timezone";
 
 /**
@@ -11,13 +11,16 @@ import { formatISTDate } from "@/lib/timezone";
  *   (b) tomorrow      → one per person at 18:00 IST, only when there is something.
  *   (c) review_result → everyone on the project, when the founder records an outcome.
  */
-export type MessageKind = "task_given" | "tomorrow" | "review_result";
+export type MessageKind = "task_given" | "tomorrow" | "review_result" | "task_resolved";
 
 export type OutboundMessage = {
   kind: MessageKind;
   /** What the dedupe key is about (task id, day key, milestone id). */
   refId: string;
   keyExtra?: string;
+  /** Work model: the task / meeting the bell row is about. */
+  taskId?: string | null;
+  eventId?: string | null;
   title: string;
   body: string;
   url: string;
@@ -27,28 +30,66 @@ export type OutboundMessage = {
   vars: Record<string, string>;
 };
 
+/**
+ * (a) task_given. Work model: a task may have no project, and the message is
+ * deduped per hand-over (`keyExtra` = the assignment's activity id), so two
+ * overlapping saves cannot send it twice.
+ */
 export function taskGivenMessage(o: {
   taskId: string;
+  taskRef: string;
+  taskNumber: number;
   taskTitle: string;
-  projectName: string;
-  projectSlug: string;
+  projectName: string | null;
   giverName: string;
   dueDate: Date | null;
+  /** The assignment activity id; falls back to the instant. */
+  handoverId?: string;
 }): OutboundMessage {
-  const url = `/project/${o.projectSlug}?task=${o.taskId}`;
+  const url = `/work/${o.taskNumber}`;
   const when = o.dueDate ? formatISTDate(o.dueDate) : "no date yet";
   const abs = `${getBaseUrl()}${url}`;
+  const where = o.projectName ? ` · ${o.projectName}` : "";
   return {
     kind: "task_given",
     refId: o.taskId,
-    keyExtra: String(Date.now()),
+    keyExtra: o.handoverId ?? String(Date.now()),
+    taskId: o.taskId,
     title: `${o.giverName} gave you a task`,
-    body: `${o.taskTitle} · ${o.projectName} · by ${when}`,
+    body: `${o.taskRef} ${o.taskTitle}${where} · by ${when}`,
     url,
     tag: `task-${o.taskId}`,
-    email: taskGivenEmail({ taskTitle: o.taskTitle, projectName: o.projectName, giverName: o.giverName, dueDate: o.dueDate, url: abs }),
-    whatsapp: [`✅ *${o.giverName} gave you a task*`, "", o.taskTitle, `${o.projectName} · by ${when}`, "", `Open: ${abs}`].join("\n"),
-    vars: { "1": `${o.giverName} gave you a task: ${o.taskTitle} (${o.projectName})`, "2": `By ${when}` },
+    email: taskGivenEmail({ taskRef: o.taskRef, taskTitle: o.taskTitle, projectName: o.projectName, giverName: o.giverName, dueDate: o.dueDate, url: abs }),
+    whatsapp: [`✅ *${o.giverName} gave you a task*`, "", `${o.taskRef} ${o.taskTitle}`, `${o.projectName ?? "Direct"} · by ${when}`, "", `Open: ${abs}`].join("\n"),
+    vars: { "1": `${o.giverName} gave you a task: ${o.taskRef} ${o.taskTitle}${where}`, "2": `By ${when}` },
+  };
+}
+
+/** (d) task_resolved — to whoever asked, so they can close it or send it back. */
+export function taskResolvedMessage(o: {
+  taskId: string;
+  taskRef: string;
+  taskNumber: number;
+  taskTitle: string;
+  resolverName: string;
+  resolutionLabel: string;
+  resolutionNotes: string | null;
+  activityId: string;
+}): OutboundMessage {
+  const url = `/work/${o.taskNumber}`;
+  const abs = `${getBaseUrl()}${url}`;
+  return {
+    kind: "task_resolved",
+    refId: o.taskId,
+    keyExtra: o.activityId,
+    taskId: o.taskId,
+    title: `${o.resolverName} resolved ${o.taskRef}`,
+    body: `${o.taskTitle} · ${o.resolutionLabel}${o.resolutionNotes ? ` · ${o.resolutionNotes}` : ""}`,
+    url,
+    tag: `task-${o.taskId}`,
+    email: taskResolvedEmail({ taskRef: o.taskRef, taskTitle: o.taskTitle, resolverName: o.resolverName, resolutionLabel: o.resolutionLabel, resolutionNotes: o.resolutionNotes, url: abs }),
+    whatsapp: [`✅ *${o.resolverName} resolved ${o.taskRef}*`, "", o.taskTitle, o.resolutionLabel, ...(o.resolutionNotes ? [o.resolutionNotes] : []), "", `Close it or send it back: ${abs}`].join("\n"),
+    vars: { "1": `${o.resolverName} resolved ${o.taskRef} ${o.taskTitle}`, "2": o.resolutionLabel },
   };
 }
 

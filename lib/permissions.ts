@@ -126,14 +126,39 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
 }
 
 /**
+ * The rank a role may be GRANTED by this actor (work model, closes the hole
+ * where PATCH role checked the target's OLD rank only): the same ceiling as
+ * creating an account — strictly below your own level; the admin up to manager.
+ */
+export function assertCanGrantRole(actor: { role: Role }, newRole: Role) {
+  assertCanCreateUserWithRole(actor, newRole);
+}
+
+/**
  * Who may disable/enable, reset, re-role, place or delete a GIVEN account.
  * Only an ADMIN may touch the ADMIN account; only the FOUNDER the FOUNDER
- * account; chain actors administer strictly lower ranks;
- * the admin keeps manager-and-below.
+ * account; chain actors administer strictly lower ranks; the admin keeps
+ * manager-and-below. Work model: a head or manager reaches only the people
+ * in their OWN department (or one they head) — an HOD of Accounts cannot set
+ * a password in Operations — and nobody administers a Well Being PERSON here.
  */
-export function assertCanAdministerTarget(actor: { role: Role }, target: { role: Role }) {
+export async function assertCanAdministerTarget(
+  actor: { id: string; role: Role; departmentId?: string | null },
+  target: { id: string; role: Role; departmentId?: string | null },
+): Promise<void> {
   if (!canAdministerAccountsRole(actor.role)) {
     throw new HttpError(403, "You don't have permission to manage accounts");
+  }
+  if (target.role === "PERSON") {
+    throw new HttpError(403, "A person account is managed from Well Being.");
+  }
+  if (actor.role === "HOD" || actor.role === "MANAGER") {
+    const headed = actor.role === "HOD" ? await prisma.department.findMany({ where: { hodId: actor.id }, select: { id: true } }) : [];
+    const mine = new Set<string>([...(actor.departmentId ? [actor.departmentId] : []), ...headed.map((d) => d.id)]);
+    // An unplaced person may be placed by any account admin; a placed one only by their own chain.
+    if (target.departmentId && !mine.has(target.departmentId) && target.id !== actor.id) {
+      throw new HttpError(403, "You can only manage accounts in your own department.");
+    }
   }
   if (isAdminRole(target.role) && !isAdmin(actor)) {
     throw new HttpError(403, "Only an admin can manage the admin account.");
@@ -141,14 +166,14 @@ export function assertCanAdministerTarget(actor: { role: Role }, target: { role:
   if (target.role === "FOUNDER" && actor.role !== "FOUNDER") {
     throw new HttpError(403, "Only the founder can manage the founder account.");
   }
-  if (!isAdminRole(target.role) && target.role !== "PERSON" && !isAdmin(actor)) {
+  if (!isAdminRole(target.role) && !isAdmin(actor)) {
     const actorRank = ROLE_RANK[actor.role];
     const targetRank = ROLE_RANK[target.role];
     if (targetRank >= actorRank && target.role !== "FOUNDER") {
       throw new HttpError(403, "You can only manage accounts below your own level.");
     }
   }
-  if (!isAdminRole(target.role) && target.role !== "PERSON" && isAdmin(actor)) {
+  if (!isAdminRole(target.role) && isAdmin(actor)) {
     if (ROLE_RANK[target.role] > ROLE_RANK.MANAGER) {
       throw new HttpError(403, "Department head accounts are managed by the CEO.");
     }

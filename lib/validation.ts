@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { COMMENT_TARGETS, MILESTONE_OUTCOMES, PROJECT_PRIORITIES, PROJECT_STATUSES, ROLES, TASK_STATUSES } from "@/lib/types";
+import {
+  ACTIVITY_TYPES,
+  COMMENT_TARGETS,
+  MILESTONE_OUTCOMES,
+  PROJECT_PRIORITIES,
+  PROJECT_STATUSES,
+  RESOLUTION_CODES,
+  ROLES,
+  TASK_STATUSES,
+  WAITING_REASONS,
+  WORK_PRIORITIES,
+  WORK_STATES,
+  WORK_TYPES,
+} from "@/lib/types";
 
 /**
  * A phone number in E.164 international format (phase 32). Accepts "" or null
@@ -25,6 +38,13 @@ export const projectStatusSchema = z.enum(PROJECT_STATUSES);
 export const projectPrioritySchema = z.enum(PROJECT_PRIORITIES);
 export const milestoneOutcomeSchema = z.enum(MILESTONE_OUTCOMES);
 export const commentTargetSchema = z.enum(COMMENT_TARGETS);
+/* Work model (2026-09-09). */
+export const workTypeSchema = z.enum(WORK_TYPES);
+export const workStateSchema = z.enum(WORK_STATES);
+export const workPrioritySchema = z.enum(WORK_PRIORITIES);
+export const waitingReasonSchema = z.enum(WAITING_REASONS);
+export const resolutionCodeSchema = z.enum(RESOLUTION_CODES);
+export const activityTypeSchema = z.enum(ACTIVITY_TYPES);
 
 /** A date input — an ISO date(-time) string; "" or null clears it. */
 export const dateInput = z
@@ -121,7 +141,14 @@ export const createCommentSchema = z
 
 export const createTaskSchema = z.object({
   id: z.string().uuid().optional(),
-  projectId: z.string().min(1).optional(),
+  /** Optional since the work model: a task may exist on its own. */
+  projectId: z.string().min(1).nullable().optional(),
+  type: workTypeSchema.optional(),
+  priority: workPrioritySchema.optional(),
+  categoryId: z.string().min(1).nullable().optional(),
+  requesterId: z.string().min(1).nullable().optional(),
+  departmentId: z.string().min(1).nullable().optional(),
+  assignmentGroupId: z.string().min(1).nullable().optional(),
   isPrivate: z.boolean().optional(),
   personalProjectId: z.string().min(1).nullable().optional(),
   parentId: z.string().min(1).nullable().optional(),
@@ -249,6 +276,12 @@ export const updateTaskSchema = z
     title: z.string().max(500),
     descriptionMd: z.string().max(20000),
     status: statusSchema,
+    type: workTypeSchema,
+    priority: workPrioritySchema,
+    categoryId: z.string().min(1).nullable(),
+    requesterId: z.string().min(1).nullable(),
+    departmentId: z.string().min(1).nullable(),
+    assignmentGroupId: z.string().min(1).nullable(),
     dueDate: z.string().nullable(),
     parentId: z.string().min(1).nullable(),
     milestoneId: z.string().min(1).nullable(),
@@ -288,3 +321,83 @@ export async function parseBody<T extends z.ZodTypeAny>(
   }
   return { ok: true, data: result.data };
 }
+
+/* Work model (2026-09-09): the record's own moves and notes. */
+export const transitionSchema = z.object({
+  to: workStateSchema,
+  waitingReason: waitingReasonSchema.nullable().optional(),
+  waitingNote: z.string().trim().max(2000).nullable().optional(),
+  resolutionCode: resolutionCodeSchema.nullable().optional(),
+  resolutionNotes: z.string().trim().max(4000).nullable().optional(),
+  rootCause: z.string().trim().max(4000).nullable().optional(),
+  /** A note written with the move ("Reopen: still not working"). */
+  note: z.string().trim().max(4000).nullable().optional(),
+});
+export const assignSchema = z
+  .object({
+    assignmentGroupId: z.string().min(1).nullable(),
+    assigneeId: z.string().min(1).nullable(),
+  })
+  .partial()
+  .refine((v) => v.assignmentGroupId !== undefined || v.assigneeId !== undefined, { message: "Pick a team or a person" });
+
+/** A note, a team note or a file on a task. Uploads come from /api/uploads, links must be http(s). */
+export const noteSchema = z
+  .object({
+    body: z.string().trim().max(4000).default(""),
+    attachmentUrl: z.string().trim().max(2000).regex(/^(https?:\/\/\S+|\/api\/uploads\/\S+)$/i, "Must be an http(s) link").nullable().optional(),
+    attachmentName: z.string().trim().max(200).nullable().optional(),
+    attachmentType: z.string().trim().max(120).nullable().optional(),
+    mentions: z.array(z.string().min(1)).max(20).optional(),
+  })
+  .refine((v) => v.body.length > 0 || Boolean(v.attachmentUrl), { message: "Write something or attach a file" });
+
+export const createGroupSchema = z.object({
+  departmentId: z.string().min(1),
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(2000).optional(),
+  leadId: z.string().min(1).nullable().optional(),
+  memberIds: z.array(z.string().min(1)).max(200).optional(),
+});
+export const updateGroupSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    description: z.string().trim().max(2000),
+    leadId: z.string().min(1).nullable(),
+    active: z.boolean(),
+    orderKey: z.string().min(1),
+  })
+  .partial();
+export const groupMembersSchema = z.object({ userIds: z.array(z.string().min(1)).min(1).max(200) });
+
+export const createCategorySchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  parentId: z.string().min(1).nullable().optional(),
+  departmentId: z.string().min(1).nullable().optional(),
+  assignmentGroupId: z.string().min(1).nullable().optional(),
+});
+export const updateCategorySchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    departmentId: z.string().min(1).nullable(),
+    assignmentGroupId: z.string().min(1).nullable(),
+    active: z.boolean(),
+    orderKey: z.string().min(1),
+  })
+  .partial();
+
+const ruleMatch = z
+  .object({ type: workTypeSchema, categoryId: z.string().min(1), departmentId: z.string().min(1), priority: workPrioritySchema })
+  .partial();
+const ruleSet = z
+  .object({ departmentId: z.string().min(1), assignmentGroupId: z.string().min(1), assigneeId: z.string().min(1), priority: workPrioritySchema, escalate: z.boolean() })
+  .partial();
+export const createRuleSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  order: z.number().int().min(0).max(10000).optional(),
+  active: z.boolean().optional(),
+  match: ruleMatch,
+  set: ruleSet,
+});
+export const updateRuleSchema = createRuleSchema.partial();
+

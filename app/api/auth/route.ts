@@ -68,6 +68,7 @@ export async function POST(req: Request) {
       userId: user.id,
       role: user.role,
       name: user.name,
+      version: user.sessionVersion,
     });
   } catch (error) {
     console.error("[auth] could not mint a session token:", error);

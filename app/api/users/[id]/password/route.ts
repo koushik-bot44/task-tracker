@@ -26,14 +26,14 @@ export const POST = route(async (req: Request, { params }: Params) => {
 
   const target = await prisma.user.findUnique({ where: { id: params.id } });
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  assertCanAdministerTarget(actor, target);
+  await assertCanAdministerTarget(actor, target);
   if (target.role === "FOUNDER" && actor.id !== target.id) {
     throw new HttpError(403, "Only the CEO can change the CEO's password.");
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
   await prisma.$transaction([
-    prisma.user.update({ where: { id: target.id }, data: { passwordHash, status: "ACTIVE" } }),
+    prisma.user.update({ where: { id: target.id }, data: { passwordHash, status: "ACTIVE", sessionVersion: { increment: 1 } } }),
     prisma.invite.deleteMany({ where: { userId: target.id } }),
   ]);
   return NextResponse.json({ ok: true });
