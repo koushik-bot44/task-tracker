@@ -6,9 +6,12 @@ import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
+import { apiPost } from "@/lib/api";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useGroups, useRaiseWork } from "@/lib/hooks/use-work";
-import { useMe } from "@/lib/hooks/use-users";
+import { useMe, useUsers } from "@/lib/hooks/use-users";
+import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
+import type { UserDTO } from "@/lib/types";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL, type WorkPriority, type WorkType } from "@/lib/types";
 
 /**
@@ -30,6 +33,22 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
   const [describe, setDescribe] = useState("");
   const [due, setDue] = useState("");
   const [priority, setPriority] = useState<WorkPriority>("MEDIUM");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
+  const canInvite = canAdministerAccountsRole(me?.role);
+
+  const group = (groups ?? []).find((g) => g.id === groupId) ?? null;
+  // Who may be named: the team's people, else the department's, else everyone you can see.
+  const candidates: { id: string; name: string }[] = group
+    ? group.members
+    : (users ?? [])
+        .filter((u) => u.role !== "ADMIN" && u.role !== "PERSON" && !u.disabledAt)
+        .filter((u) => !departmentId || u.departmentId === departmentId)
+        .map((u) => ({ id: u.id, name: u.name }));
 
   const reset = () => {
     setTitle("");
@@ -40,17 +59,41 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
     setDescribe("");
     setDue("");
     setPriority("MEDIUM");
+    setAssigneeId("");
+    setInviteOpen(false);
+    setInviteName("");
+    setInviteEmail("");
   };
 
-  const submit = () => {
+  const submit = async () => {
     const what = title.trim();
     if (!what) return;
+    let holder = assigneeId || null;
+    // Someone not on Orbit yet: their account is made now (pending), and the task waits in their bell.
+    if (inviteOpen && inviteEmail.trim()) {
+      setInviting(true);
+      try {
+        const res = await apiPost<{ user: UserDTO }>("/api/users", {
+          name: inviteName.trim() || inviteEmail.trim().split("@")[0],
+          email: inviteEmail.trim(),
+          role: "RESOURCE",
+          departmentId: departmentId || group?.departmentId || null,
+        });
+        holder = res.user.id;
+      } catch (e) {
+        setInviting(false);
+        toast({ message: (e as Error).message, tone: "danger" });
+        return;
+      }
+      setInviting(false);
+    }
     raise.mutate(
       {
         title: what,
         type,
         assignmentGroupId: groupId || null,
         departmentId: departmentId || undefined,
+        assigneeId: holder,
         descriptionMd: describe.trim(),
         dueDate: due ? new Date(`${due}T00:00:00`).toISOString() : null,
         priority,
@@ -74,14 +117,14 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
       onClose={onClose}
       title="New task"
       footer={
-        <Button variant="primary" full loading={raise.isPending} disabled={!title.trim()} onClick={submit}>
+        <Button variant="primary" full loading={raise.isPending || inviting} disabled={!title.trim()} onClick={() => void submit()}>
           Open it
         </Button>
       }
     >
       <div className="space-y-4">
         <Field label="What needs doing?">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="Laptop Wi-Fi is not working" aria-label="What needs doing" autoFocus className={inputClass} />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="Laptop Wi-Fi is not working" aria-label="What needs doing" autoFocus className={inputClass} />
         </Field>
         <Field label="What kind of thing is it?">
           <div className="flex flex-wrap gap-2">
@@ -114,6 +157,31 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
               ))}
             </select>
           </Field>
+        ) : null}
+
+        {candidates.length || canInvite ? (
+          <Field label="Who should do it?" hint={group ? `People on ${group.name}` : undefined}>
+            <select value={inviteOpen ? "__invite" : assigneeId} onChange={(e) => { if (e.target.value === "__invite") { setInviteOpen(true); setAssigneeId(""); } else { setInviteOpen(false); setAssigneeId(e.target.value); } }} className={inputClass} aria-label="Who should do it">
+              <option value="">Nobody yet — the team picks it up</option>
+              {me && !candidates.some((c) => c.id === me.id) ? <option value={me.id}>{me.name} (me)</option> : null}
+              {candidates.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.id === me?.id ? `${c.name} (me)` : c.name}
+                </option>
+              ))}
+              {canInvite ? <option value="__invite">Someone not on Orbit yet…</option> : null}
+            </select>
+          </Field>
+        ) : null}
+        {inviteOpen ? (
+          <div className="grid grid-cols-2 gap-3 rounded-input bg-hover p-3">
+            <Field label="Their name">
+              <input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Kiran" aria-label="Their name" className={inputClass} />
+            </Field>
+            <Field label="Their email" hint="They get an email to set a password; the task waits for them.">
+              <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} type="email" placeholder="kiran@company.com" aria-label="Their email" className={inputClass} />
+            </Field>
+          </div>
         ) : null}
 
         {!more ? (

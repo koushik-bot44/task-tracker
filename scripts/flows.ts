@@ -258,6 +258,7 @@ async function main() {
   // Invite.createdById is Restrict: the invites this run issued go before their issuers.
   await prisma.invite.deleteMany({ where: { OR: [{ createdById: { in: ids } }, { userId: { in: ids } }] } });
   await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
+  await prisma.notification.deleteMany({ where: { OR: [{ title: { contains: "FLOW" } }, { body: { contains: "FLOW" } }] } });
   await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
   console.log(`removed ${ids.length} throwaway accounts and their artefacts`);
   const leftAccounts = await prisma.user.count({ where: { email: { startsWith: PREFIX } } });

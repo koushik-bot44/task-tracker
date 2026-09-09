@@ -511,6 +511,7 @@ async function cleanup(userIds: string[]) {
   // Invitees (PENDING, never signed in) first: their Invite rows cascade with
   // them, and an inviter can't go while an invite it created remains.
   await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX }, status: "PENDING" } });
+  await prisma.notification.deleteMany({ where: { OR: [{ title: { contains: "PT " } }, { body: { contains: "PT " } }] } });
   const users = await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
   console.log(
     `removed ${users.count} throwaway accounts (tasks ${tasks.count}, notes ${notes.count}, ` +

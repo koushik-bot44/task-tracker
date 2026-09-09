@@ -1,6 +1,6 @@
 "use client";
 
-import { AtSign, FileText, Loader2, Paperclip, SendHorizontal, X } from "lucide-react";
+import { AtSign, Camera, FileText, Loader2, Paperclip, SendHorizontal, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/toast";
 import { Face } from "@/components/ui/face";
@@ -32,6 +32,7 @@ export function ActivityComposer({ task, staff }: { task: TaskDTO; staff: boolea
   const [uploading, setUploading] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: users } = useUsers(pickOpen && canSeeUserListRole(me?.role));
@@ -123,9 +124,13 @@ export function ActivityComposer({ task, staff }: { task: TaskDTO; staff: boolea
       <div className="flex items-end gap-1">
         {uploads?.enabled ? (
           <>
-            <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.log" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach a file" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
+            <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach a file — any document, picture, recording or archive" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
               {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Paperclip className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+            </button>
+            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink md:hidden">
+              <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
             </button>
           </>
         ) : null}

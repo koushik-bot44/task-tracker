@@ -438,7 +438,9 @@ against the clone, one commit, no open defect row.
   and links, drawer link and activity, assign/wait/resolve sheets. Screenshots at phone
   and desktop widths.
 - Step 6 — Records: findings evidence, defects ledger rows closed, README, apply-to-prod
-  runbook, verdict file, tags `work-model-s1` … `work-model-s5`.
+  runbook, verdict file, tags `work-model-s1` … `work-model-s6`. Added mid-build on the
+  developer's asks: invites (people + emails) at project creation, a holder or a brand-new
+  invitee on a new task, attachments in every ordinary format, the chat-shaped stream.
 
 Later phases (not in this pass): @mention email/push preferences per kind, email-in,
 SLA definitions and timers with At risk / Breached on the dashboard, approval records,

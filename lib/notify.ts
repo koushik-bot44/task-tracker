@@ -84,7 +84,7 @@ export async function sendMessage(userIds: string[], msg: OutboundMessage): Prom
   const ids = [...new Set(userIds)];
   if (ids.length === 0) return { recipients: 0 };
   const active = await prisma.user.findMany({
-    where: { id: { in: ids }, disabledAt: null, status: "ACTIVE", role: { notIn: ["PERSON"] } },
+    where: { id: { in: ids }, disabledAt: null, role: { notIn: ["PERSON"] } },
     select: { id: true, email: true, emailOptIn: true },
   });
   if (active.length === 0) return { recipients: 0 };

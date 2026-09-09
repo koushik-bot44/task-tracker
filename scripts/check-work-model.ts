@@ -95,6 +95,8 @@ async function main() {
     record("a team member can", right.status === 200 && right.json?.assigneeId === devA.id && right.json?.state === "ASSIGNED", `status ${right.status} · ${right.json?.state}`);
     const bell = await prisma.notification.count({ where: { userId: devA.id, taskId: t1Id, type: "task_given" } });
     record("the holder gets exactly one 'gave you a task'", bell === 1, `${bell}`);
+    const bellRow = await prisma.notification.findFirst({ where: { userId: devA.id, taskId: t1Id, type: "task_given" }, select: { data: true } });
+    record("…and it opens the record", (bellRow?.data as { url?: string })?.url === `/work/${t1.json?.number}`, JSON.stringify(bellRow?.data));
     const again = await call(leadA, "POST", `/api/tasks/${t1Id}/assign`, { assigneeId: devA.id });
     const bell2 = await prisma.notification.count({ where: { userId: devA.id, taskId: t1Id, type: "task_given" } });
     record("saving the same holder again sends nothing", again.status === 200 && bell2 === 1, `${bell2}`);
@@ -197,6 +199,17 @@ async function main() {
     const phones = await call(leadA, "GET", "/api/users");
     record("a lead sees no phone numbers", phones.status === 200 && (phones.json ?? []).every((u: any) => u.phone === null || u.id === leadA.id), `status ${phones.status}`);
 
+    console.log("\n── people who are not on Orbit yet ────────────────────────────");
+    const projWithPeople = await call(managerA, "POST", "/api/projects", { name: "WM Launch", departmentId: deptA.id, memberIds: [devA.id, devA2.id], invites: [{ email: `${PREFIX}outside@orbit.local`, name: "Outside Person" }] });
+    record("a project is made with people and an outside email in one go", projWithPeople.status === 201 && projWithPeople.json?.added === 2 && projWithPeople.json?.invited === 1, `status ${projWithPeople.status} · ${projWithPeople.json?.added}/${projWithPeople.json?.invited}`);
+    const newbie = await prisma.user.findUnique({ where: { email: `${PREFIX}outside@orbit.local` }, select: { id: true, status: true } });
+    record("…the newbie has a pending account with an invite", newbie?.status === "PENDING" && (await prisma.invite.count({ where: { userId: newbie?.id ?? "" } })) === 1, `${newbie?.status}`);
+    const givenToOutsider = await call(managerA, "POST", "/api/tasks", { projectId: projWithPeople.json?.id, title: "WM newbie task", assigneeId: newbie?.id });
+    record("…and can already be given a task", givenToOutsider.status === 201 && givenToOutsider.json?.assigneeId === newbie?.id, `status ${givenToOutsider.status}`);
+    const newbieBell = await prisma.notification.count({ where: { userId: newbie?.id ?? "", type: "task_given" } });
+    record("…which is waiting in their bell for their first sign-in", newbieBell === 1, `${newbieBell}`);
+    if (projWithPeople.json?.id) { await prisma.calendarEvent.deleteMany({ where: { projectId: projWithPeople.json.id } }); await prisma.project.delete({ where: { id: projWithPeople.json.id } }).catch(() => undefined); }
+
     console.log("\n── the queue and the dashboard ────────────────────────────────");
     const mine = await call(devA, "GET", "/api/work?mine=assigned");
     record("my work lists what I hold", mine.status === 200 && (mine.json?.items ?? []).some((t: any) => t.id === ptId), `${mine.json?.items?.length}`);
@@ -224,6 +237,7 @@ async function main() {
     await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
     await prisma.invite.deleteMany({ where: { OR: [{ createdById: { in: ids } }, { user: { email: { startsWith: PREFIX } } }] } });
     await prisma.department.update({ where: { id: deptA.id }, data: { hodId: deptA.hodId } });
+    await prisma.notification.deleteMany({ where: { OR: [{ title: { contains: "WM " } }, { body: { contains: "WM " } }] } });
     const users = await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
     console.log(`removed ${users.count} throwaway accounts, ${tasks.count} tasks`);
     console.log(`\n${pass} passed, ${fail} failed`);

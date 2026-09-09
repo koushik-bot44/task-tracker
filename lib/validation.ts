@@ -65,6 +65,9 @@ export const createProjectSchema = z.object({
   deadline: dateInput.optional(),
   status: projectStatusSchema.optional(),
   priority: projectPrioritySchema.optional(),
+  /** Work model: people put on the project as it is made, and emails invited to it. */
+  memberIds: z.array(z.string().min(1)).max(100).optional(),
+  invites: z.array(z.object({ name: z.string().trim().max(80).optional(), email: z.string().trim().min(3).max(320) })).max(50).optional(),
 });
 
 export const updateProjectSchema = z

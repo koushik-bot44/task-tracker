@@ -103,8 +103,10 @@ export async function assertAssigneeAllowed(
     where: { id: assigneeId },
     select: { id: true, role: true, disabledAt: true, status: true, departmentId: true },
   });
-  if (!target || target.disabledAt || target.status !== "ACTIVE" || target.role === "PERSON" || target.role === "ADMIN") {
-    throw new HttpError(400, "Pick someone who is active on Orbit.");
+  // An invited person (PENDING) may already hold work: the invite mail and the
+  // task mail both reach them, and the task waits on their first sign-in.
+  if (!target || target.disabledAt || target.role === "PERSON" || target.role === "ADMIN") {
+    throw new HttpError(400, "Pick someone who is on Orbit.");
   }
   if (groupId) {
     const group = await tx.assignmentGroup.findUnique({

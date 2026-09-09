@@ -80,7 +80,8 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const fail = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
   const move = (to: WorkState, extra: Record<string, unknown> = {}) => transition.mutate({ to, ...extra }, { onError: fail });
   const busy = transition.isPending || assign.isPending;
-  const moves = ORDER.filter((s) => access.transitions.includes(s));
+  // ASSIGNED and NEW both read "Put back": offer the one that fits the holder.
+  const moves = ORDER.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "NEW" && task.assigneeId) && !(s === "ASSIGNED" && !task.assigneeId));
 
   const press = (to: WorkState) => {
     if (to === "WAITING") setWaitOpen(true);
@@ -109,18 +110,22 @@ function RecordBody({ task }: { task: TaskDTO }) {
         </div>
         <div className="flex items-start gap-1">
           {access.canEdit ? (
-            <input
+            <textarea
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value.replace(/\n/g, " "))}
               onBlur={() => {
                 if (title.trim() !== task.title) update.mutate({ title: title.trim() }, { onError: fail });
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
               }}
+              rows={Math.max(1, Math.ceil(title.length / 34))}
               aria-label="Title"
               placeholder="Untitled"
-              className={cn("min-w-0 flex-1 bg-transparent px-1 py-1 text-page font-semibold outline-none placeholder:text-muted", finished ? "text-muted" : "text-ink")}
+              className={cn("min-w-0 flex-1 resize-none bg-transparent px-1 py-1 text-page font-semibold outline-none placeholder:text-muted", finished ? "text-muted" : "text-ink")}
             />
           ) : (
             <h1 className={cn("min-w-0 flex-1 px-1 py-1 text-page font-semibold", finished ? "text-muted" : "text-ink")}>{task.title || "Untitled"}</h1>

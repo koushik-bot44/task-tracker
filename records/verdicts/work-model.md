@@ -1,7 +1,7 @@
 # Work model — verdict (2026-09-09)
 
 Built on the local clone (`orbit_clone`, port 5433), tags `work-model-s1` …
-`work-model-s5`. Production untouched. Plan: `records/plans/work-model-plan.md`;
+`work-model-s6`. Production untouched. Plan: `records/plans/work-model-plan.md`;
 study evidence: `records/evidence/work-model/findings.md`; screens:
 `records/evidence/work-model/shots/`.
 
@@ -13,6 +13,8 @@ study evidence: `records/evidence/work-model/findings.md`; screens:
 | 2 | `lib/work/` services: workflow (the one state machine, status as its projection), access (see / staff / edit / assign / delete / transition), activity (field changes with old → new words, notes, team notes, files, system lines), events (recipients + tier per event, deduped per activity row), assignment (category default team, rules, who-may-hold-it). Task and comment routes thin over them | perm-matrix 115/115, e2e 37/37, flows 40/40 |
 | 3–4 | Teams, categories, rules, the work list (filters, search by words or number, cursor), transitions, notes, team notes, files, activity, history, dashboards; IST day boundaries; moved reviews tell their people; the Moved sweep per meeting | `scripts/check-work-model.ts` 61/61 |
 | 5 | Work tab (list · by department), the task record (who → moves → details → outcome → activity), Today counters and the four ways in, teams under each department on People, the drawer's "Open the full record" and "No one" | screenshots at 390 and 1280 px; tsc, lint, jargon 0 |
+
+| 6 | The developer's asks (mid-build): a project is made with people AND emails in one go (`POST /api/projects` takes memberIds + invites; the sheet lists the department's people first, "More people…", and an email box); a new task can name a holder from the team or department, or invite someone not on Orbit yet (a pending account that already holds the task, its message waiting in their bell); attachments in every ordinary format up to 25 MB (only files that would run are refused); the stream reads like a chat (bubbles, mine on the right, team notes tinted, changes as centred lines, the composer stuck to the bottom, camera on a phone); a bell row opens the record | check-work-model 66/66; screenshots `lead-phone-chat-viewport.png`, `lead-phone-new-task.png`, `ceo-desktop-new-project.png`, `ceo-desktop-bell.png` |
 
 ## Bugs closed (from the study, `findings.md`)
 

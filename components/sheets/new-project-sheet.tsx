@@ -57,6 +57,9 @@ export function NewProjectSheet({
   const [start, setStart] = useState(() => dayInputValue(new Date()));
   const [deadline, setDeadline] = useState("");
   const [pickedDepartment, setPickedDepartment] = useState("");
+  const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
+  const [emails, setEmails] = useState("");
+  const [morePeople, setMorePeople] = useState(false);
 
   // Fresh every time it opens.
   useEffect(() => {
@@ -67,6 +70,9 @@ export function NewProjectSheet({
     setStart(dayInputValue(new Date()));
     setDeadline("");
     setPickedDepartment("");
+    setMemberIds(new Set());
+    setEmails("");
+    setMorePeople(false);
   }, [open]);
 
   const leads = useMemo(
@@ -84,6 +90,19 @@ export function NewProjectSheet({
   const targetDepartment = departmentId ?? pickedDepartment;
   const ready = name.trim().length > 0 && targetDepartment.length > 0 && !createProject.isPending;
 
+  // People to put on it: the department's own first, everyone else under "More".
+  const people = useMemo(() => {
+    const all = (users ?? []).filter(canLead).filter((u) => u.id !== me?.id);
+    const here = all.filter((u) => u.departmentId === targetDepartment).sort((a, b) => a.name.localeCompare(b.name));
+    const elsewhere = all.filter((u) => u.departmentId !== targetDepartment).sort((a, b) => a.name.localeCompare(b.name));
+    return { here, elsewhere };
+  }, [users, targetDepartment, me]);
+  const invites = emails
+    .split(/[\n,;]+/)
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .map((email) => ({ email }));
+
   const submit = () => {
     if (!ready) return;
     createProject.mutate(
@@ -94,11 +113,15 @@ export function NewProjectSheet({
         leadId: leadId || null,
         ...(start ? { startDate: dayToIso(start) } : {}),
         ...(deadline ? { deadline: dayToIso(deadline) } : {}),
+        ...(memberIds.size ? { memberIds: [...memberIds] } : {}),
+        ...(invites.length ? { invites } : {}),
       },
       {
         onSuccess: (project) => {
           onClose();
-          toast({ message: "Project started" });
+          const extra = project as typeof project & { added?: number; invited?: number };
+          const bits = [extra.added ? `${extra.added} added` : null, extra.invited ? `${extra.invited} invited by email` : null].filter(Boolean);
+          toast({ message: bits.length ? `Project started · ${bits.join(" · ")}` : "Project started" });
           router.push(`/project/${project.slug}`);
         },
         onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
@@ -175,6 +198,57 @@ export function NewProjectSheet({
               </option>
             ))}
           </select>
+        </Field>
+
+        {canSeeUserListRole(me?.role) ? (
+          <div>
+            <span className="mb-1.5 block text-micro font-medium text-muted">People</span>
+            <ul className="divide-y divide-line rounded-input border border-line">
+              {[...people.here, ...(morePeople ? people.elsewhere : [])].map((u) => {
+                const on = memberIds.has(u.id);
+                return (
+                  <li key={u.id}>
+                    <label className="flex min-h-[44px] cursor-pointer items-center gap-3 px-3">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() =>
+                          setMemberIds((prev) => {
+                            const next = new Set(prev);
+                            if (on) next.delete(u.id);
+                            else next.add(u.id);
+                            return next;
+                          })
+                        }
+                        className="h-5 w-5 accent-[var(--primary)]"
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{u.name}</span>
+                      {u.departmentId !== targetDepartment && u.departmentName ? <span className="text-micro text-muted">{u.departmentName}</span> : null}
+                    </label>
+                  </li>
+                );
+              })}
+              {people.here.length === 0 && !morePeople ? <li className="px-3 py-3 text-sm text-muted">Nobody is placed in this department yet.</li> : null}
+              {!morePeople && people.elsewhere.length ? (
+                <li>
+                  <button type="button" onClick={() => setMorePeople(true)} className="press flex min-h-[44px] w-full items-center px-3 text-left text-sm font-medium text-primary-ink">
+                    More people…
+                  </button>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+        ) : null}
+
+        <Field label="Invite by email" hint="One per line. Each gets an email to set a password and lands on this project.">
+          <textarea
+            value={emails}
+            onChange={(e) => setEmails(e.target.value)}
+            rows={2}
+            placeholder="priya@company.com"
+            aria-label="Invite by email"
+            className={cn(inputClass, "h-auto py-2.5")}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">

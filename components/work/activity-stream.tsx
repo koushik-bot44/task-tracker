@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDownUp, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Attachment, Linkified } from "@/components/notes/notes-thread";
 import { useToast } from "@/components/toast";
 import { Chip } from "@/components/ui/chip";
@@ -65,6 +65,14 @@ export function ActivityStream({ task, staff }: { task: TaskDTO; staff: boolean 
   const { removeNote } = useWorkMutations(task.id);
   const { data: me } = useMe();
   const { show: toast } = useToast();
+  const endRef = useRef<HTMLDivElement>(null);
+  const count = data?.length ?? 0;
+  const seen = useRef(0);
+  // A new line at the bottom scrolls into view, like a chat; the first load does not jump the page.
+  useEffect(() => {
+    if (!newest && seen.current > 0 && count > seen.current) endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    seen.current = count;
+  }, [count, newest]);
 
   return (
     <section className="space-y-3">
@@ -98,19 +106,23 @@ export function ActivityStream({ task, staff }: { task: TaskDTO; staff: boolean 
       ) : (data ?? []).length === 0 ? (
         <p className="px-1 text-sm text-muted">{filter === "all" ? "Nothing yet." : "Nothing here."}</p>
       ) : (
-        <ol className="space-y-3">
+        <ol className="space-y-2 rounded-card bg-bg px-1 py-2">
           {(data ?? []).map((a) => (
             <ActivityItem
               key={a.id}
               item={a}
-              mine={Boolean(a.author && (a.author.id === me?.id || me?.role === "FOUNDER"))}
+              mine={Boolean(a.author && a.author.id === me?.id)}
+              canDelete={Boolean(a.author && (a.author.id === me?.id || me?.role === "FOUNDER"))}
               onDelete={() => removeNote.mutate(a.id, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) })}
             />
           ))}
+          <div ref={endRef} aria-hidden />
         </ol>
       )}
 
-      <ActivityComposer task={task} staff={staff} />
+      <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-sticky -mx-4 bg-bg px-4 pb-2 pt-2 md:bottom-0">
+        <ActivityComposer task={task} staff={staff} />
+      </div>
     </section>
   );
 }
@@ -124,6 +136,7 @@ function changeLine(a: ActivityDTO): string {
     case "state":
       return `${who} moved it to ${to}`;
     case "assigneeId":
+      if (m.newLabel && m.newLabel === who) return `${who} took it`;
       return m.newLabel ? `${who} gave it to ${to}` : `${who} took it off ${from}`;
     case "assignmentGroupId":
       return m.newLabel ? `${who} put it with ${to}` : `${who} took it away from ${from}`;
@@ -136,13 +149,12 @@ function changeLine(a: ActivityDTO): string {
   }
 }
 
-function ActivityItem({ item, mine, onDelete }: { item: ActivityDTO; mine: boolean; onDelete: () => void }) {
+function ActivityItem({ item, mine, canDelete, onDelete }: { item: ActivityDTO; mine: boolean; canDelete: boolean; onDelete: () => void }) {
   if (item.type === "FIELD_CHANGE" || item.type === "SYSTEM") {
     const text = item.type === "SYSTEM" ? `${item.author?.name ? `${item.author.name}: ` : ""}${item.body}` : changeLine(item);
     return (
-      <li className="flex items-start gap-2.5 pl-1">
-        <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-line" aria-hidden />
-        <p className="min-w-0 flex-1 text-micro text-muted">
+      <li className="flex justify-center px-2 py-0.5">
+        <p className="max-w-full rounded-chip bg-hover px-3 py-1 text-center text-micro text-muted">
           <span className="whitespace-pre-wrap break-words">{text}</span>
           <span className="ml-2 shrink-0">{when(item.createdAt)}</span>
         </p>
@@ -152,25 +164,30 @@ function ActivityItem({ item, mine, onDelete }: { item: ActivityDTO; mine: boole
   const internal = item.visibility === "INTERNAL";
   const name = item.author?.name ?? "Someone who left";
   return (
-    <li className={cn("flex items-start gap-2.5 rounded-card", internal && "bg-warn-soft/40 px-2 py-2")}>
-      <Face name={name} size="md" className="mt-0.5" />
-      <div className="min-w-0 flex-1">
+    <li className={cn("flex items-end gap-2 px-1", mine && "flex-row-reverse")}>
+      {!mine ? <Face name={name} size="sm" className="mb-1" /> : null}
+      <div
+        className={cn(
+          "max-w-[85%] rounded-2xl px-3 py-2 shadow-e1",
+          mine ? "rounded-br-md bg-primary-soft text-ink" : internal ? "rounded-bl-md bg-warn-soft text-ink" : "rounded-bl-md bg-surface text-ink",
+        )}
+      >
         <div className="flex items-baseline gap-2">
-          <span className="truncate text-micro font-semibold text-ink">{name}</span>
+          {!mine ? <span className="truncate text-micro font-semibold text-ink">{name}</span> : null}
           {internal ? <Chip tone="warn" className="h-5 px-1.5">Team note</Chip> : null}
-          <span className="shrink-0 text-micro text-muted">{when(item.createdAt)}</span>
-          {mine ? (
-            <button type="button" onClick={onDelete} aria-label="Delete your note" className="press ml-auto grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted hover:text-danger-ink">
+          {canDelete ? (
+            <button type="button" onClick={onDelete} aria-label="Delete this note" className="press ml-auto grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted hover:text-danger-ink">
               <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
             </button>
           ) : null}
         </div>
         {item.body ? (
-          <p className="whitespace-pre-wrap break-words text-sm text-ink">
+          <p className="whitespace-pre-wrap break-words text-sm">
             <Linkified text={item.body} />
           </p>
         ) : null}
         {item.attachmentUrl ? <Attachment url={item.attachmentUrl} name={item.attachmentName} type={item.attachmentType} /> : null}
+        <p className={cn("mt-0.5 text-[11px] leading-4 text-muted", mine ? "text-right" : "")}>{when(item.createdAt)}</p>
       </div>
     </li>
   );

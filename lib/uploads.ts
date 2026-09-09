@@ -9,23 +9,23 @@ import path from "node:path";
  * paper-clip are hidden everywhere; in local development only, a disk
  * fallback under .localdb/uploads keeps the flow testable.
  */
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-export const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-  "application/pdf",
-  "text/plain",
-  "text/csv",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-];
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+/**
+ * Work model (2026-09-09): any ordinary file — documents, sheets, slides,
+ * PDFs, pictures, audio, video, archives, logs. Only things that would RUN
+ * on a colleague's machine are refused.
+ */
+export const BLOCKED_EXTENSIONS = ["exe", "msi", "bat", "cmd", "com", "scr", "pif", "sh", "ps1", "vbs", "js", "jar", "apk", "dmg", "pkg", "app", "dll"];
+export const BLOCKED_TYPES = ["application/x-msdownload", "application/x-sh", "application/x-shellscript", "application/java-archive", "application/vnd.android.package-archive", "text/javascript", "application/javascript"];
+/** Kept for the two callers that list what a note may carry. */
+export const ALLOWED_TYPES: string[] = [];
+
+export function uploadAllowed(name: string, type: string): boolean {
+  const ext = name.toLowerCase().split(".").pop() ?? "";
+  if (BLOCKED_EXTENSIONS.includes(ext)) return false;
+  if (BLOCKED_TYPES.includes(type)) return false;
+  return true;
+}
 
 const DEV_DIR = path.join(process.cwd(), ".localdb", "uploads");
 
@@ -95,6 +95,20 @@ export function contentTypeFor(name: string): string {
     xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ppt: "application/vnd.ms-powerpoint",
     pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    zip: "application/zip",
+    json: "application/json",
+    xml: "application/xml",
+    md: "text/markdown",
+    log: "text/plain",
+    rtf: "application/rtf",
+    odt: "application/vnd.oasis.opendocument.text",
+    ods: "application/vnd.oasis.opendocument.spreadsheet",
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    wav: "audio/wav",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    svg: "image/svg+xml",
   };
   return map[ext] ?? "application/octet-stream";
 }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
+import { ensureMember } from "@/lib/project-people";
+import { issueInvite } from "@/lib/invite";
+import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { PROJECT_LEAD_SELECT, serializeProject } from "@/lib/serialize";
 import { assertManager } from "@/lib/permissions";
 import { requireUser, route } from "@/lib/session";
@@ -60,7 +63,7 @@ export const POST = route(async (req: Request) => {
 
   const parsed = await parseBody(req, createProjectSchema);
   if (!parsed.ok) return parsed.response;
-  const { name, color, icon, description, leadId, departmentId, startDate, deadline, status, priority } = parsed.data;
+  const { name, color, icon, description, leadId, departmentId, startDate, deadline, status, priority, memberIds, invites } = parsed.data;
 
   const department = await prisma.department.findUnique({ where: { id: departmentId }, select: { id: true, hodId: true } });
   if (!department) {
@@ -99,6 +102,34 @@ export const POST = route(async (req: Request) => {
     include: PROJECT_LEAD_SELECT,
   });
 
+  // Work model: the people named at creation join now; the emails get invites.
+  let added = 0;
+  let invited = 0;
+  const skipped: string[] = [];
+  for (const userId of new Set(memberIds ?? [])) {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, disabledAt: true } });
+    if (!u || u.disabledAt || u.role === "PERSON" || u.role === "ADMIN") { skipped.push(userId); continue; }
+    await ensureMember(project.id, userId);
+    added++;
+  }
+  for (const inv of invites ?? []) {
+    const email = inv.email.toLowerCase().trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { skipped.push(email); continue; }
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true, disabledAt: true } });
+    if (existing) {
+      if (existing.disabledAt || existing.role === "PERSON" || existing.role === "ADMIN") skipped.push(email);
+      else { await ensureMember(project.id, existing.id); added++; }
+      continue;
+    }
+    assertCanCreateUserWithRole(actor, "RESOURCE");
+    const u = await prisma.user.create({
+      data: { email, name: inv.name?.trim() || email.split("@")[0].replace(/[._-]+/g, " "), role: "RESOURCE", status: "PENDING", passwordHash: null, departmentId },
+    });
+    await ensureMember(project.id, u.id);
+    await issueInvite({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
+    invited++;
+  }
+
   const [rich] = await enrichProjects([project]);
-  return NextResponse.json(serializeProject(rich, 0), { status: 201 });
+  return NextResponse.json({ ...serializeProject(rich, 0), added, invited, skipped }, { status: 201 });
 });
