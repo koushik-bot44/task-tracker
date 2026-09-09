@@ -299,6 +299,8 @@ export type ProjectPersonDTO = {
   id: string;
   name: string;
   role: UserRole;
+  /** The department this person belongs to; null if they are not placed. */
+  departmentName: string | null;
   isLead: boolean;
   isOwner: boolean;
   isMember: boolean;

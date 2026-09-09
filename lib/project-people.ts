@@ -14,13 +14,13 @@ export async function projectPeople(projectId: string): Promise<ProjectPersonDTO
     prisma.project.findUnique({
       where: { id: projectId },
       select: {
-        lead: { select: { id: true, name: true, role: true, disabledAt: true, status: true } },
-        owner: { select: { id: true, name: true, role: true, disabledAt: true, status: true } },
+        lead: { select: { id: true, name: true, role: true, disabledAt: true, status: true, department: { select: { name: true } } } },
+        owner: { select: { id: true, name: true, role: true, disabledAt: true, status: true, department: { select: { name: true } } } },
       },
     }),
     prisma.projectMember.findMany({
       where: { projectId },
-      select: { canManage: true, user: { select: { id: true, name: true, role: true, disabledAt: true, status: true } } },
+      select: { canManage: true, user: { select: { id: true, name: true, role: true, disabledAt: true, status: true, department: { select: { name: true } } } } },
       orderBy: { createdAt: "asc" },
     }),
     prisma.task.groupBy({
@@ -34,7 +34,7 @@ export async function projectPeople(projectId: string): Promise<ProjectPersonDTO
 
   const out = new Map<string, ProjectPersonDTO>();
   const add = (
-    u: { id: string; name: string; role: Role; disabledAt: Date | null; status: string } | null | undefined,
+    u: { id: string; name: string; role: Role; disabledAt: Date | null; status: string; department?: { name: string } | null } | null | undefined,
     flags: Partial<Pick<ProjectPersonDTO, "isLead" | "isOwner" | "isMember" | "canManage">>,
   ) => {
     if (!u || u.disabledAt || u.status !== "ACTIVE" || u.role === "PERSON" || u.role === "ADMIN") return;
@@ -42,6 +42,9 @@ export async function projectPeople(projectId: string): Promise<ProjectPersonDTO
       id: u.id,
       name: u.name,
       role: u.role,
+      // Which part of the company they come from — a project can draw people
+      // from several, and "where do they belong?" is the first question.
+      departmentName: u.department?.name ?? null,
       isLead: false,
       isOwner: false,
       isMember: false,
@@ -58,7 +61,7 @@ export async function projectPeople(projectId: string): Promise<ProjectPersonDTO
   if (holderIds.length) {
     const users = await prisma.user.findMany({
       where: { id: { in: holderIds } },
-      select: { id: true, name: true, role: true, disabledAt: true, status: true },
+      select: { id: true, name: true, role: true, disabledAt: true, status: true, department: { select: { name: true } } },
     });
     for (const u of users) add(u, {});
   }

@@ -147,7 +147,7 @@ export function ProjectHeader({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-row text-ink">{p.name}</span>
                   <span className="block truncate text-micro text-muted">
-                    {[p.isOwner ? "Runs it" : null, p.isLead ? "Lead" : null, wearsNoDesignation(p.role) ? null : ROLE_LABEL[p.role]].filter(Boolean).join(" · ")}
+                    {[p.isOwner ? "Runs it" : null, p.isLead ? "Lead" : null, wearsNoDesignation(p.role) ? null : ROLE_LABEL[p.role], p.departmentName].filter(Boolean).join(" · ")}
                   </span>
                 </span>
                 <span className="shrink-0 text-micro text-muted">
