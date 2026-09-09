@@ -267,6 +267,8 @@ export type TaskDTO = {
   requesterName: string | null;
   /** Shared by every record of one task that went to several people. */
   siblingKey: string | null;
+  /** When it landed in somebody's hands; null while nobody holds it. */
+  assignedAt: string | null;
   /** The OTHER people holding this same task. Empty unless the record was loaded. */
   alsoWith: { id: string; name: string }[];
   departmentId: string | null;

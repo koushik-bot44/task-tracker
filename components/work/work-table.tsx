@@ -6,7 +6,7 @@ import { useState } from "react";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import { dateWord } from "@/lib/dates";
+import { dateWord, formatDMY } from "@/lib/dates";
 import { useMe } from "@/lib/hooks/use-users";
 import { useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
@@ -141,13 +141,14 @@ export function WorkTable({
               <thead>
                 <tr className="bg-hover text-left text-muted">
                   <Th>Number</Th>
-                  <Th className="w-[30%]">Short description</Th>
+                  <Th className="w-[26%]">Short description</Th>
+                  <Th>Department</Th>
                   {hideProject ? null : <Th>Project</Th>}
                   <Th>State</Th>
                   <Th>Priority</Th>
-                  <Th>Assignment group</Th>
+                  <Th>Assigned by</Th>
                   <Th>Assigned to</Th>
-                  <Th>Requested by</Th>
+                  <Th>Assigned</Th>
                   <Th>Due</Th>
                   <Th>Updated</Th>
                 </tr>
@@ -203,6 +204,7 @@ function RowLine({ t, hideProject }: { t: TaskDTO; hideProject: boolean }) {
           {t.title.trim() || "(empty)"}
         </Link>
       </td>
+      <td className="max-w-[10rem] truncate whitespace-nowrap px-3 py-2 text-ink">{t.departmentName ?? ""}</td>
       {hideProject ? null : (
         <td className="max-w-[12rem] truncate whitespace-nowrap px-3 py-2 text-ink">
           {t.projectSlug ? (
@@ -216,11 +218,11 @@ function RowLine({ t, hideProject }: { t: TaskDTO; hideProject: boolean }) {
       )}
       <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignmentGroupName ?? ""}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.givenByName ?? ""}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assigneeName ?? ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.requesterName ?? ""}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedAt ? formatDMY(t.assignedAt) : ""}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", late ? "text-danger-ink" : "text-ink")}>{t.dueDate ? dateWord(t.dueDate) : ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-muted">{dateWord(t.updatedAt)}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-muted">{formatDMY(t.updatedAt)}</td>
     </tr>
   );
 }

@@ -90,6 +90,7 @@ export function serializeTask(task: TaskRow): TaskDTO {
     requesterId: task.requesterId,
     requesterName: task.requester?.name ?? null,
     siblingKey: task.siblingKey ?? null,
+    assignedAt: task.assignedAt ? task.assignedAt.toISOString() : null,
     // Filled by whoever loads the record; a list row does not need it.
     alsoWith: [],
     departmentId: task.departmentId,

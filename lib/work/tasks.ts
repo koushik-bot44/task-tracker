@@ -338,6 +338,7 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
         departmentId: routed.departmentId,
         assignmentGroupId: routed.assignmentGroupId,
         assigneeId,
+        assignedAt: assigneeId ? now : null,
         // "Given by" is the act of handing it to someone; raising a task for
         // yourself or your team is not giving (it would make the requester its
         // assigner).
@@ -491,6 +492,9 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
       }
     }
     data.assigneeId = nextAssignee;
+    // The date the list shows: stamped when it lands in somebody's hands, and
+    // cleared when it leaves them.
+    if (nextAssignee !== existing.assigneeId) data.assignedAt = nextAssignee ? new Date() : null;
     if (nextAssignee && nextAssignee !== existing.assigneeId) data.givenById = actor.id;
     if (existing.parentId === null) {
       const s = stateAfterAssignment(existing.state, Boolean(nextAssignee));
@@ -513,6 +517,7 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
       if (!existing.isPrivate) {
         if (existing.assigneeId && !(await canAssignTask(actor, root, scope))) throw new HttpError(403, "You can't change who holds this.");
         data.assigneeId = null;
+        data.assignedAt = null;
         nextAssignee = null;
         data.milestoneId = parent.milestoneId;
       }

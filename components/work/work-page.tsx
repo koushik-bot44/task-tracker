@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus, Search, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
@@ -8,13 +8,14 @@ import { Tooltip } from "@/components/tooltip";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import { dateWord } from "@/lib/dates";
+import { dateWord, formatDMY } from "@/lib/dates";
 import { useMe } from "@/lib/hooks/use-users";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { isAdminRole, isExecutiveRole, isLeadOrAboveRole } from "@/lib/roles";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_STATE_LABEL, WORK_TYPES, WORK_TYPE_LABEL, type TaskDTO } from "@/lib/types";
 import { DepartmentBoard } from "./department-board";
+import { DepartmentTree } from "./department-tree";
 import { WorkCards } from "./work-cards";
 import { NewWorkSheet } from "./new-work-sheet";
 import { Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
@@ -66,7 +67,7 @@ const PAGE = 50;
 
 /**
  * The list, the way a service desk shows it: a title bar with New, the
- * "Your work / Your team's work" tabs, a condition row (the slice and a
+ * the scope tabs (All → Departments → your own work), a condition row (the slice and a
  * search), then a full-width table — Number, Short description, State,
  * Priority, Assignment group, Assigned to, Requested by, Due, Updated —
  * with 50 rows a page.
@@ -103,11 +104,16 @@ export function WorkPage() {
     [params, pathname, router],
   );
 
+  /* Widest first, narrowing to your own: All · Departments · your team ·
+     what you handed out · your own work (owner, 2026-09-09). */
   const scopes = useMemo(() => {
-    const out: { value: Scope; label: string; count?: number }[] = [{ value: "assigned", label: "Your work", count: dash?.myWorkTotal }, { value: "requested", label: "Requested by you" }];
-    if (dash?.teams.length) out.push({ value: "team", label: "Your team's work", count: dash.teamWorkTotal });
-    if (isLeadOrAboveRole(me?.role) || me?.role === "HOD") out.push({ value: "department", label: "Department" });
+    const out: { value: Scope; label: string; count?: number }[] = [];
     if (isExecutiveRole(me?.role)) out.push({ value: "all", label: "All", count: dash?.everythingTotal ?? undefined });
+    if (isLeadOrAboveRole(me?.role) || me?.role === "HOD") out.push({ value: "department", label: "Departments" });
+    if (dash?.teams.length) out.push({ value: "team", label: "Your team's work", count: dash.teamWorkTotal });
+    // The tasks this person handed out — they raised them, so they own the answer.
+    out.push({ value: "requested", label: "Assigned by you" });
+    out.push({ value: "assigned", label: "Your work", count: dash?.myWorkTotal });
     return out;
   }, [dash, me]);
 
@@ -159,9 +165,6 @@ export function WorkPage() {
     return byTask;
   }, [data]);
 
-  /** A team's people, so the team cell can name them without another request. */
-  const teamMembers = useMemo(() => new Map((groups ?? []).map((g) => [g.id, g.members.map((m) => m.name)] as const)), [groups]);
-
 
   if (admin) {
     return (
@@ -194,12 +197,6 @@ export function WorkPage() {
           title={<span>Tasks</span>}
           right={
             <>
-              {isExecutiveRole(me?.role) || me?.role === "HOD" ? (
-                <Link href="/work/rules" className={snButton}>
-                  <Settings2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                  Assignment Rules
-                </Link>
-              ) : null}
               {isExecutiveRole(me?.role) || me?.role === "HOD" ? (
                 <Link href="/work?view=departments" className={snButton}>
                   By department
@@ -330,7 +327,9 @@ export function WorkPage() {
           </div>
         ) : null}
 
-        {isLoading || !me ? (
+        {scope === "department" && !params.get("departmentId") && !q ? (
+          <DepartmentTree departments={departmentChoices} />
+        ) : isLoading || !me ? (
           <div className="p-3"><Skeleton rows={6} /></div>
         ) : isError || !data ? (
           <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
@@ -346,20 +345,21 @@ export function WorkPage() {
                 <thead>
                   <tr className="bg-hover text-left text-muted">
                     <Th>Number</Th>
-                    <Th className="w-[30%]">Short description</Th>
+                    <Th className="w-[26%]">Short description</Th>
+                    <Th>Department</Th>
                     <Th>Project</Th>
                     <Th>State</Th>
                     <Th>Priority</Th>
-                    <Th>Assignment group</Th>
+                    <Th>Assigned by</Th>
                     <Th>Assigned to</Th>
-                    <Th>Requested by</Th>
+                    <Th>Assigned</Th>
                     <Th>Due</Th>
                     <Th>Updated</Th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.items.map((t) => (
-                    <RowLine key={t.id} t={t} sharedWith={sharedWith.get(t.id)} team={t.assignmentGroupId ? teamMembers.get(t.assignmentGroupId) : undefined} />
+                    <RowLine key={t.id} t={t} sharedWith={sharedWith.get(t.id)} />
                   ))}
                   {data.items.length === 0 ? (
                     <tr>
@@ -408,7 +408,7 @@ function PeopleList({ title, names }: { title: string; names: string[] }) {
   );
 }
 
-function RowLine({ t, sharedWith, team }: { t: TaskDTO; sharedWith?: string[]; team?: string[] }) {
+function RowLine({ t, sharedWith }: { t: TaskDTO; sharedWith?: string[] }) {
   const late = t.dueDate && t.status !== "DONE" && new Date(t.dueDate).getTime() < Date.now() - 86_400_000;
   return (
     <tr className="border-b border-line hover:bg-hover">
@@ -422,6 +422,7 @@ function RowLine({ t, sharedWith, team }: { t: TaskDTO; sharedWith?: string[]; t
           {t.title.trim() || "(empty)"}
         </Link>
       </td>
+      <td className="max-w-[10rem] truncate whitespace-nowrap px-3 py-2 text-ink">{t.departmentName ?? ""}</td>
       <td className="max-w-[12rem] truncate whitespace-nowrap px-3 py-2 text-ink">
         {t.projectSlug ? (
           <Link href={`/project/${t.projectSlug}`} className={snLink}>
@@ -433,34 +434,26 @@ function RowLine({ t, sharedWith, team }: { t: TaskDTO; sharedWith?: string[]; t
       </td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">
-        {t.assignmentGroupName ? (
-          team && team.length ? (
-            <Tooltip content={<PeopleList title={`${t.assignmentGroupName} · ${team.length} ${team.length === 1 ? "person" : "people"}`} names={team} />}>
-              <span className="underline decoration-dotted underline-offset-2">{t.assignmentGroupName}</span>
-            </Tooltip>
-          ) : (
-            t.assignmentGroupName
-          )
-        ) : (
-          ""
-        )}
-      </td>
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.givenByName ?? ""}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">
         {sharedWith && sharedWith.length > 1 ? (
           <Tooltip content={<PeopleList title={`This task went to ${sharedWith.length} people`} names={sharedWith} />}>
             <span className="underline decoration-dotted underline-offset-2">
-              {t.assigneeName}
-              <span className="ml-1 rounded-chip bg-hover px-1.5 py-0.5 text-micro font-medium text-muted">+{sharedWith.length - 1}</span>
+              {/* This record may hold nobody while the others do; the row still
+                  has to say how many people the task went to. */}
+              {t.assigneeName ?? `${sharedWith.length} people`}
+              {t.assigneeName ? (
+                <span className="ml-1 rounded-chip bg-hover px-1.5 py-0.5 text-micro font-medium text-muted">+{sharedWith.length - 1}</span>
+              ) : null}
             </span>
           </Tooltip>
         ) : (
           t.assigneeName ?? ""
         )}
       </td>
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.requesterName ?? ""}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedAt ? formatDMY(t.assignedAt) : ""}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", late ? "text-danger-ink" : "text-ink")}>{t.dueDate ? dateWord(t.dueDate) : ""}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-muted">{dateWord(t.updatedAt)}</td>
+      <td className="whitespace-nowrap px-3 py-2 text-muted">{formatDMY(t.updatedAt)}</td>
     </tr>
   );
 }

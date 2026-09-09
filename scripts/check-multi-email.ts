@@ -310,6 +310,9 @@ main()
   .catch((e) => { console.error(e); fail++; })
   .finally(async () => {
     // Throwaways go, whatever happened above.
+    // Its tasks go too: their holders are deleted but the rows would linger.
+    await prisma.taskActivity.deleteMany({ where: { task: { title: { startsWith: "ME " } } } });
+    await prisma.task.deleteMany({ where: { title: { startsWith: "ME " } } });
     const mine = await prisma.user.findMany({ where: { email: { startsWith: PREFIX } }, select: { id: true } });
     const ids = mine.map((u) => u.id);
     if (ids.length) {

@@ -439,6 +439,9 @@ model Task {
   completedBy    User?      @relation("CompletedBy", fields: [completedById], references: [id])
   assigneeId     String?
   assignee       User?      @relation("AssignedTo", fields: [assigneeId], references: [id], onDelete: SetNull)
+  /// When it was put in somebody's hands (2026-09-09) — the date the list shows
+  /// beside the due date. Null while nobody holds it; set again on reassignment.
+  assignedAt     DateTime?
   /// True for a PRIVATE personal task (phase 15). Invariant: isPrivate = true
   /// IFF projectId is null and ownerId is set. Every project-task read excludes
   /// these so a private task never surfaces in a project tree, count, rollup,
