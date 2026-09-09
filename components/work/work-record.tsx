@@ -82,6 +82,12 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const [confirm, setConfirm] = useState<WorkState | "delete" | null>(null);
   const [viewing, setViewing] = useState<Attached | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
   useEffect(() => setTitle(task.title), [task.title]);
   useEffect(() => setDescribe(task.descriptionMd), [task.descriptionMd]);
 

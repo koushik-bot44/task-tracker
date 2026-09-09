@@ -127,31 +127,74 @@ export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; sta
   );
 }
 
-function changeLine(a: ActivityDTO): string {
-  const m = a.metadata as { field?: string; label?: string; oldLabel?: string | null; newLabel?: string | null };
+/** A change as a sentence. Null = not worth a line (it duplicates another). */
+function changeLine(a: ActivityDTO): string | null {
+  const m = a.metadata as { field?: string; label?: string; oldLabel?: string | null; newLabel?: string | null; newValue?: unknown };
   const who = a.author?.name ?? "Orbit";
-  const from = m.oldLabel ?? "nothing";
-  const to = m.newLabel ?? "nothing";
+  const to = m.newLabel ?? "";
   switch (m.field) {
     case "state":
-      return `${who} moved it to ${to}`;
+      switch (m.newValue) {
+        case "IN_PROGRESS":
+          return `${who} started work`;
+        case "RESOLVED":
+          return `${who} marked it complete`;
+        case "CLOSED":
+          return `${who} closed it`;
+        case "REOPENED":
+          return `${who} reopened it`;
+        case "WAITING":
+          return `${who} put it on hold`;
+        case "ESCALATED":
+          return `${who} escalated it`;
+        case "CANCELLED":
+          return `${who} canceled it`;
+        case "NEW":
+          return `${who} returned it to the queue`;
+        case "ASSIGNED":
+          return m.oldLabel === "In Progress" ? `${who} stopped work` : `${who} assigned it`;
+        default:
+          return `${who} moved it to ${to}`;
+      }
     case "assigneeId":
       if (m.newLabel && m.newLabel === who) return `${who} took it`;
-      return m.newLabel ? `${who} gave it to ${to}` : `${who} took it off ${from}`;
+      return m.newLabel ? `${who} gave it to ${to}` : `${who} took it off ${m.oldLabel ?? "the holder"}`;
     case "assignmentGroupId":
-      return m.newLabel ? `${who} put it with ${to}` : `${who} took it away from ${from}`;
-    case "deletedAt":
-      return m.newLabel ? `${who} deleted it` : `${who} brought it back`;
+      return m.newLabel ? `${who} put it with ${to}` : `${who} took it away from ${m.oldLabel ?? "the team"}`;
+    case "waitingReason":
+      return m.newLabel ? `${who} · ${to}` : null;
+    case "priority":
+      return `${who} set priority to ${to}`;
+    case "dueDate":
+      return m.newLabel ? `${who} set the due date to ${to}` : `${who} cleared the due date`;
     case "title":
       return `${who} renamed it to “${to}”`;
+    case "departmentId":
+    case "projectId":
+    case "milestoneId":
+      return m.newLabel ? `${who} moved it to ${to}` : `${who} took it out of ${m.oldLabel ?? ""}`.trim();
+    case "categoryId":
+      return m.newLabel ? `${who} set the category to ${to}` : `${who} cleared the category`;
+    case "requesterId":
+      return `${who} set the requester to ${to}`;
+    case "type":
+      return `${who} changed the type to ${to}`;
+    case "deletedAt":
+      return m.newLabel ? `${who} deleted it` : `${who} brought it back`;
+    case "resolutionCode":
+    case "important":
+    case "archived":
+    case "parentId":
+      return null;
     default:
-      return `${who} · ${m.label ?? m.field}: ${to} was ${from}`;
+      return `${who} changed ${m.label ?? m.field} to ${to}`;
   }
 }
 
 function ActivityItem({ item, mine, canDelete, onDelete, onOpenFile }: { item: ActivityDTO; mine: boolean; canDelete: boolean; onDelete: () => void; onOpenFile: (f: Attached) => void }) {
   if (item.type === "FIELD_CHANGE" || item.type === "SYSTEM") {
     const text = item.type === "SYSTEM" ? `${item.author?.name ? `${item.author.name}: ` : ""}${item.body}` : changeLine(item);
+    if (!text) return null;
     return (
       <li className="flex justify-center px-2 py-0.5">
         <p className="max-w-full rounded-chip bg-hover px-3 py-1 text-center text-micro text-muted">
