@@ -55,9 +55,9 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
 
   useEffect(() => {
     if (!open) return;
+    setDepartmentId(presetDepartmentId ?? me?.departmentId ?? "");
     if (presetProjectId) setProjectId(presetProjectId);
-    if (presetDepartmentId) setDepartmentId(presetDepartmentId);
-  }, [open, presetProjectId, presetDepartmentId]);
+  }, [open, presetProjectId, presetDepartmentId, me?.departmentId]);
 
   const reset = () => {
     setTitle("");
@@ -137,25 +137,37 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
         <Field label="Short description">
           <input value={title} onChange={(e) => setTitle(titleCase(e.target.value))} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="What needs doing" aria-label="Short description" autoFocus className={inputClass} />
         </Field>
-        {(projects ?? []).length ? (
-          <Field label="Project" hint="Tasks are raised inside a project; its department comes with it.">
-            <select value={projectId} onChange={(e) => { setProjectId(e.target.value); const pr = (projects ?? []).find((x) => x.id === e.target.value); if (pr?.departmentId) setDepartmentId(pr.departmentId); }} className={inputClass} aria-label="Project">
-              <option value="">No project</option>
-              {(departments ?? []).map((d) => {
-                const inDept = (projects ?? []).filter((pr) => pr.departmentId === d.id && pr.status !== "DONE");
-                return inDept.length ? (
-                  <optgroup key={d.id} label={d.name}>
-                    {inDept.map((pr) => (
-                      <option key={pr.id} value={pr.id}>
-                        {pr.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null;
-              })}
-            </select>
-          </Field>
-        ) : null}
+        <Field label="Department">
+          <select
+            value={departmentId}
+            onChange={(e) => {
+              setDepartmentId(e.target.value);
+              setProjectId("");
+              setGroupId("");
+            }}
+            className={inputClass}
+            aria-label="Department"
+          >
+            <option value="">Pick a department…</option>
+            {(departments ?? []).map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Project" hint="Tasks are raised inside a project in that department.">
+          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} disabled={!departmentId} className={inputClass} aria-label="Project">
+            <option value="">{departmentId ? "No project" : "Pick a department first"}</option>
+            {(projects ?? [])
+              .filter((pr) => pr.departmentId === departmentId && pr.status !== "DONE")
+              .map((pr) => (
+                <option key={pr.id} value={pr.id}>
+                  {pr.name}
+                </option>
+              ))}
+          </select>
+        </Field>
         <Field label="Type">
           <div className="flex flex-wrap gap-2">
             {types.map((t) => (
@@ -165,24 +177,13 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
             ))}
           </div>
         </Field>
-        {(groups ?? []).length ? (
+        {(groups ?? []).some((g) => g.active && g.departmentId === departmentId) ? (
           <Field label="Assignment group" hint="Leave it and the rules route it.">
             <select value={groupId} onChange={(e) => setGroupId(e.target.value)} className={inputClass} aria-label="Team">
               <option value="">Not sure yet</option>
-              {(groups ?? []).filter((g) => g.active).map((g) => (
+              {(groups ?? []).filter((g) => g.active && g.departmentId === departmentId).map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.departmentName} · {g.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : (departments ?? []).length && !projectId ? (
-          <Field label="Department">
-            <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className={inputClass} aria-label="Department">
-              <option value="">My own</option>
-              {(departments ?? []).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
+                  {g.name}
                 </option>
               ))}
             </select>
