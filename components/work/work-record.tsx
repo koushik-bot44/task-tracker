@@ -12,7 +12,6 @@ import { dayInputValue } from "@/lib/dates";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useActivity, useWorkItem, useWorkMutations } from "@/lib/hooks/use-work";
 import {
-  RESOLUTION_CODE_LABEL,
   WAITING_REASON_LABEL,
   WORK_PRIORITIES,
   WORK_PRIORITY_LABEL,
@@ -26,7 +25,7 @@ import { TRANSITION_LABEL } from "@/lib/work/workflow";
 import { ActivityStream } from "./activity-stream";
 import { AttachmentViewer, type Attached } from "./attachment-viewer";
 import { FormRow, Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
-import { AssignSheet, ConfirmSheet, ResolveSheet, WaitSheet } from "./work-sheets";
+import { AssignSheet, ConfirmSheet, WaitSheet } from "./work-sheets";
 
 const ORDER: WorkState[] = ["IN_PROGRESS", "RESOLVED", "CLOSED", "WAITING", "REOPENED", "ESCALATED", "ASSIGNED", "NEW", "CANCELLED"];
 
@@ -61,7 +60,7 @@ export function WorkRecord({ number }: { number: string }) {
   return <RecordBody task={task} />;
 }
 
-type Tab = "notes" | "resolution" | "attachments";
+type Tab = "notes" | "attachments";
 
 function RecordBody({ task }: { task: TaskDTO }) {
   const router = useRouter();
@@ -77,7 +76,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const [tab, setTab] = useState<Tab>("notes");
   const [assignOpen, setAssignOpen] = useState(false);
   const [waitOpen, setWaitOpen] = useState(false);
-  const [resolveOpen, setResolveOpen] = useState(false);
   const [confirm, setConfirm] = useState<WorkState | "delete" | null>(null);
   const [viewing, setViewing] = useState<Attached | null>(null);
   useEffect(() => setTitle(task.title), [task.title]);
@@ -89,7 +87,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const moves = ORDER.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "NEW" && task.assigneeId) && !(s === "ASSIGNED" && !task.assigneeId));
   const press = (to: WorkState) => {
     if (to === "WAITING") setWaitOpen(true);
-    else if (to === "RESOLVED") setResolveOpen(true);
     else if (to === "CANCELLED" || to === "REOPENED") setConfirm(to);
     else move(to);
   };
@@ -208,7 +205,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
         <Tabs<Tab>
           tabs={[
             { value: "notes", label: "Notes" },
-            { value: "resolution", label: "Resolution Information" },
             { value: "attachments", label: "Attachments", count: attachments.length },
           ]}
           value={tab}
@@ -218,15 +214,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
         {tab === "notes" ? (
           <div className="p-3">
             <ActivityStream task={task} staff={access.staff} onOpenFile={setViewing} />
-          </div>
-        ) : tab === "resolution" ? (
-          <div className="py-2">
-            <FormRow label="Resolution code"><input value={task.resolutionCode ? RESOLUTION_CODE_LABEL[task.resolutionCode] : ""} readOnly className={snInput} placeholder="—" /></FormRow>
-            <FormRow label="Resolution notes"><textarea value={task.resolutionNotes ?? ""} readOnly rows={3} className={cn(snInput, "h-auto py-1.5")} /></FormRow>
-            <FormRow label="Root cause"><textarea value={task.rootCause ?? ""} readOnly rows={2} className={cn(snInput, "h-auto py-1.5")} /></FormRow>
-            <FormRow label="Resolved by"><input value={task.resolvedByName ?? ""} readOnly className={snInput} /></FormRow>
-            <FormRow label="Resolved"><input value={stamp(task.resolvedAt)} readOnly className={snInput} /></FormRow>
-            <FormRow label={task.state === "CANCELLED" ? "Canceled" : "Closed"}><input value={stamp(task.closedAt)} readOnly className={snInput} /></FormRow>
           </div>
         ) : (
           <div className="p-3">
@@ -262,7 +249,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
 
       <AssignSheet open={assignOpen} onClose={() => setAssignOpen(false)} task={task} busy={assign.isPending} onAssign={(input) => assign.mutate(input, { onError: fail })} />
       <WaitSheet open={waitOpen} onClose={() => setWaitOpen(false)} busy={busy} onWait={(reason, note) => move("WAITING", { waitingReason: reason, waitingNote: note || null })} />
-      <ResolveSheet open={resolveOpen} onClose={() => setResolveOpen(false)} busy={busy} onResolve={(r) => move("RESOLVED", { resolutionCode: r.resolutionCode, resolutionNotes: r.resolutionNotes || null, rootCause: r.rootCause || null })} />
       <ConfirmSheet open={confirm === "CANCELLED"} onClose={() => setConfirm(null)} title="Cancel this task?" body="It stays on record as Canceled; nobody works on it any more." action="Cancel the task" tone="danger" onConfirm={() => move("CANCELLED")} />
       <ConfirmSheet open={confirm === "REOPENED"} onClose={() => setConfirm(null)} title="Reopen this task?" body="It goes back to whoever held it, and they are told." action="Reopen" onConfirm={() => move("REOPENED")} />
       <ConfirmSheet open={confirm === "delete"} onClose={() => setConfirm(null)} title="Delete this record?" body="It disappears from every list. The history is kept." action="Delete" tone="danger" onConfirm={() => remove.mutate(undefined, { onSuccess: () => router.push("/work"), onError: fail })} />
