@@ -32,7 +32,6 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
   const [type, setType] = useState<WorkType>("GENERAL");
   const [groupId, setGroupId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [more, setMore] = useState(false);
   const [describe, setDescribe] = useState("");
   const [due, setDue] = useState("");
   const [priority, setPriority] = useState<WorkPriority>("MEDIUM");
@@ -67,7 +66,6 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
     setType("GENERAL");
     setGroupId("");
     setDepartmentId("");
-    setMore(false);
     setDescribe("");
     setDue("");
     setPriority("MEDIUM");
@@ -335,29 +333,23 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
           </div>
         ) : null}
 
-        {!more ? (
-          <button type="button" onClick={() => setMore(true)} className="press min-h-[36px] text-sm font-medium text-primary-ink">
-            More…
-          </button>
-        ) : (
-          <>
-            <Field label="Description">
-              <textarea value={describe} onChange={(e) => setDescribe(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} placeholder="Details, links, what done looks like." />
-            </Field>
-            <Field label="Due date">
-              <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={inputClass} aria-label="By when" />
-            </Field>
-            <Field label="Priority">
-              <div className="flex flex-wrap gap-2">
-                {WORK_PRIORITIES.map((p) => (
-                  <button key={p} type="button" onClick={() => setPriority(p)} aria-pressed={priority === p} className={cn("press h-9 rounded-chip px-3 text-micro font-medium", priority === p ? "bg-primary text-on-primary" : "bg-hover text-ink")}>
-                    {WORK_PRIORITY_LABEL[p]}
-                  </button>
-                ))}
-              </div>
-            </Field>
-          </>
-        )}
+        {/* What a task needs is the whole form, not a form and a "More…".
+            Description, date and priority sit in the open (owner, 2026-09-09). */}
+        <Field label="Description">
+          <textarea value={describe} onChange={(e) => setDescribe(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} placeholder="Details, links, what done looks like." />
+        </Field>
+        <Field label="Due date">
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={inputClass} aria-label="By when" />
+        </Field>
+        <Field label="Priority">
+          <div className="flex flex-wrap gap-2">
+            {WORK_PRIORITIES.map((p) => (
+              <button key={p} type="button" onClick={() => setPriority(p)} aria-pressed={priority === p} className={cn("press h-9 rounded-chip px-3 text-micro font-medium", priority === p ? "bg-primary text-on-primary" : "bg-hover text-ink")}>
+                {WORK_PRIORITY_LABEL[p]}
+              </button>
+            ))}
+          </div>
+        </Field>
         {me ? <p className="text-micro text-muted">Assigned by {me.name}.</p> : null}
       </div>
     </Sheet>
