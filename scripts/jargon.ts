@@ -26,9 +26,7 @@ const WORDS = [
   /\bincidents?\b/i,
   /\bSLAs?\b/,
   /\bqueue\b/i,
-  /\bassignment groups?\b/i,
   /\bcatalog(?:ue)?\b/i,
-  /\bwork ?notes?\b/i,
 ];
 
 function walk(dir: string, out: string[]): string[] {

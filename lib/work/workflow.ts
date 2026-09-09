@@ -95,10 +95,10 @@ export function stateAfterAssignment(state: WorkState, hasAssignee: boolean): Wo
 
 /** The plain words a move is shown with. */
 export const TRANSITION_LABEL: Record<WorkState, string> = {
-  NEW: "Put back",
-  ASSIGNED: "Put back",
-  IN_PROGRESS: "Start",
-  WAITING: "Waiting…",
+  NEW: "Return to Queue",
+  ASSIGNED: "Return to Queue",
+  IN_PROGRESS: "Start Work",
+  WAITING: "On Hold",
   RESOLVED: "Resolve",
   CLOSED: "Close",
   CANCELLED: "Cancel",

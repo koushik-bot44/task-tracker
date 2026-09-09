@@ -56,7 +56,7 @@ export type WorkFilter = {
   limit?: number;
 };
 
-const REF = /^([A-Z])-(\d+)$/i;
+const REF = /^([A-Z]+)0*(\d+)$/i;
 
 export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new Date()): Prisma.TaskWhereInput {
   const and: Prisma.TaskWhereInput[] = [LIVE, visibilityWhere(actor, scope)];

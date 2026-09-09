@@ -7,9 +7,7 @@ import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/lib/hooks/use-today";
 import { useMe } from "@/lib/hooks/use-users";
-import { useDashboardToday } from "@/lib/hooks/use-work";
 import { isAdminRole } from "@/lib/roles";
-import { Counters } from "./counters";
 import { MeetingCard } from "./meeting-card";
 import { Section } from "./section";
 import { SummaryLine } from "./summary-line";
@@ -25,7 +23,6 @@ export function TodayPage() {
   const admin = isAdminRole(me?.role);
   // The ADMIN looks after accounts only: no tasks, no meetings, no Today to fetch.
   const { data, isLoading, isError, error, refetch } = useToday(Boolean(me) && !admin);
-  const { data: work } = useDashboardToday(Boolean(me) && !admin);
   const [giving, setGiving] = useState(false);
   const canGive = Boolean(me) && !admin;
 
@@ -42,7 +39,7 @@ export function TodayPage() {
       ) : isError || !data ? (
         <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} />
       ) : (
-        <TodayBody data={data} work={work ?? null} />
+        <TodayBody data={data} />
       )}
 
       {canGive ? (
@@ -63,7 +60,7 @@ export function TodayPage() {
   );
 }
 
-function TodayBody({ data, work }: { data: NonNullable<ReturnType<typeof useToday>["data"]>; work: NonNullable<ReturnType<typeof useDashboardToday>["data"]> | null }) {
+function TodayBody({ data }: { data: NonNullable<ReturnType<typeof useToday>["data"]> }) {
   const hasTasks = data.tasks.length > 0;
   const hasMeetings = data.meetings.length > 0;
   const nothing = !hasTasks && !hasMeetings;
@@ -71,7 +68,6 @@ function TodayBody({ data, work }: { data: NonNullable<ReturnType<typeof useToda
   return (
     <div className="space-y-6">
       {data.summary ? <SummaryLine summary={data.summary} /> : null}
-      {work ? <Counters data={work} /> : null}
 
       {nothing ? (
         <EmptyState title="Nothing waiting on you." />

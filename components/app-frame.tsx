@@ -142,6 +142,7 @@ function RouteTitle() {
 
   if (pathname === "/") return <>Today</>;
   if (pathname === "/work") return <>Work</>;
+  if (pathname === "/work/rules") return <>Assignment Rules</>;
   if (pathname.startsWith("/work/")) return <>Task</>;
   if (pathname === "/projects") return <>Projects</>;
   if (pathname === "/calendar") return <>Calendar</>;

@@ -109,24 +109,24 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
     );
   };
 
-  const types = WORK_TYPES.filter((t) => t !== "PROJECT_TASK");
+  const types = WORK_TYPES.filter((t) => t === "GENERAL" || t === "REQUEST" || t === "APPROVAL");
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="New task"
+      title="New Task"
       footer={
         <Button variant="primary" full loading={raise.isPending || inviting} disabled={!title.trim()} onClick={() => void submit()}>
-          Open it
+          Submit
         </Button>
       }
     >
       <div className="space-y-4">
-        <Field label="What needs doing?">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="Laptop Wi-Fi is not working" aria-label="What needs doing" autoFocus className={inputClass} />
+        <Field label="Short description">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} placeholder="What needs doing" aria-label="Short description" autoFocus className={inputClass} />
         </Field>
-        <Field label="What kind of thing is it?">
+        <Field label="Type">
           <div className="flex flex-wrap gap-2">
             {types.map((t) => (
               <button key={t} type="button" onClick={() => setType(t)} aria-pressed={type === t} className={cn("press h-9 rounded-chip px-3 text-micro font-medium", type === t ? "bg-primary text-on-primary" : "bg-hover text-ink")}>
@@ -136,7 +136,7 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
           </div>
         </Field>
         {(groups ?? []).length ? (
-          <Field label="Which team should look at it?" hint="Leave it and it goes to your own department.">
+          <Field label="Assignment group" hint="Leave it and the rules route it.">
             <select value={groupId} onChange={(e) => setGroupId(e.target.value)} className={inputClass} aria-label="Team">
               <option value="">Not sure yet</option>
               {(groups ?? []).filter((g) => g.active).map((g) => (
@@ -147,7 +147,7 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
             </select>
           </Field>
         ) : (departments ?? []).length ? (
-          <Field label="Which department is it for?">
+          <Field label="Department">
             <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className={inputClass} aria-label="Department">
               <option value="">My own</option>
               {(departments ?? []).map((d) => (
@@ -160,9 +160,9 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
         ) : null}
 
         {candidates.length || canInvite ? (
-          <Field label="Who should do it?" hint={group ? `People on ${group.name}` : undefined}>
+          <Field label="Assigned to" hint={group ? `People on ${group.name}` : undefined}>
             <select value={inviteOpen ? "__invite" : assigneeId} onChange={(e) => { if (e.target.value === "__invite") { setInviteOpen(true); setAssigneeId(""); } else { setInviteOpen(false); setAssigneeId(e.target.value); } }} className={inputClass} aria-label="Who should do it">
-              <option value="">Nobody yet — the team picks it up</option>
+              <option value="">Unassigned</option>
               {me && !candidates.some((c) => c.id === me.id) ? <option value={me.id}>{me.name} (me)</option> : null}
               {candidates.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -190,13 +190,13 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         ) : (
           <>
-            <Field label="Say more (optional)">
-              <textarea value={describe} onChange={(e) => setDescribe(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} placeholder="What happens, since when, what you tried." />
+            <Field label="Description">
+              <textarea value={describe} onChange={(e) => setDescribe(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} placeholder="Details, links, what done looks like." />
             </Field>
-            <Field label="By when (optional)">
+            <Field label="Due date">
               <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={inputClass} aria-label="By when" />
             </Field>
-            <Field label="How urgent">
+            <Field label="Priority">
               <div className="flex flex-wrap gap-2">
                 {WORK_PRIORITIES.map((p) => (
                   <button key={p} type="button" onClick={() => setPriority(p)} aria-pressed={priority === p} className={cn("press h-9 rounded-chip px-3 text-micro font-medium", priority === p ? "bg-primary text-on-primary" : "bg-hover text-ink")}>
@@ -207,7 +207,7 @@ export function NewWorkSheet({ open, onClose }: { open: boolean; onClose: () => 
             </Field>
           </>
         )}
-        {me ? <p className="text-micro text-muted">Asked for by {me.name}.</p> : null}
+        {me ? <p className="text-micro text-muted">Requested by {me.name}.</p> : null}
       </div>
     </Sheet>
   );

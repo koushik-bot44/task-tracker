@@ -5,6 +5,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   ActivityDTO,
   AssignmentGroupDTO,
+  AssignmentRuleDTO,
   DashboardTodayDTO,
   DepartmentWorkDTO,
   ResolutionCode,
@@ -162,3 +163,46 @@ export function useGroupMutations() {
   });
   return { createGroup, updateGroup, addMembers, removeMembers, deleteGroup };
 }
+
+export const rulesKey = ["assignment-rules"] as const;
+
+export function useRules(enabled = true) {
+  return useQuery({ queryKey: rulesKey, queryFn: () => apiGet<AssignmentRuleDTO[]>("/api/assignment-rules"), enabled, staleTime: 30_000 });
+}
+
+export function useRuleMutations() {
+  const qc = useQueryClient();
+  const refresh = () => void qc.invalidateQueries({ queryKey: rulesKey });
+  const createRule = useMutation({
+    mutationFn: (input: Omit<AssignmentRuleDTO, "id">) => apiPost<AssignmentRuleDTO>("/api/assignment-rules", input),
+    onSettled: refresh,
+  });
+  const updateRule = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<AssignmentRuleDTO, "id">> }) => apiPatch<AssignmentRuleDTO>(`/api/assignment-rules/${id}`, patch),
+    onSettled: refresh,
+  });
+  const deleteRule = useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/assignment-rules/${id}`),
+    onSettled: refresh,
+  });
+  return { createRule, updateRule, deleteRule };
+}
+
+export function useCategoryMutations() {
+  const qc = useQueryClient();
+  const refresh = () => void qc.invalidateQueries({ queryKey: categoriesKey });
+  const createCategory = useMutation({
+    mutationFn: (input: { name: string; departmentId?: string | null; assignmentGroupId?: string | null; parentId?: string | null }) => apiPost<TaskCategoryDTO>("/api/task-categories", input),
+    onSettled: refresh,
+  });
+  const updateCategory = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { name?: string; departmentId?: string | null; assignmentGroupId?: string | null; active?: boolean } }) => apiPatch<TaskCategoryDTO>(`/api/task-categories/${id}`, patch),
+    onSettled: refresh,
+  });
+  const deleteCategory = useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/task-categories/${id}`),
+    onSettled: refresh,
+  });
+  return { createCategory, updateCategory, deleteCategory };
+}
+

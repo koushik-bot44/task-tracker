@@ -77,7 +77,7 @@ async function main() {
     record("anyone raises a task without a project", t1.status === 201, `status ${t1.status}`);
     const t1Id: string = t1.json?.id;
     record("…it is NEW, on the team, in the team's department, requested by the raiser", t1.json?.state === "NEW" && t1.json?.assignmentGroupId === groupId && t1.json?.departmentId === deptA.id && t1.json?.requesterId === devB.id, `${t1.json?.state} · ${t1.json?.departmentId === deptA.id}`);
-    record("…it carries a number and a ref", typeof t1.json?.number === "number" && /^I-\d+$/.test(t1.json?.ref ?? ""), t1.json?.ref);
+    record("…it carries a number and a ref", typeof t1.json?.number === "number" && /^TASK\d{7}$/.test(t1.json?.ref ?? ""), t1.json?.ref);
     const seeReq = await call(devB, "GET", `/api/tasks/${t1Id}`);
     record("the one who asked can open it", seeReq.status === 200, `status ${seeReq.status}`);
     const seeTeam = await call(devA, "GET", `/api/tasks/${t1Id}`);
@@ -137,7 +137,7 @@ async function main() {
     const types = (act.json ?? []).map((a: any) => a.type);
     record("field changes were recorded from the moves themselves", act.status === 200 && types.filter((t: string) => t === "FIELD_CHANGE").length >= 8, `${types.length} rows, ${types.filter((t: string) => t === "FIELD_CHANGE").length} changes`);
     const stateRows = (act.json ?? []).filter((a: any) => a.type === "FIELD_CHANGE" && a.metadata?.field === "state");
-    record("a status change carries old and new words", stateRows.some((a: any) => a.metadata.oldLabel === "In progress" && a.metadata.newLabel === "Waiting"), `${stateRows.length} state rows`);
+    record("a status change carries old and new words", stateRows.some((a: any) => a.metadata.oldLabel === "In Progress" && a.metadata.newLabel === "On Hold"), `${stateRows.length} state rows`);
     record("the reopen note is in the stream", (act.json ?? []).some((a: any) => a.type === "COMMENT" && a.body.includes("3rd floor")));
     const tn = await call(devA, "POST", `/api/tasks/${t1Id}/work-notes`, { body: "AP-204 logs show auth failures" });
     record("the holder writes a team note", tn.status === 201 && tn.json?.visibility === "INTERNAL", `status ${tn.status}`);
@@ -208,7 +208,22 @@ async function main() {
     record("…and can already be given a task", givenToOutsider.status === 201 && givenToOutsider.json?.assigneeId === newbie?.id, `status ${givenToOutsider.status}`);
     const newbieBell = await prisma.notification.count({ where: { userId: newbie?.id ?? "", type: "task_given" } });
     record("…which is waiting in their bell for their first sign-in", newbieBell === 1, `${newbieBell}`);
-    if (projWithPeople.json?.id) { await prisma.calendarEvent.deleteMany({ where: { projectId: projWithPeople.json.id } }); await prisma.project.delete({ where: { id: projWithPeople.json.id } }).catch(() => undefined); }
+
+    console.log("\n── the employee side: invited, joins, sees their work ──────────");
+    const { issueInvite } = await import("../lib/invite");
+    const joiner = await prisma.user.findUnique({ where: { email: `${PREFIX}outside@orbit.local` }, select: { id: true, name: true, email: true, role: true } });
+    if (joiner) {
+      const { token } = await issueInvite({ user: joiner, inviterName: "WM manager", createdById: managerA.id });
+      const accept = await call(null, "POST", `/api/invite/${token}/accept`, { password: "joiner-pass-Xy7!" });
+      record("the invited person sets a password from the link", accept.status === 200, `status ${accept.status}`);
+      const joined: Actor = { label: "joiner", id: joiner.id, email: joiner.email, cookie: await signIn(joiner.email, "joiner-pass-Xy7!") };
+      const theirWork = await call(joined, "GET", "/api/work?mine=assigned");
+      record("…and 'Your work' already lists the task given before they joined", theirWork.status === 200 && (theirWork.json?.items ?? []).some((t: any) => t.title === "WM newbie task"), JSON.stringify((theirWork.json?.items ?? []).map((t: any) => [t.title, t.state, t.assigneeId === joiner.id])));
+      const theirBell = await call(joined, "GET", "/api/notifications");
+      record("…with the 'gave you a task' waiting in their bell", theirBell.status === 200 && (theirBell.json?.items ?? []).some((n: any) => n.type === "task_given"), `${theirBell.json?.unread}`);
+      const theirToday = await call(joined, "GET", "/api/today");
+      record("…and on their Today", theirToday.status === 200 && (theirToday.json?.tasks ?? []).some((t: any) => t.title === "WM newbie task"), JSON.stringify((theirToday.json?.tasks ?? []).map((t: any) => t.title)));
+    } else record("the invited person exists", false);
 
     console.log("\n── the queue and the dashboard ────────────────────────────────");
     const mine = await call(devA, "GET", "/api/work?mine=assigned");
@@ -229,7 +244,9 @@ async function main() {
     record("a manager's department view is their own department alone", deptsB.status === 200 && (deptsB.json?.departments ?? []).every((d: any) => d.id === deptB.id), `${deptsB.json?.departments?.length}`);
   } finally {
     console.log("\n── cleanup ───────────────────────────────────────────────────");
-    const tasks = await prisma.task.deleteMany({ where: { OR: [{ title: { startsWith: "WM " } }, { requesterId: { in: ids } }] } });
+    const joinerRow = await prisma.user.findUnique({ where: { email: `${PREFIX}outside@orbit.local` }, select: { id: true } });
+    if (joinerRow) ids.push(joinerRow.id);
+    const tasks = await prisma.task.deleteMany({ where: { OR: [{ title: { startsWith: "WM " } }, { requesterId: { in: ids } }, { assigneeId: { in: ids } }] } });
     if (projectId) await prisma.project.delete({ where: { id: projectId } }).catch(() => undefined);
     await prisma.project.deleteMany({ where: { name: { startsWith: "WM " } } });
     await prisma.assignmentGroup.deleteMany({ where: { name: { startsWith: "WM " } } });

@@ -76,22 +76,22 @@ export const WORK_TYPE_LABEL: Record<WorkType, string> = {
   GENERAL: "Task",
   ISSUE: "Issue",
   REQUEST: "Request",
-  PROJECT_TASK: "Project task",
+  PROJECT_TASK: "Project Task",
   APPROVAL: "Approval",
   SUPPORT: "Support",
 };
 /** The letter in front of the number: T-1024, I-1025, R-1026 … */
 export const WORK_TYPE_PREFIX: Record<WorkType, string> = {
-  GENERAL: "T",
-  ISSUE: "I",
-  REQUEST: "R",
-  PROJECT_TASK: "P",
-  APPROVAL: "A",
-  SUPPORT: "S",
+  GENERAL: "TASK",
+  ISSUE: "TASK",
+  REQUEST: "REQ",
+  PROJECT_TASK: "PTASK",
+  APPROVAL: "APR",
+  SUPPORT: "TASK",
 };
-/** "T-1024" — how a task is named on every screen and in every message. */
+/** "TASK0001024" — the number the way a service desk writes it, on every screen and in every message. */
 export function workRef(type: WorkType, number: number): string {
-  return `${WORK_TYPE_PREFIX[type]}-${number}`;
+  return `${WORK_TYPE_PREFIX[type]}${String(number).padStart(7, "0")}`;
 }
 
 export const WORK_STATES = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED", "CANCELLED", "ESCALATED", "REOPENED"] as const;
@@ -99,11 +99,11 @@ export type WorkState = (typeof WORK_STATES)[number];
 export const WORK_STATE_LABEL: Record<WorkState, string> = {
   NEW: "New",
   ASSIGNED: "Assigned",
-  IN_PROGRESS: "In progress",
-  WAITING: "Waiting",
+  IN_PROGRESS: "In Progress",
+  WAITING: "On Hold",
   RESOLVED: "Resolved",
   CLOSED: "Closed",
-  CANCELLED: "Cancelled",
+  CANCELLED: "Canceled",
   ESCALATED: "Escalated",
   REOPENED: "Reopened",
 };
@@ -115,10 +115,10 @@ export const FINISHED_STATES: readonly WorkState[] = ["RESOLVED", "CLOSED", "CAN
 export const WORK_PRIORITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 export type WorkPriority = (typeof WORK_PRIORITIES)[number];
 export const WORK_PRIORITY_LABEL: Record<WorkPriority, string> = {
-  CRITICAL: "Critical",
-  HIGH: "High",
-  MEDIUM: "Medium",
-  LOW: "Low",
+  CRITICAL: "1 - Critical",
+  HIGH: "2 - High",
+  MEDIUM: "3 - Moderate",
+  LOW: "4 - Low",
 };
 /** Lower ranks first. */
 export const WORK_PRIORITY_RANK: Record<WorkPriority, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
@@ -126,12 +126,12 @@ export const WORK_PRIORITY_RANK: Record<WorkPriority, number> = { CRITICAL: 0, H
 export const WAITING_REASONS = ["REQUESTER", "APPROVAL", "OTHER_TEAM", "VENDOR", "PARTS", "OTHER"] as const;
 export type WaitingReason = (typeof WAITING_REASONS)[number];
 export const WAITING_REASON_LABEL: Record<WaitingReason, string> = {
-  REQUESTER: "Waiting for the person who asked",
-  APPROVAL: "Waiting for approval",
-  OTHER_TEAM: "Waiting for another team",
-  VENDOR: "Waiting for a vendor",
-  PARTS: "Waiting for parts",
-  OTHER: "Waiting for something else",
+  REQUESTER: "Awaiting Requester",
+  APPROVAL: "Awaiting Approval",
+  OTHER_TEAM: "Awaiting Other Team",
+  VENDOR: "Awaiting Vendor",
+  PARTS: "Awaiting Parts",
+  OTHER: "Other",
 };
 
 export const RESOLUTION_CODES = ["FIXED", "COMPLETED", "WORKAROUND", "CANNOT_REPRODUCE", "DUPLICATE", "NOT_NEEDED"] as const;
