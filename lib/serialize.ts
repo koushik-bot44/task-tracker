@@ -10,6 +10,7 @@ import type {
   TaskDTO,
   UserDTO,
 } from "./types";
+import { workRef } from "./types";
 
 /**
  * Task rows are read back with their people joined so every list can print
@@ -19,6 +20,11 @@ export type TaskRow = Task & {
   completedBy?: { id: string; name: string } | null;
   assignee?: { id: string; name: string } | null;
   givenBy?: { id: string; name: string } | null;
+  requester?: { id: string; name: string } | null;
+  resolvedBy?: { id: string; name: string } | null;
+  department?: { id: string; name: string } | null;
+  assignmentGroup?: { id: string; name: string } | null;
+  category?: { id: string; name: string } | null;
   _count?: { children?: number };
   /** Steps done, computed by the caller when it has the sibling list. */
   stepsDone?: number;
@@ -31,6 +37,11 @@ export const TASK_INCLUDE = {
   completedBy: { select: { id: true, name: true } },
   assignee: { select: { id: true, name: true } },
   givenBy: { select: { id: true, name: true } },
+  requester: { select: { id: true, name: true } },
+  resolvedBy: { select: { id: true, name: true } },
+  department: { select: { id: true, name: true } },
+  assignmentGroup: { select: { id: true, name: true } },
+  category: { select: { id: true, name: true } },
 } as const;
 /** Back-compat name for the few callers that still use it. */
 export const COMPLETED_BY_SELECT = TASK_INCLUDE;
@@ -67,6 +78,29 @@ export function serializeTask(task: TaskRow): TaskDTO {
     noteCount: task.noteCount ?? 0,
     stepCount: task.stepCount ?? task._count?.children ?? 0,
     stepsDone: task.stepsDone ?? 0,
+    number: task.number,
+    ref: workRef(task.type, task.number),
+    type: task.type,
+    state: task.state,
+    priority: task.priority,
+    categoryId: task.categoryId,
+    categoryName: task.category?.name ?? null,
+    requesterId: task.requesterId,
+    requesterName: task.requester?.name ?? null,
+    departmentId: task.departmentId,
+    departmentName: task.department?.name ?? null,
+    assignmentGroupId: task.assignmentGroupId,
+    assignmentGroupName: task.assignmentGroup?.name ?? null,
+    waitingReason: task.waitingReason,
+    waitingNote: task.waitingNote,
+    resolutionCode: task.resolutionCode,
+    resolutionNotes: task.resolutionNotes,
+    rootCause: task.rootCause,
+    resolvedById: task.resolvedById,
+    resolvedByName: task.resolvedBy?.name ?? null,
+    resolvedAt: task.resolvedAt ? task.resolvedAt.toISOString() : null,
+    closedAt: task.closedAt ? task.closedAt.toISOString() : null,
+    escalatedAt: task.escalatedAt ? task.escalatedAt.toISOString() : null,
   };
 }
 
@@ -198,7 +232,10 @@ export const COMMENT_INCLUDE = {
   author: { select: { id: true, name: true, role: true } },
 } as const;
 
-export function serializeComment(c: Comment & { author: { id: string; name: string; role: UserDTO["role"] } }): CommentDTO {
+/** A note whose author's account was deleted keeps its words under this name (work model). */
+export const DEPARTED_AUTHOR = { id: "", name: "Someone who left", role: "RESOURCE" as UserDTO["role"] };
+
+export function serializeComment(c: Comment & { author: { id: string; name: string; role: UserDTO["role"] } | null }): CommentDTO {
   return {
     id: c.id,
     targetType: c.targetType,
@@ -208,7 +245,7 @@ export function serializeComment(c: Comment & { author: { id: string; name: stri
     attachmentName: c.attachmentName,
     attachmentType: c.attachmentType,
     createdAt: c.createdAt.toISOString(),
-    author: c.author,
+    author: c.author ?? DEPARTED_AUTHOR,
   };
 }
 

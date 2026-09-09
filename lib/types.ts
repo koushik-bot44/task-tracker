@@ -66,6 +66,144 @@ export const MILESTONE_OUTCOME_LABEL: Record<MilestoneOutcome, string> = {
 export const COMMENT_TARGETS = ["PROJECT", "MILESTONE", "TASK"] as const;
 export type CommentTarget = (typeof COMMENT_TARGETS)[number];
 
+/*
+ * Work model (2026-09-09). The task is the record; these are its axes. One
+ * array per set, labels in the owner's words (no jargon on screen).
+ */
+export const WORK_TYPES = ["GENERAL", "ISSUE", "REQUEST", "PROJECT_TASK", "APPROVAL", "SUPPORT"] as const;
+export type WorkType = (typeof WORK_TYPES)[number];
+export const WORK_TYPE_LABEL: Record<WorkType, string> = {
+  GENERAL: "Task",
+  ISSUE: "Issue",
+  REQUEST: "Request",
+  PROJECT_TASK: "Project task",
+  APPROVAL: "Approval",
+  SUPPORT: "Support",
+};
+/** The letter in front of the number: T-1024, I-1025, R-1026 … */
+export const WORK_TYPE_PREFIX: Record<WorkType, string> = {
+  GENERAL: "T",
+  ISSUE: "I",
+  REQUEST: "R",
+  PROJECT_TASK: "P",
+  APPROVAL: "A",
+  SUPPORT: "S",
+};
+/** "T-1024" — how a task is named on every screen and in every message. */
+export function workRef(type: WorkType, number: number): string {
+  return `${WORK_TYPE_PREFIX[type]}-${number}`;
+}
+
+export const WORK_STATES = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED", "CANCELLED", "ESCALATED", "REOPENED"] as const;
+export type WorkState = (typeof WORK_STATES)[number];
+export const WORK_STATE_LABEL: Record<WorkState, string> = {
+  NEW: "New",
+  ASSIGNED: "Assigned",
+  IN_PROGRESS: "In progress",
+  WAITING: "Waiting",
+  RESOLVED: "Resolved",
+  CLOSED: "Closed",
+  CANCELLED: "Cancelled",
+  ESCALATED: "Escalated",
+  REOPENED: "Reopened",
+};
+/** States where the work is still live. */
+export const OPEN_STATES: readonly WorkState[] = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "ESCALATED", "REOPENED"];
+/** States where the work is over (resolved, closed or cancelled). */
+export const FINISHED_STATES: readonly WorkState[] = ["RESOLVED", "CLOSED", "CANCELLED"];
+
+export const WORK_PRIORITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
+export type WorkPriority = (typeof WORK_PRIORITIES)[number];
+export const WORK_PRIORITY_LABEL: Record<WorkPriority, string> = {
+  CRITICAL: "Critical",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  LOW: "Low",
+};
+/** Lower ranks first. */
+export const WORK_PRIORITY_RANK: Record<WorkPriority, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+
+export const WAITING_REASONS = ["REQUESTER", "APPROVAL", "OTHER_TEAM", "VENDOR", "PARTS", "OTHER"] as const;
+export type WaitingReason = (typeof WAITING_REASONS)[number];
+export const WAITING_REASON_LABEL: Record<WaitingReason, string> = {
+  REQUESTER: "Waiting for the person who asked",
+  APPROVAL: "Waiting for approval",
+  OTHER_TEAM: "Waiting for another team",
+  VENDOR: "Waiting for a vendor",
+  PARTS: "Waiting for parts",
+  OTHER: "Waiting for something else",
+};
+
+export const RESOLUTION_CODES = ["FIXED", "COMPLETED", "WORKAROUND", "CANNOT_REPRODUCE", "DUPLICATE", "NOT_NEEDED"] as const;
+export type ResolutionCode = (typeof RESOLUTION_CODES)[number];
+export const RESOLUTION_CODE_LABEL: Record<ResolutionCode, string> = {
+  FIXED: "Fixed",
+  COMPLETED: "Completed",
+  WORKAROUND: "Worked around",
+  CANNOT_REPRODUCE: "Could not reproduce",
+  DUPLICATE: "Duplicate of another task",
+  NOT_NEEDED: "Not needed any more",
+};
+
+export const ACTIVITY_TYPES = ["COMMENT", "WORK_NOTE", "FIELD_CHANGE", "SYSTEM", "ATTACHMENT", "EMAIL", "MENTION"] as const;
+export type ActivityType = (typeof ACTIVITY_TYPES)[number];
+export const ACTIVITY_VISIBILITIES = ["PUBLIC", "INTERNAL"] as const;
+export type ActivityVisibility = (typeof ACTIVITY_VISIBILITIES)[number];
+
+/** One line of a task's activity stream. */
+export type ActivityDTO = {
+  id: string;
+  taskId: string;
+  type: ActivityType;
+  visibility: ActivityVisibility;
+  body: string;
+  /** FIELD_CHANGE: {field, oldValue, newValue, oldLabel, newLabel}; notes: {mentions?: string[]}. */
+  metadata: Record<string, unknown>;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  createdAt: string;
+  /** Null = the system did it. */
+  author: { id: string; name: string; role: UserRole } | null;
+};
+
+/** A team inside a department (the assignment group). */
+export type AssignmentGroupDTO = {
+  id: string;
+  name: string;
+  description: string;
+  departmentId: string;
+  departmentName: string;
+  leadId: string | null;
+  leadName: string | null;
+  active: boolean;
+  orderKey: string;
+  createdAt: string;
+  members: { id: string; name: string; role: UserRole }[];
+  /** Live tasks held by the team. */
+  openTasks: number;
+};
+
+export type TaskCategoryDTO = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  departmentId: string | null;
+  assignmentGroupId: string | null;
+  assignmentGroupName: string | null;
+  active: boolean;
+  orderKey: string;
+};
+
+export type AssignmentRuleDTO = {
+  id: string;
+  name: string;
+  order: number;
+  active: boolean;
+  match: { type?: WorkType; categoryId?: string; departmentId?: string; priority?: WorkPriority };
+  set: { departmentId?: string; assignmentGroupId?: string; assigneeId?: string; priority?: WorkPriority; escalate?: boolean };
+};
+
 /** "YES" = I'll be there, "NO" = Can't, null = no reply yet. */
 export type MeetingResponse = "YES" | "NO";
 
@@ -108,6 +246,33 @@ export type TaskDTO = {
   /** Steps under a root task (0 for a step itself). */
   stepCount: number;
   stepsDone: number;
+  /* Work model (2026-09-09). */
+  number: number;
+  /** "T-1024" — the number with its type letter. */
+  ref: string;
+  type: WorkType;
+  state: WorkState;
+  priority: WorkPriority;
+  categoryId: string | null;
+  categoryName: string | null;
+  /** Who asked for this. */
+  requesterId: string | null;
+  requesterName: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
+  /** The team it sits with. */
+  assignmentGroupId: string | null;
+  assignmentGroupName: string | null;
+  waitingReason: WaitingReason | null;
+  waitingNote: string | null;
+  resolutionCode: ResolutionCode | null;
+  resolutionNotes: string | null;
+  rootCause: string | null;
+  resolvedById: string | null;
+  resolvedByName: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  escalatedAt: string | null;
 };
 
 export type ProjectPersonDTO = {

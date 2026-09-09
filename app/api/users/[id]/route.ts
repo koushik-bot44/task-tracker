@@ -157,10 +157,13 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
   }
 
   await prisma.$transaction(async (tx) => {
-    // Authored content that would otherwise wall off the delete (Restrict FKs).
-    await tx.comment.deleteMany({ where: { authorId: target.id } });
-    await tx.invite.deleteMany({ where: { createdById: target.id } });
-    await tx.calendarEvent.deleteMany({ where: { createdById: target.id } });
+    // Work model: a person leaving takes nothing with them. Their notes and
+    // activity keep their words (author SetNull); the meetings and invites they
+    // organised pass to whoever is deleting the account (Restrict FKs). Their
+    // tasks stay held until someone reassigns them (assignee SetNull).
+    await tx.invite.updateMany({ where: { createdById: target.id }, data: { createdById: actor.id } });
+    await tx.calendarEvent.updateMany({ where: { createdById: target.id }, data: { createdById: actor.id } });
+    await tx.routineCollaborator.updateMany({ where: { invitedById: target.id }, data: { invitedById: actor.id } });
     await tx.user.delete({ where: { id: target.id } });
   });
 

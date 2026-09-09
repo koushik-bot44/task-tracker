@@ -242,14 +242,22 @@ async function main() {
   record("F5 placed on People under the department", placed?.status === "ACTIVE" && placed?.departmentName === department.name, `${placed?.status} · ${placed?.departmentName}`);
 
   console.log("\n── teardown ──────────────────────────────────────────────────────────");
-  const ids = [director.id, manager.id, lead.id, member.id, person.id, inviteeId].filter(Boolean);
+  // Only the THROWAWAY accounts and the FLOW project's own artefacts go. The
+  // CEO is real: sweeping by their id took every note, private note and
+  // meeting they ever made (work-model study, 2026-09-09).
+  const ids = [manager.id, lead.id, member.id, person.id, inviteeId].filter(Boolean);
   await prisma.comment.deleteMany({ where: { authorId: { in: ids } } });
   await prisma.task.deleteMany({ where: { ownerId: { in: ids }, isPrivate: true } });
-  if (projectId) await prisma.project.delete({ where: { id: projectId } }).catch(() => undefined);
+  if (projectId) {
+    await prisma.notification.deleteMany({ where: { OR: [{ task: { projectId } }, { event: undefined, userId: { in: ids } }] } }).catch(() => undefined);
+    await prisma.calendarEvent.deleteMany({ where: { projectId } });
+    await prisma.project.delete({ where: { id: projectId } }).catch(() => undefined);
+  }
   await prisma.comment.deleteMany({ where: { targetId: { in: [projectId, m1Id, m2Id].filter(Boolean) } } });
   await prisma.calendarEvent.deleteMany({ where: { createdById: { in: ids } } });
   // Invite.createdById is Restrict: the invites this run issued go before their issuers.
   await prisma.invite.deleteMany({ where: { OR: [{ createdById: { in: ids } }, { userId: { in: ids } }] } });
+  await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
   await prisma.user.deleteMany({ where: { email: { startsWith: PREFIX } } });
   console.log(`removed ${ids.length} throwaway accounts and their artefacts`);
   const leftAccounts = await prisma.user.count({ where: { email: { startsWith: PREFIX } } });

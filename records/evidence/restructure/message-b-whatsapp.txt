@@ -1,10 +1,10 @@
-📅 *tomorrow, 5 Sept 2026*
+📅 *tomorrow, 10 Sept 2026*
 
 *FLOW Sync* · FLOW Project · 10:00
-I'll be there: https://orbittasktracker.vercel.app/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiWUVTIiwic3ViIjoiY210bjB5ZmpuMDA4NTBkaHo3MW95dm8xayIsImlhdCI6MTc4ODUzMDYyNiwiZXhwIjoxNzg5MTM1NDI2fQ.SMrPQ1Om06CY6eChB78JCNHOYZSbtMXBPmufEXAY1Vc
-Can't: https://orbittasktracker.vercel.app/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiTk8iLCJzdWIiOiJjbXRuMHlmam4wMDg1MGRoejcxb3l2bzFrIiwiaWF0IjoxNzg4NTMwNjI2LCJleHAiOjE3ODkxMzU0MjZ9.-OpoueEyDq6W3VOz_I9SSawSxoEAt7h_sh75Av12E3s
+I'll be there: http://localhost:3000/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiWUVTIiwic3ViIjoiY210dHR4eHpzMDA1OTBkNThkZGtwNHVwaiIsImlhdCI6MTc4ODk0MjExNywiZXhwIjoxNzg5NTQ2OTE3fQ.IZ2q4uW_AodHOr0ikDavv2FNOS__UojfeVxwOGTT6l0
+Can't: http://localhost:3000/r/eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoibWVldGluZy1yZXBseSIsInJlc3BvbnNlIjoiTk8iLCJzdWIiOiJjbXR0dHh4enMwMDU5MGQ1OGRka3A0dXBqIiwiaWF0IjoxNzg4OTQyMTE3LCJleHAiOjE3ODk1NDY5MTd9.xkGbUVnTqefY1cXtzlMRslunm-FY7IRqDvU8imw-hh4
 
 *Due tomorrow*
 • FLOW due tomorrow · FLOW Project
 
-Today: https://orbittasktracker.vercel.app/
+Today: http://localhost:3000/

@@ -76,6 +76,76 @@ enum ProjectPriority {
   LOW
 }
 
+/// Work model (2026-09-09): the kind of work a task is. Drives which fields a
+/// screen shows and which rules apply (PROJECT_TASK keeps the owner's "the tick
+/// is a lead's to give"; every other type lets the holder resolve).
+enum WorkType {
+  GENERAL
+  ISSUE
+  REQUEST
+  PROJECT_TASK
+  APPROVAL
+  SUPPORT
+}
+
+/// Work model: the lifecycle. lib/work/workflow.ts is the ONLY writer; `status`
+/// is its projection, kept for the project page, Today and every count.
+enum WorkState {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+  CANCELLED
+  ESCALATED
+  REOPENED
+}
+
+enum WorkPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+/// WAITING always says what for.
+enum WaitingReason {
+  REQUESTER
+  APPROVAL
+  OTHER_TEAM
+  VENDOR
+  PARTS
+  OTHER
+}
+
+/// RESOLVED always says how.
+enum ResolutionCode {
+  FIXED
+  COMPLETED
+  WORKAROUND
+  CANNOT_REPRODUCE
+  DUPLICATE
+  NOT_NEEDED
+}
+
+/// One row per thing that happened to a task (lib/work/activity.ts).
+enum ActivityType {
+  COMMENT
+  WORK_NOTE
+  FIELD_CHANGE
+  SYSTEM
+  ATTACHMENT
+  EMAIL
+  MENTION
+}
+
+/// PUBLIC reaches the requester; INTERNAL only the people working the task.
+enum ActivityVisibility {
+  PUBLIC
+  INTERNAL
+}
+
 model User {
   id                 String                 @id @default(cuid())
   email              String                 @unique
@@ -125,6 +195,15 @@ model User {
   resetRequests      PasswordResetRequest[] @relation("ResetUser")
   resolvedResets     PasswordResetRequest[] @relation("ResetResolvedBy")
   privateTasks       Task[]                 @relation("PrivateTaskOwner")
+  /// Work model: tasks this person asked for / resolved / closed; teams; activity.
+  requestedTasks     Task[]                 @relation("TaskRequester")
+  resolvedTasks      Task[]                 @relation("TaskResolvedBy")
+  closedTasks        Task[]                 @relation("TaskClosedBy")
+  groupMemberships   AssignmentGroupMember[]
+  ledGroups          AssignmentGroup[]      @relation("GroupLead")
+  activities         TaskActivity[]
+  /// Bumped when a password is set or reset, so older sessions stop working.
+  sessionVersion     Int                    @default(0)
   personalDepartments PersonalDepartment[]  @relation("PersonalDepartmentOwner")
   personalProjects    PersonalProject[]     @relation("PersonalProjectOwner")
   /// Phase 35: the Routine feature. A MANAGER may own ONE person (managedPerson);
@@ -163,6 +242,10 @@ model Department {
   projects    Project[]
   /// Restructure: the people placed in this department (User.departmentId).
   members     User[]    @relation("DepartmentMembers")
+  /// Work model: the tasks this department owns, its teams and its categories.
+  tasks       Task[]
+  groups      AssignmentGroup[]
+  categories  TaskCategory[]
 
   @@index([hodId])
 }
@@ -294,8 +377,9 @@ model Comment {
   id             String        @id @default(cuid())
   targetType     CommentTarget
   targetId       String
-  authorId       String
-  author         User          @relation(fields: [authorId], references: [id])
+  /// Null once the author's account is deleted — the note stays (work model).
+  authorId       String?
+  author         User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
   body           String
   attachmentUrl  String?
   attachmentName String?
@@ -361,11 +445,51 @@ model Task {
   personalProjectId String?
   personalProject   PersonalProject? @relation("PersonalProjectTasks", fields: [personalProjectId], references: [id], onDelete: SetNull)
 
+  /// Work model (2026-09-09). The task is the record; project and milestone are
+  /// context. See records/plans/work-model-plan.md.
+  number            Int              @unique @default(autoincrement())
+  type              WorkType         @default(GENERAL)
+  /// The lifecycle. Written only by lib/work/workflow.ts, which also rewrites
+  /// `status` as its projection (NEW/ASSIGNED/REOPENED → TODO, IN_PROGRESS/
+  /// ESCALATED → DOING, WAITING → STUCK, RESOLVED/CLOSED/CANCELLED → DONE).
+  state             WorkState        @default(NEW)
+  priority          WorkPriority     @default(MEDIUM)
+  categoryId        String?
+  category          TaskCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  /// Who asked for this (the "Requested by" face). SetNull.
+  requesterId       String?
+  requester         User?            @relation("TaskRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  /// Department → team → person: the ownership chain.
+  departmentId      String?
+  department        Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignmentGroupId String?
+  assignmentGroup   AssignmentGroup? @relation(fields: [assignmentGroupId], references: [id], onDelete: SetNull)
+  waitingReason     WaitingReason?
+  waitingNote       String?
+  resolutionCode    ResolutionCode?
+  resolutionNotes   String?
+  rootCause         String?
+  resolvedById      String?
+  resolvedBy        User?            @relation("TaskResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt        DateTime?
+  closedById        String?
+  closedBy          User?            @relation("TaskClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  closedAt          DateTime?
+  escalatedAt       DateTime?
+  activities        TaskActivity[]
+  notifications     Notification[]
+
   @@index([projectId, parentId])
   @@index([milestoneId])
   @@index([assigneeId])
   @@index([ownerId, isPrivate])
   @@index([personalProjectId])
+  @@index([state])
+  @@index([departmentId, state])
+  @@index([assignmentGroupId, state])
+  @@index([assigneeId, state])
+  @@index([requesterId])
+  @@index([dueDate])
 }
 
 /// A user's PRIVATE space (phase 33) — a personal Department > Project > Task
@@ -547,11 +671,20 @@ model Notification {
   // reselected by { snoozedUntil: { lte: now } } — so no separate "rewoken" flag.
   snoozedUntil DateTime?
   createdAt DateTime  @default(now())
+  /// Work model: the task this is about (swept with it; grouped in the bell).
+  taskId    String?
+  task      Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  /// The meeting this is about, when it is one.
+  eventId   String?
+  /// Unique when set: the same event never writes the same row twice (a cron
+  /// re-run, a double tap). Null = no dedupe (legacy rows).
+  dedupeKey String?   @unique
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
   // The cron scans by due snooze time across all users.
   @@index([snoozedUntil])
+  @@index([taskId])
 }
 
 /// Phase 35 (renamed from Child) — the family "Routine" feature, fully isolated
@@ -695,4 +828,95 @@ model RoutineTask {
   createdAt DateTime  @default(now())
 
   @@index([personId, dueDate])
+}
+
+/// Work model: a TEAM inside a department (ServiceNow's assignment group).
+/// Work is given to a team, then to a person in it; a person may be in many.
+model AssignmentGroup {
+  id           String                  @id @default(cuid())
+  departmentId String
+  department   Department              @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name         String
+  description  String                  @default("")
+  leadId       String?
+  lead         User?                   @relation("GroupLead", fields: [leadId], references: [id], onDelete: SetNull)
+  active       Boolean                 @default(true)
+  orderKey     String
+  createdAt    DateTime                @default(now())
+  members      AssignmentGroupMember[]
+  tasks        Task[]
+  categories   TaskCategory[]
+
+  @@unique([departmentId, name])
+  @@index([leadId])
+}
+
+model AssignmentGroupMember {
+  id        String          @id @default(cuid())
+  groupId   String
+  group     AssignmentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+/// Work model: what a task is about (Network, Payroll, …). A child row is a
+/// subcategory. The team on a category is the deterministic route: pick the
+/// category and the task goes to that team.
+model TaskCategory {
+  id                String           @id @default(cuid())
+  name              String
+  parentId          String?
+  parent            TaskCategory?    @relation("Subcategories", fields: [parentId], references: [id], onDelete: Cascade)
+  children          TaskCategory[]   @relation("Subcategories")
+  departmentId      String?
+  department        Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignmentGroupId String?
+  assignmentGroup   AssignmentGroup? @relation(fields: [assignmentGroupId], references: [id], onDelete: SetNull)
+  active            Boolean          @default(true)
+  orderKey          String
+  createdAt         DateTime         @default(now())
+  tasks             Task[]
+
+  @@index([parentId])
+  @@index([departmentId])
+}
+
+/// Work model: a deterministic routing rule, evaluated in `order` when a task
+/// is created. `match` and `set` are small JSON objects (lib/work/assignment.ts).
+model AssignmentRule {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  match     Json     @default("{}")
+  set       Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Work model: the Activity Stream — the complete history of a task. A null
+/// author is the system. FIELD_CHANGE carries {field, oldValue, newValue,
+/// oldLabel, newLabel}; a COMMENT / WORK_NOTE may carry {mentions: [userId]}.
+model TaskActivity {
+  id             String             @id @default(cuid())
+  taskId         String
+  task           Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId       String?
+  author         User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  type           ActivityType
+  visibility     ActivityVisibility @default(PUBLIC)
+  body           String             @default("")
+  metadata       Json               @default("{}")
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  createdAt      DateTime           @default(now())
+
+  @@index([taskId, createdAt])
+  @@index([taskId, type])
+  @@index([authorId])
 }
