@@ -7,11 +7,12 @@ import { PriorityChip } from "@/components/projects/project-card";
 import { PrioritySheet } from "@/components/sheets/priority-sheet";
 import { ProjectDetailsSheet } from "@/components/sheets/project-details-sheet";
 import { ProjectLookSheet } from "@/components/sheets/project-look-sheet";
-import { IconButton } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { DeadlineChip } from "@/components/ui/chip";
-import { Faces } from "@/components/ui/face";
+import { Face, Faces } from "@/components/ui/face";
 import { ProjectMark } from "@/components/ui/project-mark";
-import type { ProjectDTO, ProjectPersonDTO } from "@/lib/types";
+import { Sheet } from "@/components/ui/sheet";
+import { ROLE_LABEL, type ProjectDTO, type ProjectPersonDTO } from "@/lib/types";
 
 /**
  * A way back to the department's projects · the project's mark (tap to change
@@ -38,6 +39,7 @@ export function ProjectHeader({
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [lookOpen, setLookOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [whoOpen, setWhoOpen] = useState(false);
   const done = project.status === "DONE";
   const backHref = project.departmentId ? `/projects?d=${encodeURIComponent(project.departmentId)}` : "/projects";
   const mark = <ProjectMark name={project.name} color={project.color} icon={project.icon} logoUrl={project.logoUrl} size="lg" />;
@@ -68,7 +70,15 @@ export function ProjectHeader({
         <div className="min-w-0 flex-1">
           <h1 className="text-page font-semibold leading-tight text-ink">{project.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Faces names={people.map((p) => p.name)} max={4} />
+            <button
+              type="button"
+              onClick={() => setWhoOpen(true)}
+              aria-label={`Who is on this project — ${people.length} ${people.length === 1 ? "person" : "people"}`}
+              title="Who is on this project"
+              className="press rounded-chip"
+            >
+              <Faces names={people.map((p) => p.name)} max={4} />
+            </button>
             {canManage ? (
               <button
                 type="button"
@@ -113,6 +123,41 @@ export function ProjectHeader({
       )}
       {canManage ? <PrioritySheet open={priorityOpen} onClose={() => setPriorityOpen(false)} project={project} /> : null}
       {canManage ? <ProjectLookSheet open={lookOpen} onClose={() => setLookOpen(false)} project={project} /> : null}
+      <Sheet
+        open={whoOpen}
+        onClose={() => setWhoOpen(false)}
+        title="On this project"
+        subtitle={`${people.length} ${people.length === 1 ? "person" : "people"} · ${project.name}`}
+        footer={
+          canManage ? (
+            <Button variant="primary" full onClick={() => { setWhoOpen(false); onAddPeople(); }}>
+              Add people
+            </Button>
+          ) : undefined
+        }
+      >
+        <ul className="divide-y divide-line">
+          {[...people]
+            // The people running it first, then whoever is carrying the most.
+            .sort((a, b) => Number(b.isOwner) - Number(a.isOwner) || Number(b.isLead) - Number(a.isLead) || b.taskCount - a.taskCount || a.name.localeCompare(b.name))
+            .map((p) => (
+              <li key={p.id} className="flex min-h-[56px] items-center gap-3 px-1">
+                <Face name={p.name} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-row text-ink">{p.name}</span>
+                  <span className="block truncate text-micro text-muted">
+                    {[p.isOwner ? "Runs it" : null, p.isLead ? "Lead" : null, ROLE_LABEL[p.role]].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                <span className="shrink-0 text-micro text-muted">
+                  {p.taskCount === 0 ? "no tasks" : `${p.taskCount} ${p.taskCount === 1 ? "task" : "tasks"}`}
+                </span>
+              </li>
+            ))}
+          {people.length === 0 ? <li className="py-6 text-center text-sm text-muted">Nobody is on this project yet.</li> : null}
+        </ul>
+      </Sheet>
+
       {canManage ? <ProjectDetailsSheet open={detailsOpen} onClose={() => setDetailsOpen(false)} project={project} people={people} /> : null}
     </header>
   );
