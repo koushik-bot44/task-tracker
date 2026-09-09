@@ -202,7 +202,9 @@ function RecordBody({ task }: { task: TaskDTO }) {
         <div className="grid grid-cols-1 gap-x-6 py-2 md:grid-cols-2">
           <div>
             <FormRow label="Number"><input value={task.ref} readOnly className={snInput} /></FormRow>
-            <FormRow label="Requested by"><input value={task.requesterName ?? ""} readOnly className={snInput} /></FormRow>
+            {/* Who handed it over. On a task raised straight onto somebody they are
+                the same person; when nobody was named yet, whoever raised it stands. */}
+            <FormRow label="Assigned by"><input value={task.givenByName ?? task.requesterName ?? ""} readOnly className={snInput} /></FormRow>
             <FormRow label="Type"><input value={WORK_TYPE_LABEL[task.type]} readOnly className={snInput} /></FormRow>
             <FormRow label="Category"><input value={task.categoryName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
             <FormRow label="Department"><input value={task.departmentName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>

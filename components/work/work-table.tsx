@@ -53,7 +53,7 @@ const PAGE = 50;
 /**
  * The task table, the way a service desk lists records: Number, Short
  * description, Project, State, Priority, Assignment group, Assigned to,
- * Requested by, Due, Updated; a Show filter, a search, 50 a page. Drop it
+ * Assigned, Due, Updated; a Show filter, a search, 50 a page. Drop it
  * on the Work page, inside a project, or inside a department with `fixed`.
  */
 export function WorkTable({

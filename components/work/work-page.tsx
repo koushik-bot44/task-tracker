@@ -67,7 +67,7 @@ const PAGE = 50;
  * The list, the way a service desk shows it: a title bar with New, the
  * the scope tabs (All → Departments → your own work), a condition row (the slice and a
  * search), then a full-width table — Number, Short description, State,
- * Priority, Assignment group, Assigned to, Requested by, Due, Updated —
+ * Priority, Assigned by, Assigned to, Assigned, Due, Updated —
  * with 50 rows a page.
  */
 export function WorkPage() {

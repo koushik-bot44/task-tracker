@@ -358,7 +358,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
             </Field>
           </>
         )}
-        {me ? <p className="text-micro text-muted">Requested by {me.name}.</p> : null}
+        {me ? <p className="text-micro text-muted">Assigned by {me.name}.</p> : null}
       </div>
     </Sheet>
   );
