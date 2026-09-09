@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import { wearsNoDesignation } from "@/lib/roles";
 import { ROLE_LABEL, type UserRole } from "@/lib/types";
 
 const inputClass =
@@ -103,7 +104,7 @@ export function SetPasswordForm({ token }: { token: string }) {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">Role</dt>
-                  <dd className="text-ink">{ROLE_LABEL[info.role]}</dd>
+                  <dd className="text-ink">{wearsNoDesignation(info.role) ? "—" : ROLE_LABEL[info.role]}</dd>
                 </div>
               </dl>
 

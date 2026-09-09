@@ -32,6 +32,15 @@ export const oversesCompanyRole = (r: UserRole | null | undefined): boolean =>
 
 export const isHodRole = (r: UserRole | null | undefined): boolean => r === "HOD";
 
+/**
+ * The top of the company wears no designation (owner, 2026-09-09): beside
+ * Rahul's or a co-founder's name, "CEO" and "Co-founder" say nothing a reader
+ * did not already know, so the name stands alone. The words still exist where
+ * a role is being CHOSEN — a picker has to name what it is offering.
+ */
+export const wearsNoDesignation = (r: UserRole | null | undefined): boolean =>
+  r === "FOUNDER" || r === "CO_FOUNDER";
+
 /** PROJECT AUTHORITY — the chain that runs projects: FOUNDER, HOD,
     MANAGER. What each may reach is scoped by lib/project-visibility (executives
     all, HOD their department, manager owned ∪ collaborations). */

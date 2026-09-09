@@ -1,9 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import { wearsNoDesignation } from "@/lib/roles";
 import { ROLE_LABEL, type UserRole } from "@/lib/types";
 
 export function RoleChip({ role, className }: { role: UserRole; className?: string }) {
+  if (wearsNoDesignation(role)) return null;
   return (
     <span
       className={cn(

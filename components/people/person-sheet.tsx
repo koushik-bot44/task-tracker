@@ -9,7 +9,7 @@ import { Field, Sheet, inputClass } from "@/components/ui/sheet";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { useUserMutations } from "@/lib/hooks/use-users";
-import { ROLE_RANK, canAdministerAccountsRole, isAdminRole } from "@/lib/roles";
+import { ROLE_RANK, canAdministerAccountsRole, isAdminRole, wearsNoDesignation } from "@/lib/roles";
 import { ROLE_LABEL, ROLES, type DepartmentDTO, type UserDTO, type UserRole } from "@/lib/types";
 
 /** Roles People can ever hand out — never ADMIN, PERSON or FOUNDER. */
@@ -63,7 +63,7 @@ export function PersonSheet({
       open={Boolean(user)}
       onClose={onClose}
       title={user?.name ?? ""}
-      subtitle={user ? `${ROLE_LABEL[user.role]}${user.departmentName ? ` · ${user.departmentName}` : ""}` : undefined}
+      subtitle={user ? [wearsNoDesignation(user.role) ? null : ROLE_LABEL[user.role], user.departmentName].filter(Boolean).join(" · ") || undefined : undefined}
     >
       {user ? <PersonBody user={user} me={me} departments={departments} onClose={onClose} /> : null}
     </Sheet>

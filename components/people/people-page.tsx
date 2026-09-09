@@ -18,7 +18,7 @@ import { apiGet } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { departmentsKey } from "@/lib/hooks/use-departments";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole } from "@/lib/roles";
+import { ROLE_RANK, canAdministerAccountsRole, canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole, wearsNoDesignation } from "@/lib/roles";
 import { DepartmentMark } from "@/components/ui/department-mark";
 import { ROLE_LABEL, type DepartmentDTO, type UserDTO } from "@/lib/types";
 
@@ -227,7 +227,7 @@ function PersonRow({
       {/* A head of department down to a team lead wears their rank. The top of
           the company does not: the name is the whole story there (owner,
           2026-09-09), and a team member's row stays plain (owner, 2026-09-08). */}
-      {ranked && !isExecutiveRole(user.role) ? (
+      {ranked && !wearsNoDesignation(user.role) ? (
         <Chip tone="primary">{isHead ? "Head of department" : ROLE_LABEL[user.role]}</Chip>
       ) : null}
       {user.status === "PENDING" ? <Chip>Invited</Chip> : null}
