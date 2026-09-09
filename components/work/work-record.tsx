@@ -85,7 +85,8 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const fail = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
   const move = (to: WorkState, extra: Record<string, unknown> = {}) => transition.mutate({ to, ...extra }, { onError: fail });
   const busy = transition.isPending || assign.isPending;
-  const moves = ORDER.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "NEW" && task.assigneeId) && !(s === "ASSIGNED" && !task.assigneeId));
+  // "Stop Work" keeps the holder; "Return to Queue" lets go. Stop Work only makes sense with a holder.
+  const moves = ORDER.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "ASSIGNED" && !task.assigneeId));
   const press = (to: WorkState) => {
     if (to === "WAITING") setWaitOpen(true);
     else if (to === "CANCELLED" || to === "REOPENED") setConfirm(to);

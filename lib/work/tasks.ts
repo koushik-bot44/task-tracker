@@ -601,6 +601,10 @@ async function moveOnce(actor: ActorUser, existing: Task, to: WorkState, extra: 
     data.assigneeId = actor.id;
     data.givenById = actor.id;
   }
+  // Returning it to the queue lets go of it: nobody holds it until someone takes it again.
+  if (to === "NEW" && existing.assigneeId && !isStep) {
+    data.assigneeId = null;
+  }
   const result = await prisma.$transaction(async (tx) => {
     await tx.task.update({ where: { id: existing.id }, data });
     const after = { ...existing, ...(data as Partial<Task>) } as Task;
@@ -618,6 +622,9 @@ async function moveOnce(actor: ActorUser, existing: Task, to: WorkState, extra: 
     const assigneeRow = result.rows.find((r) => (r.metadata as { field?: string }).field === "assigneeId");
     if (assigneeRow && fresh.assigneeId && fresh.assigneeId !== actor.id) {
       await emit({ type: "TASK_ASSIGNED", task: toEventTask(fresh), actor: { id: actor.id, name: actor.name }, activityId: assigneeRow.id });
+    }
+    if (assigneeRow && !fresh.assigneeId && existing.assigneeId && existing.assigneeId !== actor.id) {
+      await emit({ type: "TASK_UNASSIGNED", task: toEventTask(fresh), actor: { id: actor.id, name: actor.name }, activityId: assigneeRow.id, payload: { previousAssigneeId: existing.assigneeId } });
     }
   }
   return fresh;
