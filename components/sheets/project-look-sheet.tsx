@@ -43,7 +43,7 @@ export function ProjectLookSheet({ open, onClose, project }: { open: boolean; on
     }
     setUploading(true);
     try {
-      const up = await uploadFile(file);
+      const up = await uploadFile(file, uploads?.maxBytes);
       setLogoUrl(up.url);
     } catch (e) {
       toast({ message: (e as Error).message, tone: "danger" });
@@ -88,27 +88,26 @@ export function ProjectLookSheet({ open, onClose, project }: { open: boolean; on
           </div>
         </div>
 
-        {uploads?.enabled ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              aria-label="Upload a logo"
-              onChange={(e) => void pickLogo(e.target.files?.[0] ?? null)}
-            />
-            <Button variant="secondary" onClick={() => fileRef.current?.click()} loading={uploading} icon={<ImagePlus className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
-              {logoUrl ? "Change logo" : "Upload a logo"}
+        {/* Always offered (2026-09-10): without a Blob store, a logo is kept in the database. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            aria-label="Upload a logo"
+            onChange={(e) => void pickLogo(e.target.files?.[0] ?? null)}
+          />
+          <Button variant="secondary" onClick={() => fileRef.current?.click()} loading={uploading} icon={<ImagePlus className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
+            {logoUrl ? "Change logo" : "Upload a logo"}
+          </Button>
+          {logoUrl ? (
+            <Button variant="quiet" onClick={() => setLogoUrl(null)} icon={<Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
+              Remove logo
             </Button>
-            {logoUrl ? (
-              <Button variant="quiet" onClick={() => setLogoUrl(null)} icon={<Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
-                Remove logo
-              </Button>
-            ) : null}
-            <span className="w-full text-micro text-muted">A square picture looks best. Without a logo, the icon and colour below are used.</span>
-          </div>
-        ) : null}
+          ) : null}
+          <span className="w-full text-micro text-muted">A square picture looks best. Without a logo, the icon and colour below are used.</span>
+        </div>
 
         <div>
           <span className="mb-2 block text-micro font-medium text-muted">Colour</span>

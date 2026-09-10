@@ -15,21 +15,27 @@ export function useComments(targetType: CommentTarget, targetId: string | null, 
   });
 }
 
-/** Whether the camera / paper-clip should show at all. */
+/** How big an attachment may be here. The camera and paper-clip are always offered (2026-09-10). */
 export function useUploadsEnabled() {
   return useQuery({
     queryKey: ["uploads-enabled"],
-    queryFn: () => apiGet<{ enabled: boolean }>("/api/uploads"),
+    queryFn: () => apiGet<{ enabled: boolean; maxBytes: number }>("/api/uploads"),
     staleTime: 10 * 60_000,
   });
 }
 
-export async function uploadFile(file: File): Promise<{ url: string; name: string; type: string }> {
+const megabytes = (bytes: number) => Math.round(bytes / (1024 * 1024));
+
+export async function uploadFile(file: File, maxBytes?: number): Promise<{ url: string; name: string; type: string }> {
+  // Said before sending, rather than after a long upload is turned away.
+  if (maxBytes && file.size > maxBytes) throw new Error(`That file is over ${megabytes(maxBytes)} MB — the most that can be attached here.`);
   const form = new FormData();
   form.append("file", file);
   const res = await fetch("/api/uploads", { method: "POST", body: form });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    // The hosting platform turns an oversized request away before the app sees it, without a message.
+    if (res.status === 413) throw new Error(body?.error ?? "That file is too big to attach here.");
     throw new Error(body?.error ?? "Couldn't attach that file.");
   }
   return (await res.json()) as { url: string; name: string; type: string };

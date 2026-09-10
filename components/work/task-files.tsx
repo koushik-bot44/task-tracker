@@ -52,7 +52,7 @@ export function TaskFiles({
     if (!file) return;
     setBusy(true);
     try {
-      setPicked(await uploadFile(file));
+      setPicked(await uploadFile(file, uploads?.maxBytes));
     } catch (e) {
       fail(e);
     } finally {
@@ -98,41 +98,40 @@ export function TaskFiles({
 
   return (
     <div className="space-y-3">
-      {uploads?.enabled ? (
-        <div className="space-y-2 rounded-input border border-line p-3">
-          <input ref={fileRef} type="file" className="hidden" onChange={(e) => void choose(e.target.files?.[0])} />
-          {picked ? (
-            <>
-              <p className="flex items-center gap-2 text-[13px] text-ink">
-                <Paperclip className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
-                <span className="min-w-0 truncate font-medium">{picked.name}</span>
-              </p>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                placeholder="What is this file? Requirements, what to look at, what is expected."
-                aria-label="Description for this file"
-                className={cn(snInput, "h-auto py-2")}
-              />
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => void add()} disabled={busy} className={snPrimary}>
-                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
-                  Add the file
-                </button>
-                <button type="button" onClick={() => { setPicked(null); setDescription(""); }} className={snButton}>
-                  Cancel
-                </button>
-              </div>
-            </>
-          ) : (
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className={cn(snButton, "gap-1")}>
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Paperclip className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
-              Attach a file with its description
-            </button>
-          )}
-        </div>
-      ) : null}
+      {/* Always offered (2026-09-10): without a Blob store, files go to the database. */}
+      <div className="space-y-2 rounded-input border border-line p-3">
+        <input ref={fileRef} type="file" className="hidden" onChange={(e) => void choose(e.target.files?.[0])} />
+        {picked ? (
+          <>
+            <p className="flex items-center gap-2 text-[13px] text-ink">
+              <Paperclip className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+              <span className="min-w-0 truncate font-medium">{picked.name}</span>
+            </p>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="What is this file? Requirements, what to look at, what is expected."
+              aria-label="Description for this file"
+              className={cn(snInput, "h-auto py-2")}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => void add()} disabled={busy} className={snPrimary}>
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+                Add the file
+              </button>
+              <button type="button" onClick={() => { setPicked(null); setDescription(""); }} className={snButton}>
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className={cn(snButton, "gap-1")}>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Paperclip className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />}
+            Attach a file with its description
+          </button>
+        )}
+      </div>
 
       {rows.length === 0 ? (
         <p className="text-[13px] text-muted">No files yet. Attach one here with what it is, or send one in a note.</p>

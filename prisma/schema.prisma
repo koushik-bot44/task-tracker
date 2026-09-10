@@ -642,6 +642,19 @@ model UserEmail {
   @@index([userId])
 }
 
+/// An attached file kept in the database (2026-09-10) — used when no Vercel
+/// Blob store is connected, so attachments work on any deployment. Served to
+/// signed-in people from /api/uploads/<id>; createdById is attribution only.
+model StoredFile {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  size        Int
+  bytes       Bytes
+  createdById String?
+  createdAt   DateTime @default(now())
+}
+
 model Invite {
   id          String    @id @default(cuid())
   userId      String    @unique

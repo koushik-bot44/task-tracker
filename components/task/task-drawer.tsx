@@ -24,8 +24,8 @@ import { TASK_STATUSES, type TaskDTO, type TaskStatus } from "@/lib/types";
 
 /**
  * The task drawer: title · Face (tap to hand it to someone else) · date chip ·
- * status pill · ★ · Steps (a checklist) · Result link · Comments (plain text,
- * no attachments). Every field writes as you leave it. Opened with ?task=<id>
+ * status pill · ★ · Steps (a checklist) · Result link · Comments (with a
+ * camera and a paper-clip). Every field writes as you leave it. Opened with ?task=<id>
  * from anywhere.
  */
 export function TaskDrawer({ task }: { task: TaskDTO }) {
@@ -186,7 +186,7 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
                 </div>
                 {openStepNotes === s.id ? (
                   <div className="border-t border-line bg-bg px-3 py-3">
-                    <NotesThread targetType="TASK" targetId={s.id} compact autoFocus attachments={false} placeholder="A note on this step…" />
+                    <NotesThread targetType="TASK" targetId={s.id} compact autoFocus placeholder="A note on this step…" />
                   </div>
                 ) : null}
               </li>
@@ -274,10 +274,10 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
         </section>
       ) : null}
 
-      {/* Comments — plain text, no camera, no paper-clip */}
+      {/* Comments — text, a photo or any file (files everywhere, owner 2026-09-10) */}
       <section>
         <h3 className="mb-2 text-micro font-medium text-muted">Comments</h3>
-        <NotesThread targetType="TASK" targetId={task.id} attachments={false} placeholder="Add a comment…" />
+        <NotesThread targetType="TASK" targetId={task.id} placeholder="Add a comment…" />
       </section>
 
       {/* Quiet actions */}

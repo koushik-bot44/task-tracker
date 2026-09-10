@@ -1,15 +1,20 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { prisma } from "@/lib/prisma";
 
 /**
- * Attachments on notes (restructure): a photo from the camera, or a file
- * such as a PDF. Stored in Vercel Blob when BLOB_READ_WRITE_TOKEN is set —
- * a direct call to the Blob REST API, no SDK. Without the token the camera and
- * paper-clip are hidden everywhere; in local development only, a disk
- * fallback under .localdb/uploads keeps the flow testable.
+ * Attachments on notes and tasks: a photo from the camera, or any ordinary
+ * file. Stored in Vercel Blob when BLOB_READ_WRITE_TOKEN is set — a direct call
+ * to the Blob REST API, no SDK. Without the token they are kept in the database
+ * (2026-09-10): the live site has no Blob store, so the camera and paper-clip
+ * were hidden there and read as removed. Now they are offered everywhere.
  */
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+/**
+ * Kept in the database, a file travels through a Vercel function, which takes
+ * at most 4.5 MB per request — so the database store takes up to 4 MB.
+ */
+export const MAX_DATABASE_UPLOAD_BYTES = 4 * 1024 * 1024;
 /**
  * Work model (2026-09-09): any ordinary file — documents, sheets, slides,
  * PDFs, pictures, audio, video, archives, logs. Only things that would RUN
@@ -27,10 +32,9 @@ export function uploadAllowed(name: string, type: string): boolean {
   return true;
 }
 
-const DEV_DIR = path.join(process.cwd(), ".localdb", "uploads");
-
-export function uploadsEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN) || process.env.NODE_ENV === "development";
+/** The biggest file this deployment takes: Blob's limit, or the database's. */
+export function uploadLimitBytes(): number {
+  return process.env.BLOB_READ_WRITE_TOKEN ? MAX_UPLOAD_BYTES : MAX_DATABASE_UPLOAD_BYTES;
 }
 
 function safeName(name: string): string {
@@ -38,11 +42,10 @@ function safeName(name: string): string {
   return base;
 }
 
-export async function storeUpload(file: { name: string; type: string; bytes: Buffer }): Promise<{ url: string }> {
+export async function storeUpload(file: { name: string; type: string; bytes: Buffer }, createdById: string | null = null): Promise<{ url: string }> {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  const name = safeName(file.name);
   if (token) {
-    const res = await fetch(`https://blob.vercel-storage.com/notes/${encodeURIComponent(name)}`, {
+    const res = await fetch(`https://blob.vercel-storage.com/notes/${encodeURIComponent(safeName(file.name))}`, {
       method: "PUT",
       headers: {
         authorization: `Bearer ${token}`,
@@ -57,16 +60,32 @@ export async function storeUpload(file: { name: string; type: string; bytes: Buf
     const json = (await res.json()) as { url: string };
     return { url: json.url };
   }
-  if (process.env.NODE_ENV !== "development") throw new Error("uploads are not configured");
-  await mkdir(DEV_DIR, { recursive: true });
-  const stored = `${randomBytes(6).toString("hex")}-${name}`;
-  await writeFile(path.join(DEV_DIR, stored), file.bytes);
-  // A relative URL: the dev fallback is served by this same server, whatever
-  // APP_URL says (it points at production even on a laptop).
-  return { url: `/api/uploads/${stored}` };
+  const row = await prisma.storedFile.create({
+    data: { name: file.name.slice(0, 200) || "file", type: file.type.slice(0, 120), size: file.bytes.length, bytes: new Uint8Array(file.bytes), createdById },
+    select: { id: true },
+  });
+  // A relative URL: served by this same app, to signed-in people only.
+  return { url: `/api/uploads/${row.id}` };
 }
 
-/** Local development only: read a file the disk fallback stored. */
+/** A file the database keeps, by the id in its /api/uploads/<id> address. */
+export async function readStoredUpload(id: string): Promise<{ name: string; type: string; bytes: Uint8Array } | null> {
+  if (!/^c[a-z0-9]{20,40}$/.test(id)) return null;
+  return prisma.storedFile.findUnique({ where: { id }, select: { name: true, type: true, bytes: true } });
+}
+
+/**
+ * Kinds a browser shows without running anything. Every other kind is
+ * downloaded instead, so a web page or script someone attached can never run
+ * inside Orbit.
+ */
+export function opensInline(type: string): boolean {
+  return /^(image\/(png|jpeg|gif|webp|heic|avif)|application\/pdf|audio\/[a-z0-9.+-]+|video\/[a-z0-9.+-]+|text\/plain)$/i.test(type);
+}
+
+const DEV_DIR = path.join(process.cwd(), ".localdb", "uploads");
+
+/** Local development only: files attached on a laptop before 2026-09-10 went to disk, and still open. */
 export async function readDevUpload(stored: string): Promise<Buffer | null> {
   if (process.env.NODE_ENV !== "development") return null;
   if (!/^[a-f0-9]{12}-[a-zA-Z0-9._-]+$/.test(stored)) return null;

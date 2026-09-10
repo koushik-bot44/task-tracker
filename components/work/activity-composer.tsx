@@ -69,7 +69,7 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
     if (!file) return;
     setUploading(true);
     try {
-      setPending(await uploadFile(file));
+      setPending(await uploadFile(file, uploads?.maxBytes));
     } catch (e) {
       toast({ message: (e as Error).message, tone: "danger" });
     } finally {
@@ -116,18 +116,24 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
       ) : null}
 
       <div className="flex items-end gap-1">
-        {uploads?.enabled ? (
-          <>
-            <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach a file — any document, picture, recording or archive" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
-              {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Paperclip className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
-            </button>
-            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink md:hidden">
-              <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-            </button>
-          </>
-        ) : null}
+        <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+        {/* Always offered, and named (2026-09-10): on the live site the paper-clip
+            hid itself because files had nowhere to go, and read as removed. */}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          aria-label="Attach a file"
+          title={uploads?.maxBytes ? `Attach any document, picture, recording or archive, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB` : "Attach any document, picture, recording or archive"}
+          className="press inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted hover:bg-hover hover:text-ink"
+        >
+          {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Paperclip className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          <span className="hidden sm:inline">Attach</span>
+        </button>
+        <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink md:hidden">
+          <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+        </button>
         <button type="button" onClick={() => setPickOpen(true)} aria-label="Mention someone" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
           <AtSign className="h-5 w-5" strokeWidth={1.75} aria-hidden />
         </button>

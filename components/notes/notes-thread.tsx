@@ -58,10 +58,10 @@ export function Linkified({ text }: { text: string }) {
 }
 
 /**
- * ONE notes thread for projects, milestones and tasks (restructure). Plain
- * text, author-only delete, a camera and a paper-clip on the composer (both
- * hidden when attachments aren't switched on, and left out altogether with
- * attachments={false} — a task's comments are plain text). Reads like a chat.
+ * ONE notes thread for projects, milestones and tasks (restructure). Text,
+ * author-only delete, a camera and a paper-clip on the composer — always
+ * offered (2026-09-10): without a Blob store, files are kept in the database.
+ * attachments={false} leaves them out. Reads like a chat.
  */
 export function NotesThread({
   targetType,
@@ -77,7 +77,7 @@ export function NotesThread({
   autoFocus?: boolean;
   placeholder?: string;
   compact?: boolean;
-  /** Camera + paper-clip on the composer. Off = plain text only (task comments). */
+  /** Camera + paper-clip on the composer. Off = text only. */
   attachments?: boolean;
   /** Fill the height it is given and keep the composer at the bottom, the way a
       conversation is shaped. Off = the old flow layout, for inline use. */
@@ -87,7 +87,6 @@ export function NotesThread({
   const { data: notes, isLoading, isError, refetch } = useComments(targetType, targetId);
   const { addComment, removeComment } = useCommentMutations(targetType, targetId);
   const { data: uploads } = useUploadsEnabled();
-  const canAttach = attachments && Boolean(uploads?.enabled);
   const { show: toast } = useToast();
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
@@ -99,7 +98,7 @@ export function NotesThread({
     if (!file) return;
     setUploading(true);
     try {
-      setPending(await uploadFile(file));
+      setPending(await uploadFile(file, uploads?.maxBytes));
     } catch (e) {
       toast({ message: (e as Error).message, tone: "danger" });
     } finally {
@@ -173,7 +172,7 @@ export function NotesThread({
       </div>
 
       <div className={cn(fill && "shrink-0 space-y-2 border-t border-line bg-surface px-3 py-3")}>
-      {canAttach && pending ? (
+      {attachments && pending ? (
         <div className="flex items-center gap-2 rounded-input bg-hover px-3 py-2 text-micro text-ink">
           {isImage(pending.type) ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -191,26 +190,20 @@ export function NotesThread({
       <div className="flex items-end gap-1">
         {attachments ? (
           <>
-            {canAttach ? (
-              <>
-                <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-                {/* Any ordinary file — documents, sheets, slides, pictures,
-                    recordings, archives. The server refuses only what would run
-                    on a colleague's machine; this picker used to offer a few kinds. */}
-                <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-                <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
-                  <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-                </button>
-              </>
-            ) : null}
-            {/* Always offered, and named: where files can't be stored yet the
-                button says so, rather than silently not being there. */}
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+            {/* Any ordinary file — documents, sheets, slides, pictures,
+                recordings, archives. The server refuses only what would run
+                on a colleague's machine; this picker used to offer a few kinds. */}
+            <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
+              <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+            </button>
             <button
               type="button"
-              onClick={() => (canAttach ? fileRef.current?.click() : toast({ message: "Files can't be added on this site yet.", tone: "danger" }))}
+              onClick={() => fileRef.current?.click()}
               disabled={uploading}
               aria-label="Attach a file"
-              title="Attach any kind of file, up to 25 MB"
+              title={uploads?.maxBytes ? `Attach any kind of file, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB` : "Attach any kind of file"}
               className="press inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted hover:bg-hover hover:text-ink"
             >
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
