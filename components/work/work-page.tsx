@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
@@ -12,7 +11,6 @@ import { useDepartments } from "@/lib/hooks/use-departments";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
-import { DepartmentBoard } from "./department-board";
 import { DepartmentTree } from "./department-tree";
 import { TaskTable, collapseSiblings } from "./task-table";
 import { NewWorkSheet } from "./new-work-sheet";
@@ -187,19 +185,6 @@ export function WorkPage() {
   const hidden = data ? data.items.length - shownRows : 0;
   const to = data ? Math.min(from + shownRows - 1, data.total - hidden) : 0;
 
-  if (params.get("view") === "departments") {
-    return (
-      <div className="w-full px-2 pb-8 pt-2 md:px-4">
-        <Panel>
-          <PanelHeader title="Tasks by department" right={<Link href="/work" className={snButton}>List</Link>} />
-          <div className="p-3">
-            <DepartmentBoard />
-          </div>
-        </Panel>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full px-2 pb-8 pt-2 md:px-4">
       <Panel>
@@ -207,11 +192,6 @@ export function WorkPage() {
           title={<span>Tasks</span>}
           right={
             <>
-              {oversesCompanyRole(me?.role) || me?.role === "HOD" ? (
-                <Link href="/work?view=departments" className={snButton}>
-                  By department
-                </Link>
-              ) : null}
               <button type="button" onClick={() => setRaising(true)} className={snPrimary}>
                 <Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
                 New

@@ -7,7 +7,6 @@ import type {
   AssignmentGroupDTO,
   AssignmentRuleDTO,
   DashboardTodayDTO,
-  DepartmentWorkDTO,
   ResolutionCode,
   TaskCategoryDTO,
   TaskDTO,
@@ -121,10 +120,6 @@ export function useRaiseWork() {
 
 export function useDashboardToday(enabled = true) {
   return useQuery({ queryKey: [...dashboardKey, "today"], queryFn: () => apiGet<DashboardTodayDTO>("/api/dashboard/today"), enabled, staleTime: 15_000 });
-}
-
-export function useDepartmentsWork(enabled = true) {
-  return useQuery({ queryKey: [...dashboardKey, "departments"], queryFn: () => apiGet<{ departments: DepartmentWorkDTO[] }>("/api/dashboard/departments"), enabled, staleTime: 15_000 });
 }
 
 export function useGroups(enabled = true) {
