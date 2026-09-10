@@ -493,7 +493,10 @@ export type WorkTallyDTO = { open: number; inProgress: number; waiting: number; 
 export type PersonWorkDTO = { id: string; name: string } & WorkTallyDTO;
 export type TeamWorkDTO = { id: string; name: string; leadId: string | null; leadName: string | null; people: PersonWorkDTO[] } & WorkTallyDTO;
 export type DepartmentWorkDTO = { id: string; name: string; color: string; hodId: string | null; hodName: string | null; teams: TeamWorkDTO[]; unteamed: WorkTallyDTO } & WorkTallyDTO;
-export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: number };
+/** Names for what a list is narrowed to (GET /api/work?rows=tasks), so the screen can say it in words. */
+export type WorkLabelsDTO = { department: string | null; team: string | null; assignee: string | null; requester: string | null; project: string | null };
+/** Records a cursor at a time; with rows=tasks, one row per task with numbered pages and labels. */
+export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: number; page?: number; pageSize?: number; labels?: WorkLabelsDTO };
 
 export type NotificationDTO = {
   id: string;

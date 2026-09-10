@@ -58,7 +58,9 @@ export function ProjectDetailsSheet({
     setStart(project.startDate ? dayInputValue(new Date(project.startDate)) : "");
     setDeadline(project.deadline ? dayInputValue(new Date(project.deadline)) : "");
     setFinished(project.status === "DONE");
-  }, [open, project]);
+    // Keyed on the values, not the object: a background refresh brings a new
+    // object with the same values, and used to wipe out a name being typed.
+  }, [open, project.name, project.leadId, project.startDate, project.deadline, project.status]);
 
   // Lead candidates: everyone this person may see, else the people already on the project.
   const leads = useMemo(() => {

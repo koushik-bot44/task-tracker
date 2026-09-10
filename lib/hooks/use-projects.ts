@@ -56,6 +56,9 @@ export function useProjectMutations() {
     void qc.invalidateQueries({ queryKey: projectsKey });
     void qc.invalidateQueries({ queryKey: ["today"] });
     void qc.invalidateQueries({ queryKey: ["departments"] });
+    // A renamed or re-filed project changes what the Work list shows and counts.
+    void qc.invalidateQueries({ queryKey: ["work"] });
+    void qc.invalidateQueries({ queryKey: ["dashboard"] });
   };
 
   const createProject = useMutation({

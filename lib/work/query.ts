@@ -38,6 +38,7 @@ export type WorkFilter = {
   assignmentGroupId?: string;
   assigneeId?: string;
   requesterId?: string;
+  /** A project's id, or "none" for the work that sits in no project. */
   projectId?: string;
   milestoneId?: string;
   unassigned?: boolean;
@@ -52,6 +53,14 @@ export type WorkFilter = {
   /** Default true: open work only. `false` = everything, `finished` = the other half. */
   open?: "true" | "false" | "finished";
   sort?: "updated" | "due" | "priority" | "created" | "number";
+  /**
+   * "tasks": one row per TASK. The same task given to several people is one
+   * record each; listed this way it is shown, counted and paged once, and
+   * pages are numbered instead of following a cursor (review, 2026-09-10).
+   */
+  rows?: "tasks";
+  /** With rows=tasks: the page, from 1. */
+  page?: number;
   cursor?: string;
   limit?: number;
 };
@@ -70,7 +79,7 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   if (f.assignmentGroupId) and.push({ assignmentGroupId: f.assignmentGroupId });
   if (f.assigneeId) and.push({ assigneeId: f.assigneeId });
   if (f.requesterId) and.push({ requesterId: f.requesterId });
-  if (f.projectId) and.push({ projectId: f.projectId });
+  if (f.projectId) and.push({ projectId: f.projectId === "none" ? null : f.projectId });
   if (f.milestoneId) and.push({ milestoneId: f.milestoneId });
   if (f.unassigned) and.push({ assigneeId: null });
   if (f.overdue) and.push({ dueDate: { lt: istDayRange(istDayKey(now)).start }, state: { in: [...OPEN_STATES] } });
@@ -114,35 +123,35 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   return { AND: and };
 }
 
-export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: number };
+/** Names for what a list is narrowed to, so the screen can say it in words. */
+export type WorkLabels = { department: string | null; team: string | null; assignee: string | null; requester: string | null; project: string | null };
+export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: number; page?: number; pageSize?: number; labels?: WorkLabels };
 
-export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promise<WorkListDTO> {
-  const where = filterWhere(actor, scope, f);
-  const limit = Math.min(Math.max(f.limit ?? 50, 1), 200);
-  // Every order ends on the id, so two tasks touched in the same instant can
-  // never swap or vanish at a page break. Priority is the enum's own order —
-  // Critical, High, Medium, Low — then the soonest due (owner, 2026-09-10).
-  const orderBy: Prisma.TaskOrderByWithRelationInput[] =
-    f.sort === "due"
-      ? [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }, { id: "desc" }]
-      : f.sort === "created"
-        ? [{ createdAt: "desc" }, { id: "desc" }]
-        : f.sort === "number"
-          ? [{ number: "desc" }, { id: "desc" }]
-          : f.sort === "priority"
-            ? [{ priority: "asc" }, { dueDate: { sort: "asc", nulls: "last" } }, { id: "desc" }]
-            : [{ updatedAt: "desc" }, { id: "desc" }];
-  const [rows, total] = await Promise.all([
-    prisma.task.findMany({
-      where,
-      orderBy,
-      take: limit + 1,
-      ...(f.cursor ? { cursor: { id: f.cursor }, skip: 1 } : {}),
-      include: TASK_INCLUDE,
-    }),
-    prisma.task.count({ where }),
-  ]);
-  const page = rows.slice(0, limit);
+/**
+ * Every order ends on the id, so two tasks touched in the same instant can
+ * never swap or vanish at a page break. Priority is the enum's own order —
+ * Critical, High, Medium, Low — then the soonest due (owner, 2026-09-10).
+ */
+function orderFor(sort: WorkFilter["sort"]): Prisma.TaskOrderByWithRelationInput[] {
+  if (sort === "due") return [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }, { id: "desc" }];
+  if (sort === "created") return [{ createdAt: "desc" }, { id: "desc" }];
+  if (sort === "number") return [{ number: "desc" }, { id: "desc" }];
+  if (sort === "priority") return [{ priority: "asc" }, { dueDate: { sort: "asc", nulls: "last" } }, { id: "desc" }];
+  return [{ updatedAt: "desc" }, { id: "desc" }];
+}
+
+/** A whole number within bounds; anything unreadable falls back. */
+function wholeNumber(value: number | undefined, min: number, max: number, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(Math.max(Math.floor(value), min), max) : fallback;
+}
+
+function findListed(args: Omit<Prisma.TaskFindManyArgs, "include" | "select">) {
+  return prisma.task.findMany({ ...args, include: TASK_INCLUDE });
+}
+type ListedRow = Awaited<ReturnType<typeof findListed>>[number];
+
+/** Records as the list shows them: their note counts, and who else holds each shared task. */
+async function present(page: ListedRow[]): Promise<TaskDTO[]> {
   const counts = await noteCounts(page.map((r) => r.id), true);
 
   // The same task given to several people is one record each. Who ELSE holds it
@@ -166,15 +175,75 @@ export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promi
     }
   }
 
-  return {
-    items: withCounts(page, counts).map((row) => {
-      const dto = serializeTask(row);
-      const all = row.siblingKey ? crew.get(row.siblingKey) ?? [] : [];
-      return { ...dto, alsoWith: all.filter((p) => p.id !== row.assigneeId) };
-    }),
-    nextCursor: rows.length > limit ? page[page.length - 1].id : null,
-    total,
-  };
+  return withCounts(page, counts).map((row) => {
+    const dto = serializeTask(row);
+    const all = row.siblingKey ? crew.get(row.siblingKey) ?? [] : [];
+    return { ...dto, alsoWith: all.filter((p) => p.id !== row.assigneeId) };
+  });
+}
+
+/** Records, a cursor at a time: what every API caller gets unless it asks for rows=tasks. */
+export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promise<WorkListDTO> {
+  const where = filterWhere(actor, scope, f);
+  const limit = wholeNumber(f.limit, 1, 200, 50);
+  const [rows, total] = await Promise.all([
+    findListed({ where, orderBy: orderFor(f.sort), take: limit + 1, ...(f.cursor ? { cursor: { id: f.cursor }, skip: 1 } : {}) }),
+    prisma.task.count({ where }),
+  ]);
+  const page = rows.slice(0, limit);
+  return { items: await present(page), nextCursor: rows.length > limit ? page[page.length - 1].id : null, total };
+}
+
+/**
+ * The list as the Work screen shows it: one row per task. A shared task is
+ * shown by whichever of its records comes first in the chosen order and
+ * matches, counted once, and never split across two pages. The footer used to
+ * count records and pages could repeat or skip a shared task (review, 2026-09-10).
+ */
+export async function listWorkTasks(actor: Actor, scope: Scope, f: WorkFilter): Promise<WorkListDTO> {
+  const where = filterWhere(actor, scope, f);
+  const pageSize = wholeNumber(f.limit, 1, 200, 50);
+  const page = wholeNumber(f.page, 1, 100_000, 1);
+  // Every matching record's id and shared key, in order: short rows, and the
+  // only exact way to count and page tasks rather than records.
+  const ordered = await prisma.task.findMany({ where, orderBy: orderFor(f.sort), select: { id: true, siblingKey: true } });
+  const firsts: string[] = [];
+  const seen = new Set<string>();
+  for (const r of ordered) {
+    const key = r.siblingKey ?? `id:${r.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    firsts.push(r.id);
+  }
+  const ids = firsts.slice((page - 1) * pageSize, page * pageSize);
+  const rows = ids.length ? await findListed({ where: { id: { in: ids } } }) : [];
+  const byId = new Map(rows.map((r) => [r.id, r] as const));
+  const inOrder = ids.map((id) => byId.get(id)).filter((r): r is ListedRow => Boolean(r));
+  return { items: await present(inOrder), nextCursor: null, total: firsts.length, page, pageSize };
+}
+
+/** How many TASKS match: a task given to several people is several records, counted once. */
+export async function countTasks(where: Prisma.TaskWhereInput): Promise<number> {
+  const [alone, shared] = await Promise.all([
+    prisma.task.count({ where: { AND: [where, { siblingKey: null }] } }),
+    prisma.task.findMany({ where: { AND: [where, { siblingKey: { not: null } }] }, distinct: ["siblingKey"], select: { siblingKey: true } }),
+  ]);
+  return alone + shared.length;
+}
+
+/** Names for the department, team, people and project a list is narrowed to. */
+export async function narrowingLabels(scope: Scope, f: WorkFilter): Promise<WorkLabels> {
+  const person = (id: string | undefined) => (id ? prisma.user.findUnique({ where: { id }, select: { name: true } }) : null);
+  // A project's name only for someone who may see the project.
+  const projectShown = Boolean(f.projectId && f.projectId !== "none" && (scope.projectIds === null || scope.projectIds.has(f.projectId)));
+  const [department, team, assignee, requester, project] = await Promise.all([
+    f.departmentId ? prisma.department.findUnique({ where: { id: f.departmentId }, select: { name: true } }) : null,
+    f.assignmentGroupId ? prisma.assignmentGroup.findUnique({ where: { id: f.assignmentGroupId }, select: { name: true } }) : null,
+    person(f.assigneeId),
+    person(f.requesterId),
+    projectShown ? prisma.project.findUnique({ where: { id: f.projectId! }, select: { name: true } }) : null,
+  ]);
+  return { department: department?.name ?? null, team: team?.name ?? null, assignee: assignee?.name ?? null, requester: requester?.name ?? null, project: project?.name ?? null };
 }
 
 export type Counters = {
@@ -298,9 +367,12 @@ export function parseFilter(params: URLSearchParams): WorkFilter {
     createdFrom: str("createdFrom"),
     createdTo: str("createdTo"),
     mine: mine === "assigned" || mine === "requested" || mine === "team" || mine === "department" ? mine : undefined,
-    // A search or an explicit state looks at everything; a plain list is open work.
+    // A search or an explicit state looks at everything; a plain list is open
+    // work. The Work screen always says which it means, so its search keeps Show.
     open: open === "false" || open === "finished" ? open : open === "true" ? "true" : params.get("state") || params.get("q") ? "false" : "true",
     sort: sort === "due" || sort === "priority" || sort === "created" || sort === "number" || sort === "updated" ? sort : undefined,
+    rows: str("rows") === "tasks" ? "tasks" : undefined,
+    page: params.get("page") ? Number(params.get("page")) : undefined,
     cursor: str("cursor"),
     limit: params.get("limit") ? Number(params.get("limit")) : undefined,
   };

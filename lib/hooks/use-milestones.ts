@@ -22,6 +22,10 @@ export function useMilestoneMutations(projectId: string) {
     void qc.invalidateQueries({ queryKey: ["projects"] });
     void qc.invalidateQueries({ queryKey: ["calendar"] });
     void qc.invalidateQueries({ queryKey: ["today"] });
+    // Moving or removing a milestone moves its tasks' dates: the Work list and
+    // its counts have to hear about it too (review, 2026-09-10).
+    void qc.invalidateQueries({ queryKey: ["work"] });
+    void qc.invalidateQueries({ queryKey: ["dashboard"] });
   };
   const addMilestone = useMutation({
     mutationFn: (input: { name: string; reviewDate: string }) => apiPost<MilestoneDTO>("/api/milestones", { projectId, ...input }),

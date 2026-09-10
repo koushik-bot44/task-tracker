@@ -29,7 +29,8 @@
     "check:wellbeing": "tsx --env-file=.env.local scripts/check-wellbeing.ts",
     "check:attachments": "tsx --env-file=.env.local scripts/check-attachments.ts",
     "db:dryrun": "tsx --env-file=.env.local scripts/work-model-dryrun.ts",
-    "db:deploy": "sh scripts/db-deploy.sh"
+    "db:deploy": "sh scripts/db-deploy.sh",
+    "work-filters": "tsx --env-file=.env.local scripts/work-filters.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
