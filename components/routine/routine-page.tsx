@@ -35,6 +35,10 @@ export function RoutinePage() {
   const [week, setWeek] = useState<string | null>(null);
   // null = the caller's default routine (own person, else first collaboration).
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
+  // Summary (the calm overview) first, Tracker one tap away. Held here beside the
+  // week: the dashboard gives way to "Loading…" while another week loads, so held
+  // inside it the choice snapped back to Summary on every arrow (review, 2026-09-10).
+  const [view, setView] = useState<"summary" | "tracker">("summary");
   // Well Being is the CEO's alone (owner, 2026-09-04).
   const { data, isLoading } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
   // Shared scene (same source as the person screen). The scene class (pk-day / pk-night)
@@ -130,7 +134,7 @@ export function RoutinePage() {
         {isLoading || !data ? (
           <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>Loading…</div>
         ) : data.person ? (
-          <RoutineDashboard data={data} week={week} setWeek={setWeek} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
+          <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
         ) : (
           <AddPerson />
         )}
@@ -186,12 +190,16 @@ function RoutineDashboard({
   data,
   week,
   setWeek,
+  view,
+  setView,
   selectedPerson,
   setSelectedPerson,
 }: {
   data: RoutineOverviewDTO;
   week: string | null;
   setWeek: (w: string | null) => void;
+  view: "summary" | "tracker";
+  setView: (v: "summary" | "tracker") => void;
   selectedPerson: string | null;
   setSelectedPerson: (id: string | null) => void;
 }) {
@@ -206,9 +214,7 @@ function RoutineDashboard({
   const canWrite = role === "OWNER" || role === "EDITABLE";
   const isOwner = role === "OWNER";
   const isCurrent = weekMeta.weekStart === weekStartOf(today);
-  // Summary (the calm overview) is the default first view; Tracker (the grid the
-  // manager marks in) is one tap away. The week selector is SHARED.
-  const [view, setView] = useState<"summary" | "tracker">("summary");
+  // The week selector is SHARED by Summary and Tracker.
   const label = isCurrent ? "This week" : weekLabel(weekMeta.days);
   const undoneToday = tasks.filter((t) => !t.done && (t.dueDate === null || t.dueDate === today)).length;
 
