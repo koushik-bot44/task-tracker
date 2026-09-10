@@ -316,13 +316,14 @@ export const updateTaskSchema = z
     important: z.boolean(),
     archived: z.boolean(),
     deletedAt: z.null(),
-    // Links only, never uploads — http(s) enforced so a javascript: URL cannot
-    // be stored and later rendered as an anchor.
+    // A link, or a file uploaded here (files everywhere, owner 2026-09-10). Only
+    // http(s) or an /api/uploads address, so a javascript: URL can never be
+    // stored and later rendered as an anchor.
     deliverableUrl: z
       .string()
       .trim()
       .max(2000)
-      .regex(/^https?:\/\/\S+$/i, "Must be an http or https URL")
+      .regex(/^(https?:\/\/\S+|\/api\/uploads\/c[a-z0-9]{20,40})$/, "Must be an http or https link, or a file attached here")
       .nullable(),
   })
   .partial();

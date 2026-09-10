@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowRightLeft, ExternalLink, MessageSquare, Plus, Star, Trash2 } from "lucide-react";
+import { ArrowRightLeft, ExternalLink, MessageSquare, Paperclip, Plus, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NotesThread } from "@/components/notes/notes-thread";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Check } from "@/components/ui/row";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { dayInputValue, dateWord, isoDaysFromNow } from "@/lib/dates";
+import { uploadFile, useUploadsEnabled } from "@/lib/hooks/use-comments";
 import { useMilestones } from "@/lib/hooks/use-milestones";
 import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useProjectPeople, useProjects } from "@/lib/hooks/use-projects";
@@ -47,6 +48,9 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
   const [moveOpen, setMoveOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
   const [resultDraft, setResultDraft] = useState(task.deliverableUrl ?? "");
+  const [resultUploading, setResultUploading] = useState(false);
+  const resultFileRef = useRef<HTMLInputElement>(null);
+  const { data: uploads } = useUploadsEnabled();
   const [stepDraft, setStepDraft] = useState("");
   const [addingStep, setAddingStep] = useState(false);
   const [openStepNotes, setOpenStepNotes] = useState<string | null>(null);
@@ -57,6 +61,22 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
 
   const patch = (data: Parameters<typeof updateTask.mutate>[0]["patch"], quiet = false) =>
     updateTask.mutate({ id: task.id, patch: data, quiet }, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) });
+
+  /** A finished file as the result, instead of a link (files everywhere, owner 2026-09-10). */
+  const attachResult = async (file: File | undefined) => {
+    if (!file) return;
+    setResultUploading(true);
+    try {
+      const up = await uploadFile(file, uploads?.maxBytes);
+      patch({ deliverableUrl: up.url });
+      setResultOpen(false);
+    } catch (e) {
+      toast({ message: (e as Error).message, tone: "danger" });
+    } finally {
+      setResultUploading(false);
+      if (resultFileRef.current) resultFileRef.current.value = "";
+    }
+  };
 
   const steps = useMemo(() => (siblings ?? []).filter((t) => t.parentId === task.id && !t.deletedAt), [siblings, task.id]);
   const isStep = task.parentId !== null;
@@ -233,8 +253,12 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
           {task.deliverableUrl && !resultOpen ? (
             <div className="flex items-center gap-2">
               <a href={task.deliverableUrl} target="_blank" rel="noopener noreferrer" className="press flex h-11 min-w-0 flex-1 items-center gap-2 rounded-input bg-hover px-3 text-sm font-medium text-primary-ink">
-                <ExternalLink className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
-                <span className="truncate">{task.deliverableUrl.replace(/^https?:\/\//, "")}</span>
+                {task.deliverableUrl.startsWith("/api/uploads/") ? (
+                  <Paperclip className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+                ) : (
+                  <ExternalLink className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+                )}
+                <span className="truncate">{task.deliverableUrl.startsWith("/api/uploads/") ? "The attached file" : task.deliverableUrl.replace(/^https?:\/\//, "")}</span>
               </a>
               <Button variant="quiet" onClick={() => { setResultDraft(task.deliverableUrl ?? ""); setResultOpen(true); }}>
                 Change
@@ -255,7 +279,7 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
                 variant="primary"
                 onClick={() => {
                   const v = resultDraft.trim();
-                  if (v && !/^https?:\/\/\S+$/i.test(v)) {
+                  if (v && !/^(https?:\/\/\S+|\/api\/uploads\/c[a-z0-9]{20,40})$/i.test(v)) {
                     toast({ message: "Paste a link that starts with http:// or https://", tone: "danger" });
                     return;
                   }
@@ -265,12 +289,21 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
               >
                 Save
               </Button>
+              <Button variant="quiet" onClick={() => resultFileRef.current?.click()} loading={resultUploading} icon={<Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
+                A file instead
+              </Button>
             </div>
           ) : (
-            <Button variant="secondary" onClick={() => setResultOpen(true)} icon={<ExternalLink className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
-              Add a link to the result
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => setResultOpen(true)} icon={<ExternalLink className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
+                Add a link to the result
+              </Button>
+              <Button variant="secondary" onClick={() => resultFileRef.current?.click()} loading={resultUploading} icon={<Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}>
+                Attach the result file
+              </Button>
+            </div>
           )}
+          <input ref={resultFileRef} type="file" className="hidden" aria-label="Result file" onChange={(e) => void attachResult(e.target.files?.[0])} />
         </section>
       ) : null}
 
