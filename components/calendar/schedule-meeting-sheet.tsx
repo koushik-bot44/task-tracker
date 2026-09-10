@@ -25,14 +25,14 @@ const ABOUT: { key: About; label: string }[] = [
   { key: "project", label: "A project" },
   { key: "department", label: "A department" },
   { key: "everyone", label: "Everyone" },
-  { key: "person", label: "One person" },
+  { key: "person", label: "People" },
 ];
 
 type Candidate = { userId: string; name: string };
 
 /**
  * Schedule a meeting (owner, 2026-09-08 — "make it simpler"): three questions.
- * "About?" (a project / a department / everyone / one person) — the choice
+ * "About?" (a project / a department / everyone / chosen people) — the choice
  * fills the faces by itself; "When?"; "What's it about?". Tap a face to add
  * or leave someone out. The same sheet edits or cancels an existing meeting.
  * A review meeting never comes here — its day belongs to the milestone.
@@ -65,6 +65,8 @@ export function ScheduleMeetingSheet({
   const [projectId, setProjectId] = useState<string | null>(meeting?.projectId ?? presetProjectId);
   const [departmentId, setDepartmentId] = useState("");
   const [who, setWho] = useState<Set<string>>(new Set());
+  /** Narrows the faces on screen; who is ticked is untouched by it. */
+  const [findQ, setFindQ] = useState("");
   const [seededFor, setSeededFor] = useState<string | null>(null);
   const [date, setDate] = useState("");
   const [start, setStart] = useState("10:00");
@@ -100,6 +102,11 @@ export function ScheduleMeetingSheet({
     return colleagues;
   }, [about, candidates, colleagues, users, departmentId]);
 
+  const shown = useMemo(() => {
+    const needle = findQ.trim().toLowerCase();
+    return needle ? people.filter((p) => p.name.toLowerCase().includes(needle)) : people;
+  }, [people, findQ]);
+
   // Fresh every time it opens: an edit starts from the meeting, a new one
   // from the preset project and day.
   useEffect(() => {
@@ -107,6 +114,7 @@ export function ScheduleMeetingSheet({
     setAbout(meeting ? (meeting.projectId ? "project" : "everyone") : presetProjectId ? "project" : "project");
     setProjectId(meeting?.projectId ?? presetProjectId);
     setDepartmentId("");
+    setFindQ("");
     setSeededFor(null);
     setWho(new Set(meeting ? meeting.attendees.map((a) => a.userId) : []));
     setDate(meeting ? meeting.date.slice(0, 10) : defaultDate ?? dayInputValue(new Date()));
@@ -117,7 +125,7 @@ export function ScheduleMeetingSheet({
   }, [open, meeting, presetProjectId, defaultDate]);
 
   // The choice fills the faces: a project's people, a department's people,
-  // the whole company — all picked; "one person" starts empty. An edit keeps
+  // the whole company — all picked; "People" starts empty. An edit keeps
   // the meeting's own list.
   const seedKey = about === "project" ? `p:${projectId ?? ""}` : about === "department" ? `d:${departmentId}` : about;
   useEffect(() => {
@@ -243,6 +251,7 @@ export function ScheduleMeetingSheet({
                   aria-pressed={about === o.key}
                   onClick={() => {
                     setAbout(o.key);
+                    setFindQ("");
                     setSeededFor(null);
                   }}
                   className={cn(
@@ -313,8 +322,22 @@ export function ScheduleMeetingSheet({
               {about === "project" ? "Nobody is on this project yet — add people from the project page." : "Nobody here yet."}
             </p>
           ) : (
+            <>
+            {/* A company is too many faces to scroll through; find the one you mean. */}
+            {people.length > 6 ? (
+              <input
+                value={findQ}
+                onChange={(e) => setFindQ(e.target.value)}
+                placeholder="Find a person"
+                aria-label="Find a person"
+                className={cn(inputClass, "mb-2")}
+              />
+            ) : null}
+            {shown.length === 0 ? (
+              <p className="text-sm text-muted">Nobody matches &ldquo;{findQ.trim()}&rdquo;.</p>
+            ) : null}
             <div role="group" aria-label="Who" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-              {people.map((p) => {
+              {shown.map((p) => {
                 const on = who.has(p.userId);
                 return (
                   <button
@@ -334,6 +357,7 @@ export function ScheduleMeetingSheet({
                 );
               })}
             </div>
+            </>
           )}
           {people.length > 0 && who.size === 0 ? <p className="mt-1 text-micro text-danger-ink">Pick at least one person.</p> : null}
         </div>

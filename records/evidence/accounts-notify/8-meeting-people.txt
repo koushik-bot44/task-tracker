@@ -1,0 +1,10 @@
+PASS  no choice is called "One person" any more
+PASS  the choice is called "People"
+PASS  a Find a person box is offered  (58 faces before searching)
+PASS  typing a name narrows the faces to that person  (1 shown: MS
+Meera)
+PASS  both people stay ticked after the search is cleared (several at once)  (2 ticked)
+PASS  the count reads 2 of everyone  (2 of 58)
+PASS  a search that matches nobody says so
+
+7 passed, 0 failed
