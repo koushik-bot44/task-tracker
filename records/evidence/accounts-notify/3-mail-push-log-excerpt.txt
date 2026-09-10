@@ -1,0 +1,42 @@
+# Mail and push decisions the dev server logged during the test run (2026-09-10).
+# Full server output is not committed; these are the lines lib/email.ts and lib/push.ts write.
+
+   6 [email] not sending to staff-accounts-lead@orbit.local — that domain can never receive mail
+   5 [email] not sending to permtest-dev@orbit.local — that domain can never receive mail
+   5 [email] not sending to founder@orbit.local — that domain can never receive mail
+   5 [email] not sending to flow-member@orbit.local — that domain can never receive mail
+   4 [email] not sending to staff-erm-member-1@orbit.local — that domain can never receive mail
+   4 [email] not sending to permtest-dev2@orbit.local — that domain can never receive mail
+   3 [email] not sending to wm-dev-b@orbit.local — that domain can never receive mail
+   3 [email] not sending to wm-dev-a@orbit.local — that domain can never receive mail
+   3 [email] not sending to staff-accounts-member-1@orbit.local — that domain can never receive mail
+   3 [email] not sending to lead@orbit.local — that domain can never receive mail
+   3 [email] not sending to flow-lead@orbit.local — that domain can never receive mail
+   2 [push] send failed: 403 Received unexpected response code
+   2 [email] not sending to staff-hr-head@orbit.local — that domain can never receive mail
+   2 [email] not sending to staff-accounts-member-2@orbit.local — that domain can never receive mail
+   2 [email] not sending to staff-accounts-manager@orbit.local — that domain can never receive mail
+   2 [email] not sending to permtest-manager@orbit.local — that domain can never receive mail
+   2 [email] not sending to permtest-lead@orbit.local — that domain can never receive mail
+   2 [email] not sending to permtest-dev3@orbit.local — that domain can never receive mail
+   2 [email] dev: not sending to notify-probe-active@example.org (add it to EMAIL_DEV_ALLOW, or "*" for everyone)
+   1 [email] not sending to wm-outside@orbit.local — that domain can never receive mail
+   1 [email] not sending to test-manager@orbit.local — that domain can never receive mail
+   1 [email] not sending to test-dev@orbit.local — that domain can never receive mail
+   1 [email] not sending to staff-operations-member-1@orbit.local — that domain can never receive mail
+   1 [email] not sending to staff-operations-lead@orbit.local — that domain can never receive mail
+   1 [email] not sending to staff-network-admins-manager@orbit.local — that domain can never receive mail
+   1 [email] not sending to staff-network-admins-head@orbit.local — that domain can never receive mail
+   1 [email] not sending to staff-accounts-head@orbit.local — that domain can never receive mail
+   1 [email] not sending to permtest-mgrlead@orbit.local — that domain can never receive mail
+   1 [email] not sending to permtest-invited@orbit.local — that domain can never receive mail
+   1 [email] not sending to permtest-hodmgr@orbit.local — that domain can never receive mail
+   1 [email] not sending to permtest-dirhod@orbit.local — that domain can never receive mail
+   1 [email] not sending to permtest-admmgr@orbit.local — that domain can never receive mail
+   1 [email] not sending to flow-manager@orbit.local — that domain can never receive mail
+   1 [email] not sending to flow-invitee@orbit.local — that domain can never receive mail
+   1 [email] not sending to e2e-person@orbit.local — that domain can never receive mail
+   1 [email] not sending to abhi@orbit.local — that domain can never receive mail
+   1 [email] dev: not sending to (a colleague's address) (add it to EMAIL_DEV_ALLOW, or "*" for everyone)
+   1 [email] dev: not sending to (a colleague's address) (add it to EMAIL_DEV_ALLOW, or "*" for everyone)
+   1 [email] dev: not sending to (a colleague's address) (add it to EMAIL_DEV_ALLOW, or "*" for everyone)

@@ -1,0 +1,10 @@
+login                                  exists name ok role ok  dept ok  active pw  !disabled heads-HR  sign-in
+founder@orbit.local                    yes    yes     FOUNDER     —         yes    yes yes       NO        200 
+salyush@orbit.local                    yes    yes     CO_FOUNDER  —         yes    yes yes       NO        200 
+staff-hr-head@orbit.local              yes    yes     HOD         HR        yes    yes yes       yes       200 
+staff-accounts-manager@orbit.local     yes    yes     MANAGER     Accounts  yes    yes yes       NO        200 
+staff-accounts-lead@orbit.local        yes    yes     TEAM_LEAD   Accounts  yes    yes yes       NO        200 
+staff-erm-member-1@orbit.local         yes    yes     RESOURCE    ERM       yes    yes yes       NO        200 
+
+HR department head points at staff-hr-head@orbit.local: yes
+6 of 6 logins correct

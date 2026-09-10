@@ -1,0 +1,129 @@
+PASS  ceo         Well Being tab on screen                     expected: shown                  actual: shown  [ceo-today.png]
+PASS  ceo         Well Being API (/api/routine)                expected: open                   actual: 200
+INFO  ceo         tasks list total (default view): 58
+PASS  ceo         departments listed                           expected: Accounts,Administration,Development,ERM,HR,Network Admins,Operations,Research and Development,Self actual: Accounts,Administration,Development,ERM,HR,Network Admins,Operations,Research and Development,Self  [ceo-departments.png]
+INFO  ceo         People sections on screen: Company, Development, Administration, Accounts, Operations, Research and Development, ERM, HR, Network Admins, Self, Not placed yet
+PASS  ceo         People · "Self" shown as empty               expected: really empty           actual: really empty  [ceo-people.png]
+PASS  ceo         project page · HR                            expected: opens                  actual: opens  [ceo-project-HR.png]
+PASS  ceo         GET project · HR                             expected: 200                    actual: 200
+PASS  ceo         GET task · HR                                expected: 200                    actual: 200
+INFO  ceo         PATCH task · HR (in reach; may still be refused if they cannot edit): 200
+PASS  ceo         project page · Accounts                      expected: opens                  actual: opens  [ceo-project-Accounts.png]
+PASS  ceo         GET project · Accounts                       expected: 200                    actual: 200
+PASS  ceo         GET task · Accounts                          expected: 200                    actual: 200
+INFO  ceo         PATCH task · Accounts (in reach; may still be refused if they cannot edit): 200
+PASS  ceo         project page · ERM                           expected: opens                  actual: opens  [ceo-project-ERM.png]
+PASS  ceo         GET project · ERM                            expected: 200                    actual: 200
+PASS  ceo         GET task · ERM                               expected: 200                    actual: 200
+INFO  ceo         PATCH task · ERM (in reach; may still be refused if they cannot edit): 200
+PASS  cofounder   Well Being tab on screen                     expected: hidden                 actual: hidden  [cofounder-today.png]
+PASS  cofounder   Well Being API (/api/routine)                expected: 403                    actual: 403
+INFO  cofounder   tasks list total (default view): 30
+PASS  cofounder   departments listed                           expected: Accounts,Administration,Development,ERM,HR,Network Admins,Operations,Research and Development,Self actual: Accounts,Administration,Development,ERM,HR,Network Admins,Operations,Research and Development,Self  [cofounder-departments.png]
+INFO  cofounder   People sections on screen: Company, Development, Administration, Accounts, Operations, Research and Development, ERM, HR, Network Admins, Self, Not placed yet
+PASS  cofounder   People · "Self" shown as empty               expected: really empty           actual: really empty  [cofounder-people.png]
+PASS  cofounder   project page · HR                            expected: stays closed           actual: stays closed  [cofounder-project-HR.png]
+PASS  cofounder   GET project · HR                             expected: 403 (or 404)           actual: 404
+FAIL  cofounder   GET task · HR (out of reach)                 expected: 403                    actual: 404
+FAIL  cofounder   PATCH task · HR (out of reach)               expected: 403                    actual: 404
+PASS  cofounder   project page · Accounts                      expected: opens                  actual: opens  [cofounder-project-Accounts.png]
+PASS  cofounder   GET project · Accounts                       expected: 200                    actual: 200
+FAIL  cofounder   GET task · Accounts (out of reach)           expected: 403                    actual: 404
+FAIL  cofounder   PATCH task · Accounts (out of reach)         expected: 403                    actual: 404
+PASS  cofounder   project page · ERM                           expected: stays closed           actual: stays closed  [cofounder-project-ERM.png]
+PASS  cofounder   GET project · ERM                            expected: 403 (or 404)           actual: 404
+FAIL  cofounder   GET task · ERM (out of reach)                expected: 403                    actual: 404
+FAIL  cofounder   PATCH task · ERM (out of reach)              expected: 403                    actual: 404
+PASS  cofounder   PATCH the CEO's account                      expected: 403                    actual: 403
+PASS  hrHead      Well Being tab on screen                     expected: hidden                 actual: hidden  [hrHead-today.png]
+PASS  hrHead      Well Being API (/api/routine)                expected: 403                    actual: 403
+INFO  hrHead      tasks list total (default view): 5
+PASS  hrHead      departments listed                           expected: HR                     actual: HR  [hrHead-departments.png]
+INFO  hrHead      People sections on screen: Company, HR
+PASS  hrHead      project page · HR                            expected: opens                  actual: opens  [hrHead-project-HR.png]
+PASS  hrHead      GET project · HR                             expected: 200                    actual: 200
+PASS  hrHead      GET task · HR                                expected: 200                    actual: 200
+INFO  hrHead      PATCH task · HR (in reach; may still be refused if they cannot edit): 200
+PASS  hrHead      project page · Accounts                      expected: stays closed           actual: stays closed  [hrHead-project-Accounts.png]
+PASS  hrHead      GET project · Accounts                       expected: 403 (or 404)           actual: 404
+FAIL  hrHead      GET task · Accounts (out of reach)           expected: 403                    actual: 404
+FAIL  hrHead      PATCH task · Accounts (out of reach)         expected: 403                    actual: 404
+PASS  hrHead      project page · ERM                           expected: stays closed           actual: stays closed  [hrHead-project-ERM.png]
+PASS  hrHead      GET project · ERM                            expected: 403 (or 404)           actual: 404
+FAIL  hrHead      GET task · ERM (out of reach)                expected: 403                    actual: 404
+FAIL  hrHead      PATCH task · ERM (out of reach)              expected: 403                    actual: 404
+PASS  hrHead      PATCH the CEO's account                      expected: 403                    actual: 403
+PASS  accManager  Well Being tab on screen                     expected: hidden                 actual: hidden  [accManager-today.png]
+PASS  accManager  Well Being API (/api/routine)                expected: 403                    actual: 403
+INFO  accManager  tasks list total (default view): 6
+PASS  accManager  departments listed                           expected: Accounts               actual: Accounts  [accManager-departments.png]
+INFO  accManager  People sections on screen: Company, Accounts
+PASS  accManager  project page · HR                            expected: stays closed           actual: stays closed  [accManager-project-HR.png]
+PASS  accManager  GET project · HR                             expected: 403 (or 404)           actual: 404
+FAIL  accManager  GET task · HR (out of reach)                 expected: 403                    actual: 404
+FAIL  accManager  PATCH task · HR (out of reach)               expected: 403                    actual: 404
+PASS  accManager  project page · Accounts                      expected: opens                  actual: opens  [accManager-project-Accounts.png]
+PASS  accManager  GET project · Accounts                       expected: 200                    actual: 200
+PASS  accManager  GET task · Accounts                          expected: 200                    actual: 200
+INFO  accManager  PATCH task · Accounts (in reach; may still be refused if they cannot edit): 200
+PASS  accManager  project page · ERM                           expected: stays closed           actual: stays closed  [accManager-project-ERM.png]
+PASS  accManager  GET project · ERM                            expected: 403 (or 404)           actual: 404
+FAIL  accManager  GET task · ERM (out of reach)                expected: 403                    actual: 404
+FAIL  accManager  PATCH task · ERM (out of reach)              expected: 403                    actual: 404
+PASS  accManager  PATCH the CEO's account                      expected: 403                    actual: 403
+PASS  accLead     Well Being tab on screen                     expected: hidden                 actual: hidden  [accLead-today.png]
+PASS  accLead     Well Being API (/api/routine)                expected: 403                    actual: 403
+INFO  accLead     tasks list total (default view): 6
+PASS  accLead     departments listed                           expected: Accounts               actual: Accounts  [accLead-departments.png]
+INFO  accLead     People sections on screen: Company, Accounts
+PASS  accLead     project page · HR                            expected: stays closed           actual: stays closed  [accLead-project-HR.png]
+PASS  accLead     GET project · HR                             expected: 403 (or 404)           actual: 404
+FAIL  accLead     GET task · HR (out of reach)                 expected: 403                    actual: 404
+FAIL  accLead     PATCH task · HR (out of reach)               expected: 403                    actual: 404
+PASS  accLead     project page · Accounts                      expected: opens                  actual: opens  [accLead-project-Accounts.png]
+PASS  accLead     GET project · Accounts                       expected: 200                    actual: 200
+PASS  accLead     GET task · Accounts                          expected: 200                    actual: 200
+INFO  accLead     PATCH task · Accounts (in reach; may still be refused if they cannot edit): 200
+PASS  accLead     project page · ERM                           expected: stays closed           actual: stays closed  [accLead-project-ERM.png]
+PASS  accLead     GET project · ERM                            expected: 403 (or 404)           actual: 404
+FAIL  accLead     GET task · ERM (out of reach)                expected: 403                    actual: 404
+FAIL  accLead     PATCH task · ERM (out of reach)              expected: 403                    actual: 404
+PASS  accLead     PATCH the CEO's account                      expected: 403                    actual: 403
+PASS  accMember   Well Being tab on screen                     expected: hidden                 actual: hidden  [accMember-today.png]
+PASS  accMember   Well Being API (/api/routine)                expected: 403                    actual: 403
+INFO  accMember   tasks list total (default view): 6
+PASS  accMember   departments listed                           expected: Accounts               actual: Accounts  [accMember-departments.png]
+INFO  accMember   People sections on screen: 
+PASS  accMember   project page · HR                            expected: stays closed           actual: stays closed  [accMember-project-HR.png]
+PASS  accMember   GET project · HR                             expected: 403 (or 404)           actual: 404
+FAIL  accMember   GET task · HR (out of reach)                 expected: 403                    actual: 404
+FAIL  accMember   PATCH task · HR (out of reach)               expected: 403                    actual: 404
+PASS  accMember   project page · Accounts                      expected: opens                  actual: opens  [accMember-project-Accounts.png]
+PASS  accMember   GET project · Accounts                       expected: 200                    actual: 200
+PASS  accMember   GET task · Accounts                          expected: 200                    actual: 200
+INFO  accMember   PATCH task · Accounts (in reach; may still be refused if they cannot edit): 403
+PASS  accMember   project page · ERM                           expected: stays closed           actual: stays closed  [accMember-project-ERM.png]
+PASS  accMember   GET project · ERM                            expected: 403 (or 404)           actual: 404
+FAIL  accMember   GET task · ERM (out of reach)                expected: 403                    actual: 404
+FAIL  accMember   PATCH task · ERM (out of reach)              expected: 403                    actual: 404
+PASS  accMember   PATCH the CEO's account                      expected: 403                    actual: 403
+PASS  ermMember   Well Being tab on screen                     expected: hidden                 actual: hidden  [ermMember-today.png]
+PASS  ermMember   Well Being API (/api/routine)                expected: 403                    actual: 403
+INFO  ermMember   tasks list total (default view): 4
+PASS  ermMember   departments listed                           expected: ERM                    actual: ERM  [ermMember-departments.png]
+INFO  ermMember   People sections on screen: 
+PASS  ermMember   project page · HR                            expected: stays closed           actual: stays closed  [ermMember-project-HR.png]
+PASS  ermMember   GET project · HR                             expected: 403 (or 404)           actual: 404
+FAIL  ermMember   GET task · HR (out of reach)                 expected: 403                    actual: 404
+FAIL  ermMember   PATCH task · HR (out of reach)               expected: 403                    actual: 404
+PASS  ermMember   project page · Accounts                      expected: stays closed           actual: stays closed  [ermMember-project-Accounts.png]
+PASS  ermMember   GET project · Accounts                       expected: 403 (or 404)           actual: 404
+FAIL  ermMember   GET task · Accounts (out of reach)           expected: 403                    actual: 404
+FAIL  ermMember   PATCH task · Accounts (out of reach)         expected: 403                    actual: 404
+PASS  ermMember   project page · ERM                           expected: opens                  actual: opens  [ermMember-project-ERM.png]
+PASS  ermMember   GET project · ERM                            expected: 200                    actual: 200
+PASS  ermMember   GET task · ERM                               expected: 200                    actual: 200
+INFO  ermMember   PATCH task · ERM (in reach; may still be refused if they cannot edit): 200
+PASS  ermMember   PATCH the CEO's account                      expected: 403                    actual: 403
+
+26 findings

@@ -1,0 +1,435 @@
+===== npm run perm-matrix =====
+
+> orbit@0.1.0 perm-matrix
+> tsx --env-file=.env.local scripts/perm-matrix.ts
+
+
+── departments ───────────────────────────────────────────────
+PASS  manager creates a department -> 403                            got 403, want 403
+PASS  the CEO creates a department, hod as its head -> 201           got 201, want 201
+PASS  the CEO creates a second, empty department -> 201              got 201, want 201
+PASS  hod edits their own department's description -> 200            got 200, want 200
+PASS  hod renames their own department -> 403                        got 403, want 403
+PASS  hod edits another department's description -> 403              got 403, want 403
+
+── new project ───────────────────────────────────────────────
+PASS  dev starts a project -> 403                                    got 403, want 403
+PASS  lead starts a project -> 403                                   got 403, want 403
+PASS  admin starts a project -> 403                                  got 403, want 403
+PASS  manager starts a project -> 201                                got 201, want 201
+PASS  the project belongs to the manager who started it
+PASS  hod starts a project in their own department -> 201            got 201, want 201
+PASS  hod starts a project in another department -> 403              got 403, want 403
+PASS  another manager starts their own project -> 201                got 201, want 201
+PASS  the CEO deletes an empty department -> 200                     got 200, want 200
+
+── seeing a project ──────────────────────────────────────────
+PASS  the CEO reads the project -> 200                               got 200, want 200
+PASS  hod reads a project in their department -> 200                 got 200, want 200
+PASS  lead reads any project -> 200                                  got 200, want 200
+PASS  another manager (not on it) reads the project -> 404           got 404, want 404
+PASS  dev (not on it yet) reads the project -> 404                   got 404, want 404
+
+── add people ────────────────────────────────────────────────
+PASS  lead adds a member -> 403                                      got 403, want 403
+PASS  manager (owner) adds dev -> 200                                got 200, want 200
+PASS  manager (owner) adds dev2 -> 200                               got 200, want 200
+PASS  manager invites someone new by email -> 201                    got 201, want 201
+PASS  another manager adds a member -> 404                           got 404, want 404
+PASS  added dev now reads the project -> 200                         got 200, want 200
+
+── edit project ──────────────────────────────────────────────
+PASS  dev renames the project -> 403                                 got 403, want 403
+PASS  lead renames the project -> 403                                got 403, want 403
+PASS  manager (owner) renames the project -> 200                     got 200, want 200
+PASS  hod (own department) sets the status -> 200                    got 200, want 200
+PASS  another manager renames the project -> 404                     got 404, want 404
+PASS  the CEO sets the % by hand (200, his number stands)
+PASS  a head of department cannot set the %
+
+── give a task ───────────────────────────────────────────────
+PASS  dev (member) gives a task to dev2 (member) -> 201              got 201, want 201
+PASS  dev gives a task to someone not on the project -> 400          got 400, want 400
+PASS  lead gives a task to someone not on the project -> 201         got 201, want 201
+PASS  …and that person is now on the project
+PASS  dev gives a task in a project they're not on -> 403/404        got 404, want 403/404
+
+── reassign / edit a task ────────────────────────────────────
+PASS  dev gives a task with no one named -> 201                      got 201, want 201
+PASS  …and it lands on the giver
+PASS  dev reassigns it to dev2 -> 200                                got 200, want 200
+PASS  dev3 (holds a task here) stars it -> 200                       got 200, want 200
+PASS  dev2 says Doing -> 200                                         got 200, want 200
+PASS  dev2 ticks it done -> 403                                      got 403, want 403
+PASS  lead ticks it done -> 200                                      got 200, want 200
+PASS  another manager edits it -> 404                                got 404, want 404
+
+── steps ─────────────────────────────────────────────────────
+PASS  a step with its own person -> 400                              got 400, want 400
+PASS  a step under a task -> 201                                     got 201, want 201
+PASS  …its parent is the root task
+PASS  a step under a step -> 201                                     got 201, want 201
+PASS  …re-pointed to the root task
+
+── milestones ────────────────────────────────────────────────
+PASS  lead adds a milestone -> 403                                   got 403, want 403
+PASS  manager adds a milestone -> 201                                got 201, want 201
+PASS  …it has a review meeting
+PASS  manager gives a task inside the milestone -> 201               got 201, want 201
+PASS  …'by when' defaulted to the review date
+PASS  the review meeting shows on the calendar that day
+PASS  …its attendees include the lead and the task holder
+PASS  manager moves the review date -> 200                           got 200, want 200
+PASS  …the review meeting moved with it
+
+── review outcome (Needs your OK) ────────────────────────────
+PASS  manager records an outcome -> 403                              got 403, want 403
+PASS  hod records an outcome -> 403                                  got 403, want 403
+PASS  director records an outcome -> 200                             got 200, want 200
+PASS  …the outcome became a note on the milestone
+PASS  …and the project's progress is tasks done over tasks (computed)
+PASS  dev deletes the milestone -> 403                               got 403, want 403
+PASS  manager deletes the milestone -> 200                           got 200, want 200
+PASS  …its task moved to 'Not in a milestone yet'
+
+── notes ─────────────────────────────────────────────────────
+PASS  dev posts a note on a task in their project -> 201             got 201, want 201
+PASS  lead deletes someone else's note -> 403                        got 403, want 403
+PASS  manager (owner) deletes someone else's note -> 403             got 403, want 403
+PASS  the author deletes their own note -> 200                       got 200, want 200
+PASS  dev posts a project note -> 201                                got 201, want 201
+PASS  dev reads notes of a project they're not on -> 404             got 404, want 404
+PASS  dev posts a note on a project they're not on -> 404            got 404, want 404
+
+── meetings ──────────────────────────────────────────────────
+PASS  dev schedules a meeting -> 403                                 got 403, want 403
+PASS  lead schedules a meeting -> 403                                got 403, want 403
+PASS  manager schedules a meeting with dev -> 201                    got 201, want 201
+PASS  dev replies Can't -> 200                                       got 200, want 200
+PASS  dev2 (not invited) replies -> 404                              got 404, want 404
+PASS  dev asks to reschedule -> 403                                  got 403, want 403
+PASS  the CEO asks to reschedule -> 200                              got 200, want 200
+PASS  manager (organiser) asks to reschedule -> 200                  got 200, want 200
+PASS  …three slots offered
+PASS  …every slot is a working day (Mon–Fri)
+PASS  manager reschedules to the first slot -> 200                   got 200, want 200
+PASS  …the meeting is on the new day
+PASS  …and every reply was cleared
+
+── accounts ──────────────────────────────────────────────────
+PASS  lead creates a team member -> 403                              got 403, want 403
+PASS  manager creates a team lead -> 201                             got 201, want 201
+PASS  manager creates a manager -> 403                               got 403, want 403
+PASS  hod creates a manager -> 201                                   got 201, want 201
+PASS  the CEO creates a head of department -> 201                    got 201, want 201
+PASS  admin creates a head of department -> 403                      got 403, want 403
+PASS  admin creates a manager -> 201                                 got 201, want 201
+PASS  manager places dev in a department -> 200                      got 200, want 200
+PASS  lead places dev in a department -> 403                         got 403, want 403
+PASS  dev reads the people list -> 403                               got 403, want 403
+PASS  lead reads the people list -> 200                              got 200, want 200
+PASS  admin reads the people list -> 200                             got 200, want 200
+
+── walls: admin ──────────────────────────────────────────────
+PASS  admin lists projects -> 403                                    got 403, want 403
+PASS  admin lists tasks -> 403                                       got 403, want 403
+PASS  admin reads Today -> 403                                       got 403, want 403
+PASS  admin reads the calendar -> 403                                got 403, want 403
+PASS  a PERSON can't be created through People -> 403                got 403, want 403
+
+── walls: person ─────────────────────────────────────────────
+PASS  a PERSON gets 403 from every work endpoint (24/24, ≥20 distinct)
+
+── cron ──────────────────────────────────────────────────────
+PASS  cron without the secret -> 401                                 got 401, want 401
+PASS  cron with a wrong secret -> 401                                got 401, want 401
+
+── My notes: isolation ───────────────────────────────────────
+PASS  dev creates a personal department -> 201                       got 201, want 201
+PASS  dev creates a personal project -> 201                          got 201, want 201
+PASS  dev creates a private note -> 201                              got 201, want 201
+PASS  dev reads their own private note -> 200                        got 200, want 200
+PASS  dev2 reads it -> 404                                           got 404, want 404
+PASS  dev2 reads its notes -> 404                                    got 404, want 404
+PASS  the CEO reads it -> 404 (no role override)                     got 404, want 404
+
+── cleanup ───────────────────────────────────────────────────
+removed 9 throwaway accounts (tasks 7, notes 1, events 1, projects 3, departments 1)
+remaining permtest-* accounts: 0
+
+115 passed, 0 failed
+exit: 0
+===== npm run e2e =====
+
+> orbit@0.1.0 e2e
+> tsx --env-file=.env.local scripts/e2e-restructure.ts
+
+PASS  CEO creates a project  (status 201)
+PASS  a milestone is added  (status 201)
+PASS  the review lands on the day asked for  (2026-09-25)
+PASS  its meeting is on the same day  (2026-09-25)
+PASS  tasks sit on the box's day  (2 tasks)
+PASS  the review moves  (status 200)
+PASS  the meeting followed the review  (2026-10-02)
+PASS  the tasks followed the review  (2026-10-02,2026-10-02)
+PASS  a hand-set date is left alone  (2026-10-09)
+PASS  an automatic date still follows  (2026-10-05)
+PASS  Postpone offers three days  (3 slots)
+PASS  the meeting is postponed  (status 200)
+PASS  the box moved with it  (2026-10-06 vs 2026-10-06)
+PASS  its tasks moved with it  (2026-10-06)
+PASS  one 'Moved' notice per person, not a pile  (0 notices)
+PASS  a review weeks away stays off Today  (0 meetings listed)
+PASS  a 'Can't' brings it to the CEO's Today
+PASS  a company meeting needs no project  (status 201)
+PASS  its people can be changed  (status 200)
+PASS  it shows on the calendar
+PASS  a one-on-one works  (status 201)
+PASS  a meeting with nobody is refused  (status 400)
+PASS  the lead writes a note  (status 201)
+PASS  a member cannot delete someone else's note  (status 403)
+PASS  the CEO can delete anyone's note  (status 200)
+PASS  the CEO invites someone  (status 201)
+PASS  a password can be set by hand  (status 200)
+PASS  they can sign in with it at once  (status 200)
+PASS  the invite is spent, the account is active  (ACTIVE, invite gone)
+PASS  a team lead cannot set passwords  (status 403)
+PASS  nobody can set the CEO's password  (status 403)
+PASS  the CEO creates a department  (status 201)
+PASS  an empty department can be deleted  (status 200)
+PASS  a department holding projects is refused  (status 409)
+PASS  a review past the deadline is still allowed (a slipped project needs it)  (status 201)
+PASS  a task can be marked important  (status 201)
+PASS  the box's rows carry the star  (true)
+
+37 passed, 0 failed
+exit: 0
+===== npm run flows =====
+
+> orbit@0.1.0 flows
+> tsx --env-file=.env.local scripts/flows.ts
+
+
+── F1 founder → project → milestone → task → member → % computed ─────
+PASS  F1 new project  (status 201)
+PASS  F1 add milestone creates its review meeting  (status 201)
+PASS  F1 give a task (one request = 3 taps)  (status 201)
+PASS  F1 message (a) task_given reached the member's bell  (Rahul gave you a task)
+PASS  F1 member sees it on Today
+PASS  F1 member says Doing  (status 200)
+PASS  F1 member cannot tick it done (403)  (status 403)
+PASS  F1 the lead ticks it done  (status 200)
+PASS  F1 % is tasks done over tasks (computed)  (1/1 → 100%, got 100)
+PASS  F1 the CEO can set the % by hand  (status 200, progress 50)
+PASS  F1 nobody else can set the %  (status 403)
+PASS  F1 clearing it counts the tasks again  (100 vs computed 100)
+PASS  F1 manager who runs it can rename it  (status 200)
+PASS  F1 review meeting invites the task holder
+
+── F2 18:00 the day before → (b) → Can't → Reschedule → (b) again ────
+PASS  F2 schedule a meeting for tomorrow  (status 201)
+PASS  F2 cron/tomorrow runs with the secret  (status 200, people 14)
+PASS  F2 cron/tomorrow without the secret → 401
+PASS  F2 message (b) reached the member's bell  (Tomorrow: 1 meeting · 1 due)
+PASS  F2 (b) built for the member with a meeting + a task
+PASS  F2 (b) carries a signed Can't link
+PASS  F2 Can't link lands (public, no session)
+PASS  F2 Can't recorded on the attendee row
+PASS  F2 organiser told (bell)
+PASS  F2 three working-day slots  (["2026-09-14T00:00:00.000Z","2026-09-15T00:00:00.000Z","2026-09-16T00:00:00.000Z"])
+PASS  F2 reschedule moves it and re-sends (b)  (resent 2)
+PASS  F2 (b) re-sent after the move (bell)
+
+── F3 review date → Review on the box → On track → (c) ─────────────
+PASS  F3 Today carries no review card
+PASS  F3 manager cannot record an outcome  (status 403)
+PASS  F3 On track recorded
+PASS  F3 outcome note beside the box
+PASS  F3 message (c) reached the project people  (FLOW Milestone due: On track)
+PASS  F3 message (c) says how far along  (FLOW Project · 50% of tasks done · Rahul · Good pace · computed 1/2 = 50%)
+PASS  F3 next box is current (M1 has no outcome)
+
+── F4 walls ───────────────────────────────────────────────────────────
+PASS  F4 PERSON walled on 20 work endpoints  (20/20)
+PASS  F4 ADMIN walled on project endpoints  (403,403,403,403,403)
+PASS  F4 member creates a private note
+PASS  F4 My notes 404 cross-user (lead, director)  (404/404/404)
+
+── F5 invite with department → set password → placed on People ─────────
+PASS  F5 invite with a department  (status 201)
+[email] not sending to flow-invitee@orbit.local — that domain can never receive mail
+PASS  F5 set password via the invite link
+PASS  F5 placed on People under the department  (ACTIVE · Development)
+
+── teardown ──────────────────────────────────────────────────────────
+removed 5 throwaway accounts and their artefacts
+remaining flow-* accounts: 0, FLOW projects: 0
+
+40 passed, 0 failed
+exit: 0
+===== npm run check:work =====
+
+> orbit@0.1.0 check:work
+> tsx --env-file=.env.local scripts/check-work-model.ts
+
+
+── teams ─────────────────────────────────────────────────────
+PASS  an HOD makes a team in their department  (status 201)
+PASS  a manager elsewhere cannot make a team in it  (status 403)
+PASS  a member sees the teams  (status 200)
+
+── a task on its own, routed to a team ────────────────────────
+PASS  anyone raises a task without a project  (status 201)
+PASS  …it is NEW, on the team, in the team's department, requested by the raiser  (NEW · true)
+PASS  …it carries a number and a ref  (TASK0000982)
+PASS  the one who asked can open it  (status 200)
+PASS  a team member can open it  (status 200)
+PASS  someone in the department can open it  (status 200)
+PASS  the team lead's access lists Assign and Start  (["ASSIGNED","IN_PROGRESS","CANCELLED"])
+PASS  the one who asked may not assign it  ({"canEdit":true,"canAssign":false,"canDelete":true,"staff":false,"transitions":["CANCELLED"]})
+
+── assignment: department → team → person ─────────────────────
+PASS  a person outside the team cannot be given it  (status 400)
+PASS  a team member can  (status 200 · ASSIGNED)
+PASS  the holder gets exactly one 'gave you a task'  (1)
+PASS  …and it opens the record  ({"url":"/work/982"})
+PASS  saving the same holder again sends nothing  (1)
+PASS  the previous holder is told it is no longer theirs  (1)
+
+── the state machine ──────────────────────────────────────────
+PASS  Assigned → Closed is not a move  (status 409)
+PASS  the holder starts it  (IN_PROGRESS/DOING)
+PASS  Waiting needs a reason  (status 400)
+PASS  …and with one it is Waiting (reads Stuck on the old screens)  (WAITING/STUCK)
+PASS  the one who asked is told it waits on them  (1)
+PASS  the one who asked cannot resolve it  (status 403)
+PASS  the holder resolves it with a code, notes and a root cause  (RESOLVED)
+PASS  the one who asked gets the resolved message  (1)
+PASS  a bystander cannot close it  (status 403)
+PASS  the one who asked reopens it with a note  (REOPENED)
+PASS  …then closes it  (CLOSED)
+
+── the activity stream ────────────────────────────────────────
+PASS  field changes were recorded from the moves themselves  (21 rows, 17 changes)
+PASS  a status change carries old and new words  (9 state rows)
+PASS  the reopen note is in the stream
+PASS  the holder writes a team note  (status 201)
+PASS  the one who asked does not see team notes  (21 rows)
+PASS  the head does, and can filter to them  (1)
+PASS  history is the field changes alone  (17)
+PASS  an @mention reaches the person  (1)
+
+── project tasks keep the owner's rules, without the holes ────
+PASS  a manager starts a project  (status 201)
+PASS  a lead gives a project task  (PROJECT_TASK/ASSIGNED)
+PASS  a team member still cannot tick it done  (status 403)
+PASS  …nor open one already done  (status 403 · undefined)
+PASS  …nor mark a step done and promote it in one go  (status 403 · DOING)
+PASS  someone in the department but not on the project cannot delete its task  (status 403)
+PASS  …nor rename it  (status 403)
+PASS  …nor add a step to it  (status 403)
+PASS  the lead ticks it: the old word maps to Resolved  (RESOLVED)
+PASS  …and un-ticking reopens it  (REOPENED)
+PASS  both moves are in the stream  (6)
+
+── accounts: the ceiling and the department wall ──────────────
+PASS  a manager cannot make someone a head  (status 403)
+PASS  a head cannot set a password in another department  (status 403)
+PASS  …but can in their own  (status 200)
+PASS  the old session of that person is over  (status 401)
+PASS  …and the new password signs them in  (status 200)
+PASS  a member who runs a project still cannot mint accounts  (status 403)
+PASS  a lead sees no phone numbers  (status 200)
+
+── people who are not on Orbit yet ────────────────────────────
+PASS  a project is made with people and an outside email in one go  (status 201 · 2/1)
+PASS  …the newbie has a pending account with an invite  (PENDING)
+PASS  …and can already be given a task  (status 201)
+PASS  …which is waiting in their bell for their first sign-in  (1)
+PASS  …and NO task mail before they join — the invite comes first  (task mails 0, invites 1)
+
+── the employee side: invited, joins, sees their work ──────────
+[email] not sending to wm-outside@orbit.local — that domain can never receive mail
+PASS  the invited person sets a password from the link  (status 200)
+PASS  …and 'Your work' already lists the task given before they joined  ([["WM Newbie Task","ASSIGNED",true]])
+PASS  …with the 'gave you a task' waiting in their bell  (1)
+PASS  …and on their Today  (["WM Newbie Task"])
+
+── the queue and the dashboard ────────────────────────────────
+PASS  my work lists what I hold  (3)
+PASS  a team queue can be filtered by state  (1)
+PASS  search finds a task by its words  (1)
+PASS  …and by its number  (1)
+PASS  someone outside the department sees only what they are on  (0)
+PASS  the head's Today carries counters and the department line  ({"open":29,"unassigned":9,"highPriority":13,"dueToday":0,"overdue":9,"waiting":0,"resolvedToday":1,"newToday":5})
+PASS  the CEO's department view lists every department with teams  (9)
+PASS  a manager's department view is their own department alone  (1)
+
+── cleanup ───────────────────────────────────────────────────
+removed 8 throwaway accounts, 5 tasks
+
+71 passed, 0 failed
+exit: 0
+===== npm run check:notify =====
+
+> orbit@0.1.0 check:notify
+> tsx --env-file=.env.local scripts/check-assign-notify.ts
+
+INFO  push: VAPID keys on the server: yes
+INFO  email: EMAIL_DEV_ALLOW is 1 address(es); dev server output read from records/evidence/accounts-notify/dev-server.log
+
+PASS  i. Accounts manager → Accounts lead — the move is allowed  (HTTP 201)
+PASS  i. Accounts manager → Accounts lead — Karthik Reddy: bell  (got [task_given], wanted [task_given]; unread 0 → 1)
+PASS  i. Accounts manager → Accounts lead — Karthik Reddy: email  (refused: can never receive mail)
+INFO  i. Accounts manager → Accounts lead — Karthik Reddy: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  i. Accounts manager → Accounts lead — Meera Shetty (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  ii. Accounts lead → Accounts member 1 — the move is allowed  (HTTP 201)
+PASS  ii. Accounts lead → Accounts member 1 — Divya Pillai: bell  (got [task_given], wanted [task_given]; unread 41 → 42)
+PASS  ii. Accounts lead → Accounts member 1 — Divya Pillai: email  (refused: can never receive mail)
+INFO  ii. Accounts lead → Accounts member 1 — Divya Pillai: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  ii. Accounts lead → Accounts member 1 — Karthik Reddy (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  iii. HR head → ERM member (task sits in HR) — the move is allowed  (HTTP 201)
+PASS  iii. HR head → ERM member (task sits in HR) — Rahul Chandra: bell  (got [task_given], wanted [task_given]; unread 41 → 42)
+PASS  iii. HR head → ERM member (task sits in HR) — Rahul Chandra: email  (refused: can never receive mail)
+INFO  iii. HR head → ERM member (task sits in HR) — Rahul Chandra: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  iii. HR head → ERM member (task sits in HR) — Imran Sheikh (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  iii-b. HR head → ERM member (task filed straight into ERM) — the move is allowed  (HTTP 201)
+PASS  iii-b. HR head → ERM member (task filed straight into ERM) — Rahul Chandra: bell  (got [task_given], wanted [task_given]; unread 42 → 43)
+PASS  iii-b. HR head → ERM member (task filed straight into ERM) — Rahul Chandra: email  (refused: can never receive mail)
+INFO  iii-b. HR head → ERM member (task filed straight into ERM) — Rahul Chandra: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  iii-b. HR head → ERM member (task filed straight into ERM) — Imran Sheikh (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  iv-a. CEO → Accounts manager — the move is allowed  (HTTP 201)
+PASS  iv-a. CEO → Accounts manager — Meera Shetty: bell  (got [task_given], wanted [task_given]; unread 2 → 3)
+PASS  iv-a. CEO → Accounts manager — Meera Shetty: email  (refused: can never receive mail)
+INFO  iv-a. CEO → Accounts manager — Meera Shetty: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  iv-a. CEO → Accounts manager — Rahul (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  iv-b. co-founder → HR head — the move is allowed  (HTTP 201)
+PASS  iv-b. co-founder → HR head — Imran Sheikh: bell  (got [task_given], wanted [task_given]; unread 55 → 56)
+PASS  iv-b. co-founder → HR head — Imran Sheikh: email  (refused: can never receive mail)
+INFO  iv-b. co-founder → HR head — Imran Sheikh: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  iv-b. co-founder → HR head — Salyush (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  v. reassign ii: member 1 → member 2 — the move is allowed  (HTTP 200)
+PASS  v. reassign ii: member 1 → member 2 — Nikhil Joshi: bell  (got [task_given], wanted [task_given]; unread 11 → 12)
+PASS  v. reassign ii: member 1 → member 2 — Nikhil Joshi: email  (refused: can never receive mail)
+INFO  v. reassign ii: member 1 → member 2 — Nikhil Joshi: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  v. reassign ii: member 1 → member 2 — Divya Pillai: bell  (got [work.reassigned], wanted [work.reassigned]; unread 42 → 43)
+PASS  v. reassign ii: member 1 → member 2 — Divya Pillai: email  (not attempted (none expected))
+INFO  v. reassign ii: member 1 → member 2 — Divya Pillai: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  v. reassign ii: member 1 → member 2 — Karthik Reddy (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  vi-a. member 2 writes on the task — the move is allowed  (HTTP 201)
+PASS  vi-a. member 2 writes on the task — Karthik Reddy: bell  (got [task_note], wanted [task_note]; unread 1 → 2)
+PASS  vi-a. member 2 writes on the task — Karthik Reddy: email  (refused: can never receive mail)
+INFO  vi-a. member 2 writes on the task — Karthik Reddy: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  vi-a. member 2 writes on the task — Nikhil Joshi (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  vi-b. member 2 resolves it — the move is allowed  (HTTP 200)
+PASS  vi-b. member 2 resolves it — Karthik Reddy: bell  (got [task_resolved], wanted [task_resolved]; unread 3 → 4)
+PASS  vi-b. member 2 resolves it — Karthik Reddy: email  (refused: can never receive mail)
+INFO  vi-b. member 2 resolves it — Karthik Reddy: push  (server keys: yes; saved subscriptions: 0 → nothing to deliver to)
+PASS  vi-b. member 2 resolves it — Nikhil Joshi (acting) hears nothing from their own move  (0 notifications, email not attempted)
+PASS  the bell count drops after reading  (4 → 1 after reading 3)
+PASS  not joined yet — the task waits in their bell  (1 bell rows)
+PASS  not joined yet — no task mail  (not attempted)
+PASS  control: an active person at the same kind of address IS mailed (so the check can see mail)  (held back: not in EMAIL_DEV_ALLOW)
+
+42 passed, 0 failed
+exit: 0
