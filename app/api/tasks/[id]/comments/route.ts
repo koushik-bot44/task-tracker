@@ -22,6 +22,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
     : [];
   const row = await addNote(params.id, user.id, { ...parsed.data, internal: false, mentions });
   const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: parsed.data.body, mentions } });
+  // A note that is only a file still says what arrived, rather than an empty message.
+  const said = parsed.data.body.trim() ? parsed.data.body : `Attached ${parsed.data.attachmentName ?? "a file"}`;
+  if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: said, mentions } });
   return NextResponse.json(serializeActivity(row), { status: 201 });
 });

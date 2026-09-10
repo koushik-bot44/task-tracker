@@ -51,7 +51,7 @@ async function main() {
   record("a task to hang files on", Boolean(task?.id), task?.ref ?? "");
 
   const uploads = await call(bossCookie, "GET", "/api/uploads");
-  record("attachments are switched on here", uploads.json?.enabled === true, JSON.stringify(uploads.json));
+  record("attachments are switched on here, with a size limit", uploads.json?.enabled === true && uploads.json?.maxBytes > 0, JSON.stringify(uploads.json));
 
   // A file added WITH its description, away from the chat.
   const added = await call(bossCookie, "POST", `/api/tasks/${task.id}/attachments`, {

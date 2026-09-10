@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { contentTypeFor, storeUpload, uploadAllowed, uploadLimitBytes } from "@/lib/uploads";
+import { contentTypeFor, storeUpload, uploadAllowed, uploadLimitBytes, uploadRefusal } from "@/lib/uploads";
 import { HttpError, requireUser, route } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -24,6 +24,8 @@ export const POST = route(async (req: Request) => {
   if (file.size > limit) throw new HttpError(413, `That file is over ${Math.round(limit / (1024 * 1024))} MB.`);
   const type = file.type || contentTypeFor(file.name);
   if (!uploadAllowed(file.name || "", type)) throw new HttpError(415, "That kind of file can't be attached.");
+  const refusal = await uploadRefusal(user.id, file.size);
+  if (refusal) throw new HttpError(429, refusal);
   const bytes = Buffer.from(await file.arrayBuffer());
   const { url } = await storeUpload({ name: file.name || "photo.jpg", type, bytes }, user.id);
   return NextResponse.json({ url, name: file.name || "photo.jpg", type }, { status: 201 });

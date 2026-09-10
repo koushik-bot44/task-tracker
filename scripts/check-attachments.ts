@@ -68,6 +68,7 @@ async function fetchFile(cookie: string | null, url: string) {
     type: res.headers.get("content-type") ?? "",
     disposition: res.headers.get("content-disposition") ?? "",
     nosniff: res.headers.get("x-content-type-options") === "nosniff",
+    csp: res.headers.get("content-security-policy") ?? "",
     bytes,
   };
 }
@@ -117,6 +118,14 @@ async function main() {
   const docUrl: string | null = doc.json?.url ?? null;
   const docBack = docUrl ? await fetchFile(ceo, docUrl) : null;
   record("a document downloads under its own name", docBack?.status === 200 && docBack.disposition.includes("atx-brief.docx"), docBack ? docBack.disposition : `status ${doc.status}`);
+
+  const svg = await upload(ceo, "atx-logo.svg", "image/svg+xml", Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>'));
+  const svgBack = svg.json?.url ? await fetchFile(ceo, svg.json.url) : null;
+  record("an SVG goes as a picture, so a logo shows, but downloads on its own, sandboxed", svgBack?.type === "image/svg+xml" && svgBack.disposition.startsWith("attachment") && /sandbox/.test(svgBack.csp), svgBack ? `${svgBack.type}; ${svgBack.disposition}` : `status ${svg.status}`);
+  const longName = `atx-${"a".repeat(192)}.exe${"b".repeat(10)}.pdf`;
+  const long = await upload(ceo, longName, "application/pdf", Buffer.from("%PDF-1.4 atx"));
+  const longBack = long.json?.url ? await fetchFile(ceo, long.json.url) : null;
+  record("a very long name keeps its own extension, so it can't end up as .exe", Boolean(longBack?.disposition.endsWith(".pdf")), longBack ? longBack.disposition.slice(-16) : `status ${long.status}`);
 
   const exe = await upload(ceo, "atx-tool.exe", "application/x-msdownload", Buffer.from("MZ"));
   record("a program is refused", exe.status === 415, `status ${exe.status}`);
@@ -188,7 +197,7 @@ async function main() {
   record("the Attachments tab offers a file with its description", await desk.getByRole("button", { name: "Attach a file with its description" }).isVisible());
   await desk.screenshot({ path: `${DIR}/2-task-attachments-tab.png`, fullPage: true });
 
-  await desk.goto(`${BASE}/today?task=${task.id}`);
+  await desk.goto(`${BASE}/?task=${task.id}`);
   await desk.waitForLoadState("domcontentloaded");
   await desk.waitForTimeout(3500);
   const drawerAttach = await desk.getByRole("button", { name: "Attach a file" }).count();

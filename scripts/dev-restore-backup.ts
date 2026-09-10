@@ -14,11 +14,14 @@
  *      npx tsx --env-file=.env.local scripts/dev-seed-accounts.ts
  *
  * Every account's password becomes "orbit123" (the backup redacts hashes).
+ * A table of file bytes arrives as <Table>.jsonl (a row a line) and is put back
+ * a row at a time, the bytes decoded — never stored as their JSON text.
  * Never run against production: the URL guard below refuses it.
  */
 import { PrismaClient } from "@prisma/client";
-import { readFileSync, readdirSync } from "node:fs";
+import { createReadStream, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { hashPassword } from "../lib/password";
 
 const URL = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "";
@@ -35,8 +38,17 @@ const ORDER = [
   "HabitMark", "NonNegotiable", "NonNegotiableMark", "WeightEntry", "RoutineTask", "Task", "TaskNote", "ProjectNote",
 ];
 
-function literal(v: unknown, kind: "array" | "json" | "plain"): string {
+type Kind = "array" | "json" | "bytea" | "plain";
+
+function literal(v: unknown, kind: Kind): string {
   if (v === null || v === undefined) return "NULL";
+  if (kind === "bytea") {
+    // A file: base64 under $bytes. A backup taken before 2026-09-10 wrote the bytes as an index map.
+    const bytes = v as { $bytes?: unknown };
+    if (typeof v === "object" && typeof bytes.$bytes === "string") return `decode('${bytes.$bytes}', 'base64')`;
+    if (typeof v === "object") return `decode('${Buffer.from(Uint8Array.from(Object.values(v as Record<string, number>))).toString("hex")}', 'hex')`;
+    throw new Error("A file column in the backup holds neither $bytes nor bytes; refusing to store it as text.");
+  }
   if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
   if (typeof v === "number") return String(v);
   if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
@@ -45,6 +57,16 @@ function literal(v: unknown, kind: "array" | "json" | "plain"): string {
     return `'{${v.map((x) => `"${String(x).replace(/(["\\])/g, "\\$1")}"`).join(",")}}'`;
   }
   return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+}
+
+/** A backup file's rows: a JSON array, or JSON lines read one at a time. */
+async function* rowsOf(path: string): AsyncGenerator<Record<string, unknown>> {
+  if (path.endsWith(".jsonl")) {
+    const lines = createInterface({ input: createReadStream(path), crlfDelay: Infinity });
+    for await (const line of lines) if (line.trim()) yield JSON.parse(line) as Record<string, unknown>;
+    return;
+  }
+  for (const row of JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>[]) yield row;
 }
 
 async function recreate() {
@@ -60,29 +82,42 @@ async function recreate() {
 
 async function restore(dir: string) {
   const prisma = new PrismaClient();
-  const files = readdirSync(dir).filter((f) => f.endsWith(".json") && f !== "manifest.json").map((f) => f.replace(/\.json$/, ""));
-  const tables = [...ORDER.filter((t) => files.includes(t)), ...files.filter((t) => !ORDER.includes(t))];
+  const found = readdirSync(dir).filter((f) => /\.jsonl?$/.test(f) && f !== "manifest.json");
+  const fileOf = new Map(found.map((f) => [f.replace(/\.jsonl?$/, ""), f] as const));
+  const names = [...fileOf.keys()];
+  const tables = [...ORDER.filter((t) => names.includes(t)), ...names.filter((t) => !ORDER.includes(t))];
   const hash = await hashPassword("orbit123");
   await prisma.$transaction(
     async (tx) => {
       await tx.$executeRawUnsafe(`SET LOCAL session_replication_role = replica`);
       for (const t of tables) {
-        const rows = JSON.parse(readFileSync(join(dir, `${t}.json`), "utf8")) as Record<string, unknown>[];
-        if (!rows.length) { console.log(`${t}: 0`); continue; }
-        const cols = Object.keys(rows[0]);
         const types = await tx.$queryRawUnsafe<{ column_name: string; data_type: string }[]>(
           `SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${t}'`,
         );
-        const kindOf = (c: string): "array" | "json" | "plain" => {
+        const kindOf = (c: string): Kind => {
           const dt = types.find((x) => x.column_name === c)?.data_type ?? "";
-          return dt === "ARRAY" ? "array" : dt === "json" || dt === "jsonb" ? "json" : "plain";
+          return dt === "ARRAY" ? "array" : dt === "json" || dt === "jsonb" ? "json" : dt === "bytea" ? "bytea" : "plain";
         };
-        for (let i = 0; i < rows.length; i += 100) {
-          const chunk = rows.slice(i, i + 100);
-          const values = chunk.map((r) => `(${cols.map((c) => literal(t === "User" && c === "passwordHash" ? (r[c] === null ? null : hash) : r[c], kindOf(c))).join(", ")})`).join(",\n");
-          await tx.$executeRawUnsafe(`INSERT INTO "${t}" (${cols.map((c) => `"${c}"`).join(", ")}) VALUES ${values}`);
+        // A row holding a file goes in on its own: a hundred of them in one statement could pass the string limit.
+        const size = types.some((x) => x.data_type === "bytea") ? 1 : 100;
+        let cols: string[] | null = null;
+        let chunk: Record<string, unknown>[] = [];
+        let count = 0;
+        const flush = async () => {
+          if (!chunk.length || !cols) return;
+          const columns = cols;
+          const values = chunk.map((r) => `(${columns.map((c) => literal(t === "User" && c === "passwordHash" ? (r[c] === null ? null : hash) : r[c], kindOf(c))).join(", ")})`).join(",\n");
+          await tx.$executeRawUnsafe(`INSERT INTO "${t}" (${columns.map((c) => `"${c}"`).join(", ")}) VALUES ${values}`);
+          count += chunk.length;
+          chunk = [];
+        };
+        for await (const row of rowsOf(join(dir, fileOf.get(t)!))) {
+          cols ??= Object.keys(row);
+          chunk.push(row);
+          if (chunk.length >= size) await flush();
         }
-        console.log(`${t}: ${rows.length}`);
+        await flush();
+        console.log(`${t}: ${count}`);
       }
     },
     { timeout: 300_000 },

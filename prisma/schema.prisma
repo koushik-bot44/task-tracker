@@ -653,6 +653,9 @@ model StoredFile {
   bytes       Bytes
   createdById String?
   createdAt   DateTime @default(now())
+
+  /// The upload limits count a person's files from the last hour.
+  @@index([createdById, createdAt])
 }
 
 model Invite {

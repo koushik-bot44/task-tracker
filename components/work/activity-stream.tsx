@@ -34,8 +34,9 @@ function toQuery(f: Filter): ActivityFilter {
       return { type: "WORK_NOTE" };
     case "changes":
       return { type: "FIELD_CHANGE,SYSTEM" };
+    // Every file — also the ones sent with words, which are notes carrying a file.
     case "files":
-      return { type: "ATTACHMENT" };
+      return { type: "ATTACHMENT,COMMENT,WORK_NOTE" };
     case "mentions":
       return { mentions: "me" };
     default:
@@ -67,7 +68,9 @@ export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; sta
   const { data: me } = useMe();
   const { show: toast } = useToast();
   const endRef = useRef<HTMLDivElement>(null);
-  const count = data?.length ?? 0;
+  // Under Files, only the lines that carry one (review, 2026-09-10).
+  const rows = filter === "files" ? (data ?? []).filter((a) => Boolean(a.attachmentUrl)) : data ?? [];
+  const count = rows.length;
   const seen = useRef(0);
   // A new line at the bottom scrolls into view, like a chat; the first load does not jump the page.
   useEffect(() => {
@@ -104,11 +107,11 @@ export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; sta
             Retry
           </button>
         </p>
-      ) : (data ?? []).length === 0 ? (
+      ) : rows.length === 0 ? (
         <p className="px-1 text-sm text-muted">{filter === "all" ? "Nothing yet." : "Nothing here."}</p>
       ) : (
         <ol className="space-y-2 rounded-card bg-bg px-1 py-2">
-          {(data ?? []).map((a) => (
+          {rows.map((a) => (
             <ActivityItem
               key={a.id}
               item={a}

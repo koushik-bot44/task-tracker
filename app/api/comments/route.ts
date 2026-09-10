@@ -64,7 +64,8 @@ export const POST = route(async (req: Request) => {
     await requireSee(user, targetId);
     const row = await addNote(targetId, user.id, { body, internal: false, attachmentUrl, attachmentName, attachmentType });
     const task = await prisma.task.findUnique({ where: { id: targetId } });
-    if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body } });
+    // A note that is only a file still says what arrived, rather than an empty message.
+    if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: body.trim() ? body : `Attached ${attachmentName ?? "a file"}` } });
     return NextResponse.json(activityAsComment(row), { status: 201 });
   }
   await assertCanSeeTarget(user, targetType, targetId);
