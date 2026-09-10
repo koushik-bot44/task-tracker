@@ -198,6 +198,45 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("another manager adds a member -> 404", (await call(manager2, "POST", `/api/projects/${projectId}/members`, { userId: dev3.id })).status, 404);
   record("added dev now reads the project -> 200", (await call(dev, "GET", `/api/projects/${projectId}`)).status, 200);
 
+  // Several at once, after the project exists (owner, 2026-09-10).
+  const batch = await call(manager, "POST", `/api/projects/${projectId}/members`, {
+    invites: [
+      { name: "PT batch one", emails: [`${PREFIX}batch1@orbit.local`], role: "TEAM_LEAD" },
+      { emails: [`${PREFIX}batch2@orbit.local`] },
+      { name: "Perm dev2", emails: [dev2.email] },
+    ],
+  });
+  record("manager (owner) invites several at once -> 201", batch.status, 201);
+  check("…two invited, the one already on it added", batch.json?.invited === 2 && batch.json?.added === 1, `invited ${batch.json?.invited}, added ${batch.json?.added}`);
+  const batchOne = await prisma.user.findUnique({ where: { email: `${PREFIX}batch1@orbit.local` }, select: { status: true, role: true, departmentId: true } });
+  check("…the new ones wait in the project's department, as the role given", batchOne?.status === "PENDING" && batchOne.role === "TEAM_LEAD" && batchOne.departmentId === deptId, JSON.stringify(batchOne));
+  record(
+    "a mistyped address refuses the whole list -> 400",
+    (await call(manager, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}batch3@orbit.local`] }, { emails: ["not-an-address"] }] })).status,
+    400,
+  );
+  check("…and nobody on it was made", !(await prisma.user.findUnique({ where: { email: `${PREFIX}batch3@orbit.local` }, select: { id: true } })));
+  record(
+    "one address written for two people -> 400",
+    (await call(manager, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}batch4@orbit.local`] }, { emails: [`${PREFIX}batch4@orbit.local`] }] })).status,
+    400,
+  );
+  record("lead invites several -> 403", (await call(lead, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}bylead@orbit.local`] }] })).status, 403);
+  record("another manager invites several -> 404", (await call(manager2, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}bymanager2@orbit.local`] }] })).status, 404);
+  record("admin invites several -> 403/404", (await call(admin, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}byadmin@orbit.local`] }] })).status, [403, 404]);
+
+  console.log("\n── names ─────────────────────────────────────────────────────");
+  // A name can change as often as it needs to (owner, 2026-09-10).
+  record("manager renames dev -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { name: "Perm dev renamed" })).status, 200);
+  record("…and renames dev again -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { name: "Perm dev" })).status, 200);
+  check("…the second name is the one kept", (await prisma.user.findUnique({ where: { id: dev.id }, select: { name: true } }))?.name === "Perm dev");
+  record("manager renames another manager -> 403", (await call(manager, "PATCH", `/api/users/${manager2.id}`, { name: "PT nope" })).status, 403);
+  record("hod renames the CEO -> 403", (await call(hod, "PATCH", `/api/users/${director.id}`, { name: "PT nope" })).status, 403);
+  record("dev renames dev2 -> 403", (await call(dev, "PATCH", `/api/users/${dev2.id}`, { name: "PT nope" })).status, 403);
+  record("an empty name -> 400", (await call(manager, "PATCH", `/api/users/${dev.id}`, { name: "   " })).status, 400);
+  record("dev renames themselves -> 200", (await call(dev, "PATCH", "/api/users/me", { name: "Perm dev self" })).status, 200);
+  record("…and back again -> 200", (await call(dev, "PATCH", "/api/users/me", { name: "Perm dev" })).status, 200);
+
   console.log("\n── edit project ──────────────────────────────────────────────");
   record("dev renames the project -> 403", (await call(dev, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 403);
   record("lead renames the project -> 403", (await call(lead, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 403);

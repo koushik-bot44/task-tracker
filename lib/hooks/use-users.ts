@@ -28,6 +28,8 @@ export function useUserMutations() {
   const qc = useQueryClient();
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: usersKey });
+    // A renamed person reads the new name on every project too (2026-09-10).
+    void qc.invalidateQueries({ queryKey: ["project-people"] });
   };
 
   const createUser = useMutation({
@@ -65,7 +67,7 @@ export function useUserMutations() {
       patch,
     }: {
       id: string;
-      patch: { role?: UserRole; disable?: boolean; reset?: true; phone?: string | null; departmentId?: string | null };
+      patch: { name?: string; role?: UserRole; disable?: boolean; reset?: true; phone?: string | null; departmentId?: string | null };
     }) => apiPatch<{ user: UserDTO; tempPassword?: string }>(`/api/users/${id}`, patch),
     onSuccess: refresh,
   });
@@ -75,7 +77,7 @@ export function useUserMutations() {
   });
 
   const updateMe = useMutation({
-    mutationFn: (patch: { emailOptIn?: boolean; whatsappOptIn?: boolean; phone?: string | null }) =>
+    mutationFn: (patch: { name?: string; emailOptIn?: boolean; whatsappOptIn?: boolean; phone?: string | null }) =>
       apiPatch<UserDTO>("/api/users/me", patch),
     onMutate: async (patch) => {
       await qc.cancelQueries({ queryKey: meKey });
@@ -86,7 +88,12 @@ export function useUserMutations() {
     onError: (_e, _p, ctx) => {
       if (ctx?.previous) qc.setQueryData(meKey, ctx.previous);
     },
-    onSettled: () => void qc.invalidateQueries({ queryKey: meKey }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: meKey });
+      // Your own new name shows wherever people are listed.
+      void qc.invalidateQueries({ queryKey: usersKey });
+      void qc.invalidateQueries({ queryKey: ["project-people"] });
+    },
   });
 
   return { createUser, updateUser, changeMyPassword, updateMe, resendInvite, cancelInvite, setPassword };

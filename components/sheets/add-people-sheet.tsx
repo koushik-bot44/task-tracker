@@ -2,22 +2,20 @@
 
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { NewPeopleRows, blankPerson, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
+import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Face } from "@/components/ui/face";
 import { Row } from "@/components/ui/row";
-import { Field, Sheet, inputClass } from "@/components/ui/sheet";
+import { Sheet, inputClass } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { useProjectMutations, useProjectPeople } from "@/lib/hooks/use-projects";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { canSeeUserListRole } from "@/lib/roles";
+import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
 import type { ProjectPersonDTO, UserDTO } from "@/lib/types";
-
-type InviteRole = "RESOURCE" | "TEAM_LEAD";
-
-const EMAIL_SHAPE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function isWorkAccount(u: UserDTO): boolean {
   return u.status === "ACTIVE" && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON";
@@ -25,30 +23,26 @@ function isWorkAccount(u: UserDTO): boolean {
 
 /**
  * Add people to a project: find someone and tap Add (people already on it
- * read "On it", and a member can be quietly removed), or invite someone new
- * by name and email at the bottom.
+ * read "On it", and a member can be quietly removed), or invite people who
+ * aren't on Orbit yet at the bottom — several at once, the same rows as a new
+ * project has (owner, 2026-09-10).
  */
 export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; onClose: () => void; projectId: string }) {
   const { show: toast } = useToast();
   const { data: me } = useMe();
   const { data: users, isLoading: loadingUsers } = useUsers(open && canSeeUserListRole(me?.role));
   const { data: people, isLoading: loadingPeople } = useProjectPeople(projectId, open);
-  const { addPerson, invitePerson, removePerson } = useProjectMutations();
+  const { addPerson, invitePeople, removePerson } = useProjectMutations();
 
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [inviteName, setInviteName] = useState("");
-  /** One row per address; the first is where the invite is sent. */
-  const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
-  const [inviteRole, setInviteRole] = useState<InviteRole>("RESOURCE");
+  const [newPeople, setNewPeople] = useState<NewPerson[]>([blankPerson()]);
 
   useEffect(() => {
     if (!open) return;
     setQ("");
     setBusyId(null);
-    setInviteName("");
-    setInviteEmails([""]);
-    setInviteRole("RESOURCE");
+    setNewPeople([blankPerson()]);
   }, [open]);
 
   const onProject = useMemo(() => new Map((people ?? []).map((p) => [p.id, p] as const)), [people]);
@@ -100,21 +94,26 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
     );
   };
 
-  const inviteFilled = inviteEmails.map((e) => e.trim()).filter(Boolean);
-  const inviteReady =
-    inviteName.trim().length > 0 && inviteFilled.length > 0 && inviteFilled.every((e) => EMAIL_SHAPE.test(e)) && !invitePerson.isPending;
-  const invite = () => {
+  // Making accounts is for those who may make them; anyone else running the
+  // project adds people who are here already (the server says the same).
+  const canInvite = canAdministerAccountsRole(me?.role);
+  const roles = rolesOfferedTo(me?.role).filter((r): r is NewPerson["role"] => r === "RESOURCE" || r === "TEAM_LEAD");
+  const invites = toInvites(newPeople);
+  const problem = invitesProblem(newPeople);
+  const inviteReady = invites.length > 0 && !problem && !invitePeople.isPending;
+  const sendInvites = () => {
     if (!inviteReady) return;
-    const name = inviteName.trim();
-    const [main, ...rest] = inviteFilled;
-    invitePerson.mutate(
-      { projectId, name, email: main, ...(rest.length ? { emails: rest } : {}), role: inviteRole },
+    invitePeople.mutate(
+      { projectId, invites },
       {
         onSuccess: (r) => {
-          toast({ message: r.emailSent ? `Invite sent to ${name}` : `Added ${name}` });
-          setInviteName("");
-          setInviteEmails([""]);
-          setInviteRole("RESOURCE");
+          const done = [r.invited ? `${r.invited} invited` : null, r.added ? `${r.added} already on Orbit, added` : null].filter(Boolean).join(" · ");
+          const trouble = [
+            r.emailFailed.length ? `The invite email didn't reach ${r.emailFailed.join(", ")} — resend it from People` : null,
+            ...r.skipped.map((s) => `${s.email}: ${s.reason}`),
+          ].filter(Boolean);
+          toast({ message: [done || "Nobody new to add", ...trouble].join(". "), tone: trouble.length ? "danger" : undefined });
+          setNewPeople([blankPerson()]);
         },
         onError: fail,
       },
@@ -183,75 +182,27 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
           </ul>
         )}
 
-        <div className="mt-6 space-y-4">
-          <h3 className="text-sm font-semibold text-ink">Invite someone new</h3>
-          <Field label="Name">
-            <input
-              value={inviteName}
-              onChange={(e) => setInviteName(e.target.value)}
-              placeholder="Their name"
-              aria-label="Name"
-              autoComplete="off"
-              className={inputClass}
-            />
-          </Field>
-          {/* One person, several addresses: the invite goes to the first. */}
-          <Field label={inviteEmails.length > 1 ? "Emails" : "Email"} hint={inviteEmails.length > 1 ? "The invite goes to the first one." : undefined}>
-            <div className="space-y-2">
-              {inviteEmails.map((value, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input
-                    type="email"
-                    value={value}
-                    onChange={(e) => setInviteEmails((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        invite();
-                      }
-                    }}
-                    placeholder={i === 0 ? "name@company.com" : "their other address"}
-                    aria-label={i === 0 ? "Email" : `Another email (${i + 1})`}
-                    autoComplete="off"
-                    className={inputClass}
-                    autoFocus={i > 0}
-                  />
-                  {inviteEmails.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => setInviteEmails((prev) => prev.filter((_, j) => j !== i))}
-                      aria-label="Remove this email"
-                      className="press grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
-                    >
-                      ×
-                    </button>
-                  ) : null}
-                </div>
-              ))}
+        {canInvite ? (
+          <div className="mt-6 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Invite people who aren&apos;t on Orbit yet</h3>
+              <p className="mt-0.5 text-micro text-muted">
+                As many as you like. Each gets an email to set a password and lands on this project; anyone already on Orbit is simply added.
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setInviteEmails((prev) => [...prev, ""])}
-              className="press mt-2 min-h-[32px] text-micro font-medium text-primary-ink"
-            >
-              + Another email for this person
-            </button>
-          </Field>
-          <Field label="Joins as">
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as InviteRole)}
-              aria-label="Joins as"
-              className={cn(inputClass, "appearance-none")}
-            >
-              <option value="RESOURCE">Team member</option>
-              <option value="TEAM_LEAD">Team lead</option>
-            </select>
-          </Field>
-          <Button variant="primary" full onClick={invite} loading={invitePerson.isPending} disabled={!inviteReady}>
-            Send invite
-          </Button>
-        </div>
+            <NewPeopleRows
+              rows={newPeople}
+              onChange={setNewPeople}
+              roles={roles}
+              addLabel={newPeople.length ? "+ Another person" : "+ Someone not on Orbit yet"}
+              autoFocusLast={newPeople.length > 1}
+            />
+            {problem ? <p className="text-micro text-danger-ink">{problem}</p> : null}
+            <Button variant="primary" full onClick={sendInvites} loading={invitePeople.isPending} disabled={!inviteReady}>
+              {invites.length > 1 ? `Send ${invites.length} invites` : "Send invite"}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </Sheet>
   );

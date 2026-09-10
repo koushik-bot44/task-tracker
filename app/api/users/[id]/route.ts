@@ -17,6 +17,8 @@ type Params = { params: { id: string } };
 
 const patchSchema = z
   .object({
+    /** A name can change as often as it needs to (owner, 2026-09-10). */
+    name: z.string().trim().min(1, "Write a name").max(80),
     role: roleSchema,
     disable: z.boolean(),
     reset: z.literal(true),
@@ -42,7 +44,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
 
   const parsed = await parseBody(req, patchSchema);
   if (!parsed.ok) return parsed.response;
-  const { role, disable, reset, phone, departmentId } = parsed.data;
+  const { name, role, disable, reset, phone, departmentId } = parsed.data;
 
   const target = await prisma.user.findUnique({ where: { id: params.id } });
   if (!target) {
@@ -101,7 +103,8 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     if (!dept) return NextResponse.json({ error: "That department does not exist." }, { status: 400 });
   }
 
-  const data: { role?: UserRole; disabledAt?: Date | null; passwordHash?: string; phone?: string | null; departmentId?: string | null } = {};
+  const data: { name?: string; role?: UserRole; disabledAt?: Date | null; passwordHash?: string; phone?: string | null; departmentId?: string | null } = {};
+  if (name !== undefined) data.name = name;
   if (role !== undefined) data.role = role;
   if (disable !== undefined) data.disabledAt = disable ? new Date() : null;
   if (phone !== undefined) data.phone = phone;

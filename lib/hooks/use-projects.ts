@@ -149,6 +149,17 @@ export function useProjectMutations() {
     },
   });
 
+  /** Several people at once — some on Orbit already, some new (owner, 2026-09-10). */
+  const invitePeople = useMutation({
+    mutationFn: ({ projectId, invites }: { projectId: string; invites: { name?: string; emails: string[]; role?: "RESOURCE" | "TEAM_LEAD" }[] }) =>
+      apiPost<{ ok: true; added: number; invited: number; emailFailed: string[]; skipped: { email: string; reason: string }[] }>(`/api/projects/${projectId}/members`, { invites }),
+    onSettled: (_d, _e, v) => {
+      void qc.invalidateQueries({ queryKey: ["project-people", v.projectId] });
+      void qc.invalidateQueries({ queryKey: ["users"] });
+      refresh();
+    },
+  });
+
   const removePerson = useMutation({
     mutationFn: ({ projectId, userId }: { projectId: string; userId: string }) =>
       apiDelete<{ ok: true; stillAssignedTasks: number }>(`/api/projects/${projectId}/members`, { userId }),
@@ -158,5 +169,5 @@ export function useProjectMutations() {
     },
   });
 
-  return { createProject, updateProject, deleteProject, addPerson, invitePerson, removePerson };
+  return { createProject, updateProject, deleteProject, addPerson, invitePerson, invitePeople, removePerson };
 }

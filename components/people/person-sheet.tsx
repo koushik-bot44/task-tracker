@@ -70,10 +70,10 @@ export function PersonSheet({
   );
 }
 
-type Action = "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
+type Action = "name" | "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
 
 function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: UserDTO; departments: DepartmentDTO[]; onClose: () => void }) {
-  const { updateUser, resendInvite, cancelInvite, setPassword } = useUserMutations();
+  const { updateUser, updateMe, resendInvite, cancelInvite, setPassword } = useUserMutations();
   const { show: toast } = useToast();
   const [action, setAction] = useState<Action | null>(null);
   const [reveal, setReveal] = useState<string | null>(null);
@@ -81,6 +81,8 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
   const [phone, setPhone] = useState(user.phone ?? "");
   const savedPhone = user.phone ?? "";
   useEffect(() => setPhone(savedPhone), [savedPhone]);
+  const [name, setName] = useState(user.name);
+  useEffect(() => setName(user.name), [user.name]);
 
   const isSelf = user.id === me.id;
   const pending = user.status === "PENDING";
@@ -88,7 +90,9 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
   const offered = rolesOfferedTo(me.role);
   const roleChoices = offered.includes(user.role) ? offered : [user.role, ...offered];
   const roleLocked = user.role === "ADMIN" || user.role === "FOUNDER" || offered.length === 0;
-  const busy = updateUser.isPending || resendInvite.isPending || cancelInvite.isPending || setPassword.isPending;
+  const busy = updateUser.isPending || updateMe.isPending || resendInvite.isPending || cancelInvite.isPending || setPassword.isPending;
+  const trimmedName = name.trim();
+  const nameDirty = trimmedName !== user.name;
 
   const savePassword = () => {
     const pw = (newPassword ?? "").trim();
@@ -113,6 +117,15 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
 
   const fail = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
   const done = () => setAction(null);
+
+  // A name can change as often as it needs to (owner, 2026-09-10); your own goes through your account.
+  const saveName = () => {
+    if (!trimmedName || !nameDirty) return;
+    setAction("name");
+    const after = { onSuccess: () => toast({ message: `Name saved: ${trimmedName}` }), onError: fail, onSettled: done };
+    if (isSelf) updateMe.mutate({ name: trimmedName }, after);
+    else updateUser.mutate({ id: user.id, patch: { name: trimmedName } }, after);
+  };
 
   const setDepartment = (departmentId: string | null) => {
     setAction("department");
@@ -225,6 +238,32 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
       </div>
 
       {reveal ? <PasswordReveal email={user.email} password={reveal} onDone={() => setReveal(null)} /> : null}
+
+      <div>
+        <label htmlFor={`name-${user.id}`} className="mb-1.5 block text-micro font-medium text-muted">
+          Name
+        </label>
+        <div className="flex gap-2">
+          <input
+            id={`name-${user.id}`}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                saveName();
+              }
+            }}
+            maxLength={80}
+            autoComplete="off"
+            className={cn(inputClass, "min-w-0 flex-1", !trimmedName && "border-danger")}
+          />
+          <Button variant="secondary" onClick={saveName} disabled={!trimmedName || !nameDirty || busy} loading={action === "name"} aria-label="Save name">
+            Save
+          </Button>
+        </div>
+        {!trimmedName ? <p className="mt-1 text-micro text-danger-ink">A name can&apos;t be empty.</p> : null}
+      </div>
 
       {/* The admin can't read the department list, so placement is read-only there. */}
       {departments.length > 0 ? (

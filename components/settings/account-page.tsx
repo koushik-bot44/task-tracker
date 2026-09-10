@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { InstallAppRow } from "@/components/settings/install-app-row";
 import { NotificationsRow } from "@/components/settings/notifications-row";
 import { useToast } from "@/components/toast";
@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Face } from "@/components/ui/face";
 import { Field, inputClass } from "@/components/ui/sheet";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { cn } from "@/lib/cn";
 import { useMe, useUserMutations } from "@/lib/hooks/use-users";
 
 /** Account: who you are, how Orbit reaches you, installing the app, and your password. */
@@ -64,6 +65,8 @@ export function AccountPage() {
         <SkeletonCard className="h-[4.5rem]" />
       )}
 
+      {me && me.role !== "PERSON" ? <NameCard name={me.name} /> : null}
+
       <div className="mt-6">
         <NotificationsRow />
       </div>
@@ -93,5 +96,35 @@ export function AccountPage() {
         </Card>
       </section>
     </div>
+  );
+}
+
+/** Your own name, changed as often as you like (owner, 2026-09-10). */
+function NameCard({ name }: { name: string }) {
+  const { updateMe } = useUserMutations();
+  const { show: toast } = useToast();
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  const next = draft.trim();
+  const dirty = next !== name;
+
+  const save = (event: FormEvent) => {
+    event.preventDefault();
+    if (!next || !dirty) return;
+    updateMe.mutate({ name: next }, { onSuccess: () => toast({ message: "Name saved." }), onError: (err) => toast({ message: (err as Error).message, tone: "danger" }) });
+  };
+
+  return (
+    <section className="mt-6" aria-label="Your name">
+      <h2 className="mb-2 px-1 text-micro font-semibold uppercase tracking-wider text-muted">Your name</h2>
+      <Card className="p-4">
+        <form onSubmit={save} className="flex gap-2">
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={80} autoComplete="name" aria-label="Your name" className={cn(inputClass, "min-w-0 flex-1")} />
+          <Button type="submit" variant="secondary" loading={updateMe.isPending} disabled={!next || !dirty} aria-label="Save your name">
+            Save
+          </Button>
+        </form>
+      </Card>
+    </section>
   );
 }

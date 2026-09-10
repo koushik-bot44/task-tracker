@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { issueInvite } from "@/lib/invite";
 import { canSeeProject } from "@/lib/project-visibility";
+import { invitePeopleToProject } from "@/lib/project-invites";
 import { canManageProject, ensureMember, projectPeople } from "@/lib/project-people";
 import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { syncProjectReviews } from "@/lib/meetings";
@@ -28,6 +29,19 @@ const bodySchema = z.object({
       role: z.enum(["RESOURCE", "TEAM_LEAD"]).optional(),
     })
     .optional(),
+  /** Several people at once (owner, 2026-09-10): each a name, their addresses — the
+      first is where the invite goes — and how they join. */
+  invites: z
+    .array(
+      z.object({
+        name: z.string().trim().max(80).optional(),
+        emails: z.array(z.string().trim().min(3).max(320)).min(1).max(10),
+        role: z.enum(["RESOURCE", "TEAM_LEAD"]).optional(),
+      }),
+    )
+    .min(1)
+    .max(50)
+    .optional(),
 });
 
 /** Everyone on the project (lead, owner, members, task holders). Anyone who can see it. */
@@ -47,8 +61,13 @@ export const POST = route(async (req: Request, { params }: Params) => {
 
   const parsed = await parseBody(req, bodySchema);
   if (!parsed.ok) return parsed.response;
-  const project = await prisma.project.findUnique({ where: { id: params.id }, select: { id: true, name: true } });
+  const project = await prisma.project.findUnique({ where: { id: params.id }, select: { id: true, name: true, departmentId: true } });
   if (!project) throw new HttpError(404, "Project not found");
+
+  if (parsed.data.invites) {
+    const outcome = await invitePeopleToProject(actor, project, parsed.data.invites);
+    return NextResponse.json({ ok: true, ...outcome }, { status: outcome.invited > 0 ? 201 : 200 });
+  }
 
   if (parsed.data.invite) {
     const { name, role } = parsed.data.invite;
@@ -67,11 +86,13 @@ export const POST = route(async (req: Request, { params }: Params) => {
       }
       await ensureMember(project.id, existing.id);
       await addOtherEmails(existing.id, addresses);
+      await syncProjectReviews(project.id, actor.id).catch(() => undefined);
       return NextResponse.json({ ok: true, emailSent: false, userId: existing.id });
     }
     const invited = await prisma.$transaction(async (tx) => {
+      // In the project's department, like everyone invited with a new project (2026-09-10).
       const u = await tx.user.create({
-        data: { email, name, role: role === "TEAM_LEAD" ? "TEAM_LEAD" : "RESOURCE", status: "PENDING", passwordHash: null },
+        data: { email, name, role: role === "TEAM_LEAD" ? "TEAM_LEAD" : "RESOURCE", status: "PENDING", passwordHash: null, departmentId: project.departmentId },
       });
       await tx.projectMember.create({ data: { projectId: project.id, userId: u.id } });
       return u;
@@ -83,6 +104,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
       createdById: actor.id,
       projectName: project.name,
     });
+    await syncProjectReviews(project.id, actor.id).catch(() => undefined);
     return NextResponse.json({ ok: true, emailSent: sent, userId: invited.id }, { status: 201 });
   }
 
