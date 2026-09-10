@@ -98,14 +98,14 @@ export const POST = route(async (req: Request, { params }: Params) => {
       return u;
     });
     await addOtherEmails(invited.id, others);
-    const { sent } = await issueInvite({
+    const { sent, url } = await issueInvite({
       user: { id: invited.id, name: invited.name, email: invited.email, role: invited.role },
       inviterName: actor.name,
       createdById: actor.id,
       projectName: project.name,
     });
     await syncProjectReviews(project.id, actor.id).catch(() => undefined);
-    return NextResponse.json({ ok: true, emailSent: sent, userId: invited.id }, { status: 201 });
+    return NextResponse.json({ ok: true, emailSent: sent, userId: invited.id, inviteUrl: url }, { status: 201 });
   }
 
   if (!parsed.data.userId) throw new HttpError(400, "Pick someone to add.");

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { NewPeopleRows, blankPerson, toInvites, type NewPerson } from "@/components/people/new-people-rows";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
@@ -63,6 +64,8 @@ export function NewProjectSheet({
       several addresses, the first being the one the invite is sent to. */
   const [newPeople, setNewPeople] = useState<NewPerson[]>([]);
   const [morePeople, setMorePeople] = useState(false);
+  /** The project just started, while its new people's invite links are shown. */
+  const [shared, setShared] = useState<{ links: InviteLink[]; slug: string; name: string } | null>(null);
 
   // Fresh every time it opens.
   useEffect(() => {
@@ -76,6 +79,7 @@ export function NewProjectSheet({
     setMemberIds(new Set());
     setNewPeople([]);
     setMorePeople(false);
+    setShared(null);
   }, [open]);
 
   const leads = useMemo(
@@ -122,16 +126,45 @@ export function NewProjectSheet({
       },
       {
         onSuccess: (project) => {
-          onClose();
-          const extra = project as typeof project & { added?: number; invited?: number };
+          const extra = project as typeof project & { added?: number; invited?: number; links?: InviteLink[] };
           const bits = [extra.added ? `${extra.added} added` : null, extra.invited ? `${extra.invited} invited by email` : null].filter(Boolean);
           toast({ message: bits.length ? `Project started · ${bits.join(" · ")}` : "Project started" });
+          // The new people's links, to send on WhatsApp before moving on — an email can land in spam (2026-09-10).
+          if (extra.links?.length) {
+            setShared({ links: extra.links, slug: project.slug, name: project.name });
+            return;
+          }
+          onClose();
           router.push(`/project/${project.slug}`);
         },
         onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
       },
     );
   };
+
+  if (shared) {
+    const openProject = () => {
+      const slug = shared.slug;
+      setShared(null);
+      onClose();
+      router.push(`/project/${slug}`);
+    };
+    return (
+      <Sheet
+        open={open}
+        onClose={openProject}
+        title="New project"
+        subtitle={shared.name}
+        footer={
+          <Button variant="primary" full onClick={openProject}>
+            Open the project
+          </Button>
+        }
+      >
+        <InviteLinks links={shared.links} project={shared.name} className="mt-1" />
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet

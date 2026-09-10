@@ -141,7 +141,7 @@ export function useProjectMutations() {
 
   const invitePerson = useMutation({
     mutationFn: ({ projectId, name, email, emails, role }: { projectId: string; name: string; email: string; emails?: string[]; role?: "RESOURCE" | "TEAM_LEAD" }) =>
-      apiPost<{ ok: true; emailSent: boolean }>(`/api/projects/${projectId}/members`, { invite: { name, email, emails, role } }),
+      apiPost<{ ok: true; emailSent: boolean; inviteUrl?: string }>(`/api/projects/${projectId}/members`, { invite: { name, email, emails, role } }),
     onSettled: (_d, _e, v) => {
       void qc.invalidateQueries({ queryKey: ["project-people", v.projectId] });
       void qc.invalidateQueries({ queryKey: ["users"] });
@@ -152,7 +152,14 @@ export function useProjectMutations() {
   /** Several people at once — some on Orbit already, some new (owner, 2026-09-10). */
   const invitePeople = useMutation({
     mutationFn: ({ projectId, invites }: { projectId: string; invites: { name?: string; emails: string[]; role?: "RESOURCE" | "TEAM_LEAD" }[] }) =>
-      apiPost<{ ok: true; added: number; invited: number; emailFailed: string[]; skipped: { email: string; reason: string }[] }>(`/api/projects/${projectId}/members`, { invites }),
+      apiPost<{
+        ok: true;
+        added: number;
+        invited: number;
+        emailFailed: string[];
+        skipped: { email: string; reason: string }[];
+        links: { name: string; email: string; url: string }[];
+      }>(`/api/projects/${projectId}/members`, { invites }),
     onSettled: (_d, _e, v) => {
       void qc.invalidateQueries({ queryKey: ["project-people", v.projectId] });
       void qc.invalidateQueries({ queryKey: ["users"] });

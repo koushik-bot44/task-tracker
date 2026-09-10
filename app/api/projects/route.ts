@@ -107,6 +107,8 @@ export const POST = route(async (req: Request) => {
   let added = 0;
   let invited = 0;
   const skipped: string[] = [];
+  /** Each new person's set-password link, to send on WhatsApp when an email lands in spam (2026-09-10). */
+  const links: { name: string; email: string; url: string }[] = [];
   for (const userId of new Set(memberIds ?? [])) {
     const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, disabledAt: true } });
     if (!u || u.disabledAt || u.role === "PERSON" || u.role === "ADMIN") { skipped.push(userId); continue; }
@@ -139,10 +141,11 @@ export const POST = route(async (req: Request) => {
     });
     await addOtherEmails(u.id, others);
     await ensureMember(project.id, u.id);
-    await issueInvite({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
+    const { url } = await issueInvite({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
+    links.push({ name: u.name, email: u.email, url });
     invited++;
   }
 
   const [rich] = await enrichProjects([project]);
-  return NextResponse.json({ ...serializeProject(rich, 0), added, invited, skipped }, { status: 201 });
+  return NextResponse.json({ ...serializeProject(rich, 0), added, invited, skipped, links }, { status: 201 });
 });

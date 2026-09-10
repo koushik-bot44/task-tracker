@@ -23,6 +23,8 @@ export type InviteOutcome = {
   /** Invited, but the email didn't go — Resend invite on People sends it again. */
   emailFailed: string[];
   skipped: { email: string; reason: string }[];
+  /** Each new person's set-password link, for the person inviting to send on WhatsApp (2026-09-10). */
+  links: { name: string; email: string; url: string }[];
 };
 
 export async function invitePeopleToProject(
@@ -57,7 +59,7 @@ export async function invitePeopleToProject(
   });
 
   // 3. Add, or make and invite.
-  const out: InviteOutcome = { added: 0, invited: 0, emailFailed: [], skipped: [] };
+  const out: InviteOutcome = { added: 0, invited: 0, emailFailed: [], skipped: [], links: [] };
   for (const [i, p] of planned.entries()) {
     const [email, ...others] = p.addresses;
     const existing = found[i];
@@ -91,8 +93,9 @@ export async function invitePeopleToProject(
     }
     await addOtherEmails(user.id, others);
     await ensureMember(project.id, user.id);
-    const { sent } = await issueInvite({ user: { id: user.id, name: user.name, email: user.email, role: user.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
+    const { sent, url } = await issueInvite({ user: { id: user.id, name: user.name, email: user.email, role: user.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
     out.invited++;
+    out.links.push({ name: user.name, email: user.email, url });
     if (!sent) out.emailFailed.push(email);
   }
 

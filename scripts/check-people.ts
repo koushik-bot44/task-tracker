@@ -19,6 +19,8 @@ const BASE = process.env.SCREEN_BASE ?? "http://localhost:3000";
 const PREFIX = "pplrig-";
 const PASSWORD = "Rig-People-77";
 const at = (label: string) => `${PREFIX}${label}@orbit.local`;
+/** The token at the end of a set-password link. */
+const tokenOf = (url: string) => url.split("/invite/")[1] ?? "";
 
 let pass = 0;
 let fail = 0;
@@ -73,6 +75,10 @@ let projectId: string | null = null;
 async function cleanup() {
   if (projectId && ceo) await call(ceo, "DELETE", `/api/projects/${projectId}`).catch(() => undefined);
   await prisma.project.deleteMany({ where: { name: { startsWith: "PPL " } } });
+  const pplTasks = { title: { startsWith: "PPL ", mode: "insensitive" as const } };
+  await prisma.taskActivity.deleteMany({ where: { task: pplTasks } });
+  await prisma.notification.deleteMany({ where: { task: pplTasks } });
+  await prisma.task.deleteMany({ where: pplTasks });
   const ids = (await prisma.user.findMany({ where: { email: { startsWith: PREFIX } }, select: { id: true } })).map((u) => u.id);
   if (ids.length) {
     await prisma.passwordResetRequest.deleteMany({ where: { userId: { in: ids } } });
@@ -126,6 +132,19 @@ async function main() {
     again.status === 200 && again.json?.invited === 0 && again.json?.added === 1 && (await prisma.user.count({ where: { email: { startsWith: `${PREFIX}new1` } } })) === 1,
     `status ${again.status}`,
   );
+  // The set-password link, to send on WhatsApp when an email lands in spam (owner, 2026-09-10).
+  const firstLinks: { name: string; email: string; url: string }[] = batch.json?.links ?? [];
+  record(
+    "…and a set-password link comes back for each new person, to send by hand",
+    firstLinks.length === 2 && firstLinks.every((l) => /\/invite\/[A-Za-z0-9_-]{20,}$/.test(l.url)),
+    firstLinks.map((l) => l.email).join(", "),
+  );
+  const joined = await call("", "POST", `/api/invite/${tokenOf(firstLinks.find((l) => l.email === at("new2"))?.url ?? "")}/accept`, { password: "Rig-Joined-By-Link-99" });
+  record(
+    "…and the link works: they set a password and they're in",
+    joined.status === 200 && (await prisma.user.findUnique({ where: { email: at("new2") }, select: { status: true } }))?.status === "ACTIVE",
+    `status ${joined.status}`,
+  );
 
   /* ---- Add people, on screen ---- */
   browser = await chromium.launch();
@@ -151,6 +170,13 @@ async function main() {
   const two = await prisma.user.findUnique({ where: { email: at("screen2") }, select: { id: true, role: true } });
   const onNow = await members();
   record("…each lands on the project, joining as chosen", Boolean(one && two && onNow.has(one.id) && onNow.has(two.id) && one.role === "RESOURCE" && two.role === "TEAM_LEAD"), `${one?.role} / ${two?.role}`);
+  const linkPanel = sheet.getByRole("region", { name: "Invite links" });
+  const whatsapp = (await linkPanel.getByRole("link", { name: "Send PPL Screen One's invite on WhatsApp" }).getAttribute("href", { timeout: 8000 }).catch(() => null)) ?? "";
+  record(
+    "…and shows their invite links, each ready for WhatsApp or to copy",
+    whatsapp.startsWith("https://wa.me/?text=") && decodeURIComponent(whatsapp).includes("/invite/") && (await linkPanel.getByRole("button", { name: "Copy PPL Screen Two's invite link" }).isVisible()),
+    whatsapp.slice(0, 40),
+  );
   record("…the sheet says what happened", await until(async () => page.getByText(/2 invited/).first().isVisible(), 8000));
   record("…and gives fresh rows for the next people", await until(async () => (await sheet.getByLabel("Name of new person 1", { exact: true }).inputValue()) === "", 5000));
   await page.keyboard.press("Escape");
@@ -181,6 +207,78 @@ async function main() {
     await page.keyboard.press("Escape");
   } catch (e) {
     record("People renames a person, and renames them again", false, (e as Error).message.split("\n")[0]);
+  }
+
+  /* ---- People: invite one and send the link; a fresh link for someone who hasn't joined ---- */
+  try {
+    await page.goto(`${BASE}/people`);
+    await page.getByRole("button", { name: /^Invite/ }).first().click({ timeout: 60000 });
+    const inviteSheet = page.getByRole("dialog", { name: "Invite someone" });
+    await inviteSheet.getByPlaceholder("Their full name").fill("PPL Solo");
+    await inviteSheet.getByLabel("Email", { exact: true }).fill(at("solo"));
+    await inviteSheet.getByRole("button", { name: "Send invite" }).click();
+    const soloBox = inviteSheet.getByRole("textbox", { name: "Invite link for PPL Solo" });
+    const firstUrl = (await until(async () => soloBox.isVisible())) ? await soloBox.inputValue() : "";
+    record("People → Invite shows the new person's link, to send on WhatsApp", /\/invite\/[A-Za-z0-9_-]{20,}$/.test(firstUrl), firstUrl ? "link shown" : "no link");
+    await inviteSheet.getByRole("button", { name: "Done" }).click();
+    await page.getByText("PPL Solo", { exact: true }).first().click({ timeout: 30000 });
+    const soloSheet = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Share invite link" }) });
+    await soloSheet.getByRole("button", { name: "Share invite link" }).click();
+    const shareBox = soloSheet.getByRole("textbox", { name: "Invite link for PPL Solo" });
+    const secondUrl = (await until(async () => shareBox.isVisible())) ? await shareBox.inputValue() : "";
+    const oldTry = await call("", "POST", `/api/invite/${tokenOf(firstUrl)}/accept`, { password: "Rig-Old-Link-99" });
+    const newTry = await call("", "POST", `/api/invite/${tokenOf(secondUrl)}/accept`, { password: "Rig-New-Link-99" });
+    record(
+      "someone who hasn't joined gets a fresh link from People; the old one stops working",
+      Boolean(secondUrl) && secondUrl !== firstUrl && oldTry.status === 410 && newTry.status === 200,
+      `old link ${oldTry.status}, new link ${newTry.status}`,
+    );
+    await page.keyboard.press("Escape");
+  } catch (e) {
+    record("People → Invite and Share invite link", false, (e as Error).message.split("\n")[0]);
+  }
+
+  /* ---- New project and New Task: the links of the people invited while making them ---- */
+  try {
+    await page.goto(`${BASE}/projects`);
+    await page.getByRole("button", { name: /new project/i }).first().click({ timeout: 60000 });
+    const projectSheet = page.getByRole("dialog", { name: "New project" });
+    await projectSheet.getByLabel("Project name", { exact: true }).fill("PPL Invite Project");
+    const projectDept = projectSheet.getByLabel("Department", { exact: true });
+    if (await projectDept.isVisible().catch(() => false)) await projectDept.selectOption({ index: 1 });
+    await projectSheet.getByRole("button", { name: "+ Someone not on Orbit yet" }).first().click();
+    await projectSheet.getByLabel("Name of new person 1", { exact: true }).fill("PPL Project Invitee");
+    await projectSheet.getByLabel("Email for PPL Project Invitee", { exact: true }).fill(at("project-invitee"));
+    await projectSheet.getByRole("button", { name: "Save" }).click();
+    const projectLink = projectSheet.getByRole("textbox", { name: "Invite link for PPL Project Invitee" });
+    const shown = await until(async () => projectLink.isVisible(), 20000);
+    record("New project shows the link of the person invited with it", shown && /\/invite\//.test(await projectLink.inputValue()));
+    if (shown) {
+      await projectSheet.getByRole("button", { name: "Open the project" }).click();
+      record("…and then opens the project", await until(async () => /\/project\//.test(page.url()), 20000), page.url().replace(BASE, ""));
+    }
+  } catch (e) {
+    record("New project shows the link of the person invited with it", false, (e as Error).message.split("\n")[0]);
+  }
+  try {
+    await page.goto(`${BASE}/work`);
+    await page.getByRole("button", { name: /^new$/i }).first().click({ timeout: 60000 });
+    const taskSheet = page.getByRole("dialog", { name: "New Task" });
+    await taskSheet.getByLabel("Short description", { exact: true }).fill("PPL Task With Invite");
+    await taskSheet.getByLabel("Department", { exact: true }).selectOption({ index: 1 });
+    await taskSheet.getByRole("button", { name: /someone not on orbit yet|add someone new/i }).first().click();
+    await taskSheet.getByLabel(/^Name of /).first().fill("PPL Task Invitee");
+    await taskSheet.getByLabel(/^Email for /).first().fill(at("task-invitee"));
+    await taskSheet.getByRole("button", { name: "Submit" }).click();
+    const taskLink = taskSheet.getByRole("textbox", { name: "Invite link for PPL Task Invitee" });
+    const shownTask = await until(async () => taskLink.isVisible(), 20000);
+    record("New Task shows the link of the person invited with it", shownTask && /\/invite\//.test(await taskLink.inputValue()));
+    if (shownTask) {
+      await taskSheet.getByRole("button", { name: "Open the task" }).click();
+      record("…and then opens the task", await until(async () => /\/work\/\d+/.test(page.url()), 20000), page.url().replace(BASE, ""));
+    }
+  } catch (e) {
+    record("New Task shows the link of the person invited with it", false, (e as Error).message.split("\n")[0]);
   }
 
   /* ---- Account: your own name, changed twice ---- */

@@ -2,6 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { Button, IconButton } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Face } from "@/components/ui/face";
@@ -70,7 +71,7 @@ export function PersonSheet({
   );
 }
 
-type Action = "name" | "email" | "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
+type Action = "name" | "email" | "share" | "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
 
 function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: UserDTO; departments: DepartmentDTO[]; onClose: () => void }) {
   const { updateUser, updateMe, resendInvite, cancelInvite, setPassword } = useUserMutations();
@@ -78,6 +79,8 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
   const [action, setAction] = useState<Action | null>(null);
   const [reveal, setReveal] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState<string | null>(null);
+  /** A fresh set-password link for someone who hasn't joined yet. */
+  const [shared, setShared] = useState<InviteLink | null>(null);
   const [phone, setPhone] = useState(user.phone ?? "");
   const savedPhone = user.phone ?? "";
   useEffect(() => setPhone(savedPhone), [savedPhone]);
@@ -202,14 +205,27 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
     );
   };
 
-  const resend = () => {
-    setAction("resend");
-    resendInvite.mutate(user.id, {
-      onSuccess: ({ emailSent }) =>
-        toast({ message: emailSent ? `Invite resent to ${user.email}.` : "Couldn't send the invite email.", tone: emailSent ? undefined : "danger" }),
-      onError: fail,
-      onSettled: done,
-    });
+  // A new link — emailed, or only shown here to send on WhatsApp (owner, 2026-09-10). Either way the old one stops working.
+  const issueLink = (email: boolean) => {
+    setAction(email ? "resend" : "share");
+    resendInvite.mutate(
+      { id: user.id, email },
+      {
+        onSuccess: ({ emailSent, inviteUrl }) => {
+          setShared({ name: user.name, email: user.email, url: inviteUrl, phone: user.phone });
+          toast({
+            message: !email
+              ? "A new link is ready. Any earlier link stops working."
+              : emailSent
+                ? `Invite resent to ${user.email}. Any earlier link stops working.`
+                : "The email didn't go — send them the link instead.",
+            tone: email && !emailSent ? "danger" : undefined,
+          });
+        },
+        onError: fail,
+        onSettled: done,
+      },
+    );
   };
 
   const cancel = () => {
@@ -253,6 +269,7 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
       </div>
 
       {reveal ? <PasswordReveal email={user.email} password={reveal} onDone={() => setReveal(null)} /> : null}
+      {shared ? <InviteLinks links={[shared]} /> : null}
 
       <div>
         <label htmlFor={`name-${user.id}`} className="mb-1.5 block text-micro font-medium text-muted">
@@ -410,7 +427,10 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
         )}
         {pending ? (
           <>
-            <Button full variant="secondary" onClick={resend} disabled={busy} loading={action === "resend"}>
+            <Button full variant="secondary" onClick={() => issueLink(false)} disabled={busy} loading={action === "share"}>
+              Share invite link
+            </Button>
+            <Button full variant="secondary" onClick={() => issueLink(true)} disabled={busy} loading={action === "resend"}>
               Resend invite
             </Button>
             <Button full variant="danger" onClick={cancel} disabled={busy} loading={action === "cancel"}>

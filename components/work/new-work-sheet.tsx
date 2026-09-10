@@ -4,6 +4,7 @@ import { Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PendingFileChips, usePendingFiles } from "@/components/notes/pending-files";
+import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
@@ -49,6 +50,8 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       everywhere, owner 2026-09-10). */
   const files = usePendingFiles();
   const fileRef = useRef<HTMLInputElement>(null);
+  /** Raised: the invite links of the people it made, and where to go next. */
+  const [shared, setShared] = useState<{ links: InviteLink[]; go: string } | null>(null);
   const { data: uploads } = useUploadsEnabled();
   const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
   const canInvite = canAdministerAccountsRole(me?.role);
@@ -103,12 +106,13 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
     const rows = invites
       .map((i) => ({ name: i.name.trim(), emails: i.emails.map((e) => e.trim()).filter(Boolean) }))
       .filter((i) => i.emails.length > 0);
+    const links: InviteLink[] = [];
     if (rows.length) {
       setInviting(true);
       try {
         for (const i of rows) {
           const [main, ...rest] = i.emails;
-          const res = await apiPost<{ user: UserDTO }>("/api/users", {
+          const res = await apiPost<{ user: UserDTO; inviteUrl?: string }>("/api/users", {
             name: i.name || main.split("@")[0],
             email: main,
             ...(rest.length ? { emails: rest } : {}),
@@ -116,6 +120,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
             departmentId: departmentId || group?.departmentId || null,
           });
           holders.add(res.user.id);
+          if (res.inviteUrl) links.push({ name: res.user.name, email: res.user.email, url: res.inviteUrl });
         }
       } catch (e) {
         setInviting(false);
@@ -149,17 +154,45 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       } catch (e) {
         toast({ message: `The task is raised, but a file couldn't be added: ${(e as Error).message}`, tone: "danger" });
       }
+      const go = made.length === 1 ? `/work/${made[0].number}` : "/work?mine=requested";
+      if (made.length > 1) toast({ message: `${made.length} tasks opened, one per person` });
+      // The people invited get their links here, to send on WhatsApp — an email can land in spam (2026-09-10).
+      if (links.length) {
+        setShared({ links, go });
+        return;
+      }
       reset();
       onClose();
-      if (made.length === 1) router.push(`/work/${made[0].number}`);
-      else {
-        toast({ message: `${made.length} tasks opened, one per person` });
-        router.push("/work?mine=requested");
-      }
+      router.push(go);
     } catch (e) {
       toast({ message: (e as Error).message, tone: "danger" });
     }
   };
+
+  if (shared) {
+    const leave = () => {
+      const go = shared.go;
+      reset();
+      setShared(null);
+      onClose();
+      router.push(go);
+    };
+    return (
+      <Sheet
+        open={open}
+        onClose={leave}
+        title="New Task"
+        subtitle="Raised — now send the invite links"
+        footer={
+          <Button variant="primary" full onClick={leave}>
+            {shared.go.startsWith("/work/") ? "Open the task" : "Open the tasks"}
+          </Button>
+        }
+      >
+        <InviteLinks links={shared.links} />
+      </Sheet>
+    );
+  }
 
   const types = WORK_TYPES.filter((t) => t === "GENERAL" || t === "REQUEST" || t === "APPROVAL");
 

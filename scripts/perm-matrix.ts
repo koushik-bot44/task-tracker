@@ -224,6 +224,17 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("lead invites several -> 403", (await call(lead, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}bylead@orbit.local`] }] })).status, 403);
   record("another manager invites several -> 404", (await call(manager2, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}bymanager2@orbit.local`] }] })).status, 404);
   record("admin invites several -> 403/404", (await call(admin, "POST", `/api/projects/${projectId}/members`, { invites: [{ emails: [`${PREFIX}byadmin@orbit.local`] }] })).status, [403, 404]);
+  check("…the batch hands back a set-password link for each new person", (batch.json?.links ?? []).length === 2, `${(batch.json?.links ?? []).length} links`);
+  // A fresh link to send by hand, on WhatsApp say, for someone who hasn't joined (owner, 2026-09-10).
+  const batchOneId = (await prisma.user.findUnique({ where: { email: `${PREFIX}batch1@orbit.local` }, select: { id: true } }))?.id;
+  if (batchOneId) {
+    // The same people as Resend invite: the chain over that person's department.
+    const fresh = await call(hod, "POST", `/api/users/${batchOneId}/resend`, { email: false });
+    record("hod gets a new invite link for someone in their department, without an email -> 200", fresh.status, 200);
+    check("…and it is a set-password link", /\/invite\/[A-Za-z0-9_-]{20,}$/.test(fresh.json?.inviteUrl ?? ""));
+    record("a manager outside that department gets the link -> 403", (await call(manager, "POST", `/api/users/${batchOneId}/resend`, { email: false })).status, 403);
+    record("dev gets someone's invite link -> 403", (await call(dev, "POST", `/api/users/${batchOneId}/resend`, { email: false })).status, 403);
+  }
 
   console.log("\n── names ─────────────────────────────────────────────────────");
   // A name can change as often as it needs to (owner, 2026-09-10).

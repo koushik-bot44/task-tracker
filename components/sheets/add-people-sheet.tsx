@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { NewPeopleRows, blankPerson, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
 import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ function isWorkAccount(u: UserDTO): boolean {
  * aren't on Orbit yet at the bottom — several at once, the same rows as a new
  * project has (owner, 2026-09-10).
  */
-export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; onClose: () => void; projectId: string }) {
+export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open: boolean; onClose: () => void; projectId: string; projectName?: string }) {
   const { show: toast } = useToast();
   const { data: me } = useMe();
   const { data: users, isLoading: loadingUsers } = useUsers(open && canSeeUserListRole(me?.role));
@@ -37,12 +38,15 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newPeople, setNewPeople] = useState<NewPerson[]>([blankPerson()]);
+  /** The links of everyone invited while the sheet is open, newest first. */
+  const [links, setLinks] = useState<InviteLink[]>([]);
 
   useEffect(() => {
     if (!open) return;
     setQ("");
     setBusyId(null);
     setNewPeople([blankPerson()]);
+    setLinks([]);
   }, [open]);
 
   const onProject = useMemo(() => new Map((people ?? []).map((p) => [p.id, p] as const)), [people]);
@@ -109,11 +113,12 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
         onSuccess: (r) => {
           const done = [r.invited ? `${r.invited} invited` : null, r.added ? `${r.added} already on Orbit, added` : null].filter(Boolean).join(" · ");
           const trouble = [
-            r.emailFailed.length ? `The invite email didn't reach ${r.emailFailed.join(", ")} — resend it from People` : null,
+            r.emailFailed.length ? `The invite email didn't reach ${r.emailFailed.join(", ")} — send them their links below` : null,
             ...r.skipped.map((s) => `${s.email}: ${s.reason}`),
           ].filter(Boolean);
           toast({ message: [done || "Nobody new to add", ...trouble].join(". "), tone: trouble.length ? "danger" : undefined });
           setNewPeople([blankPerson()]);
+          setLinks((prev) => [...r.links, ...prev]);
         },
         onError: fail,
       },
@@ -187,9 +192,10 @@ export function AddPeopleSheet({ open, onClose, projectId }: { open: boolean; on
             <div>
               <h3 className="text-sm font-semibold text-ink">Invite people who aren&apos;t on Orbit yet</h3>
               <p className="mt-0.5 text-micro text-muted">
-                As many as you like. Each gets an email to set a password and lands on this project; anyone already on Orbit is simply added.
+                As many as you like. Each gets an email and a link you can send on WhatsApp, and lands on this project; anyone already on Orbit is simply added.
               </p>
             </div>
+            <InviteLinks links={links} project={projectName} />
             <NewPeopleRows
               rows={newPeople}
               onChange={setNewPeople}

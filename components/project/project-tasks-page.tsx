@@ -97,7 +97,7 @@ export function ProjectTasksPage({ slug }: { slug: string }) {
         />
       </div>
 
-      <AddPeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} projectId={project.id} />
+      <AddPeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} projectId={project.id} projectName={project.name} />
       {canSetProgress ? (
         <SetProgressSheet open={progressOpen} onClose={() => setProgressOpen(false)} project={project} done={roots.filter((t) => t.status === "DONE").length} total={roots.length} />
       ) : null}

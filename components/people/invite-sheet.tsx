@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { Button } from "@/components/ui/button";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
@@ -12,7 +13,9 @@ import { ROLE_LABEL, type DepartmentDTO, type UserDTO, type UserRole } from "@/l
 /**
  * Invite someone: name, email, role (only the roles this person may hand
  * out), and — optionally — where they sit. They get an email with a link to
- * set their own password; the account stays "Invited" until they do.
+ * set their own password, and the same link then shows here to send on
+ * WhatsApp or copy, because an email can land in spam (owner, 2026-09-10). The
+ * account stays "Invited" until they use it.
  *
  * A person may hold several addresses (2026-09-09). The first is the one the
  * invite is sent to; every one of them signs them in afterwards.
@@ -38,6 +41,8 @@ export function InviteSheet({
   const [emails, setEmails] = useState<string[]>([""]);
   const [role, setRole] = useState<UserRole | null>(defaultRole);
   const [departmentId, setDepartmentId] = useState("");
+  /** The person just invited, with their link. */
+  const [made, setMade] = useState<{ link: InviteLink; emailed: boolean } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +50,7 @@ export function InviteSheet({
     setEmails([""]);
     setRole(defaultRole);
     setDepartmentId("");
+    setMade(null);
   }, [open, defaultRole]);
 
   const filled = emails.map((e) => e.trim()).filter(Boolean);
@@ -56,24 +62,52 @@ export function InviteSheet({
     createUser.mutate(
       { name: name.trim(), email: main, ...(rest.length ? { emails: rest } : {}), role, departmentId: departmentId || null },
       {
-        onSuccess: ({ user, emailSent }) => {
-          toast({
-            message: emailSent ? `Invite sent to ${user.email}.` : `${user.name} added, but the invite email didn't send — try Resend.`,
-            tone: emailSent ? undefined : "danger",
-          });
-          onClose();
+        onSuccess: ({ user, emailSent, inviteUrl }) => {
+          setMade({ link: { name: user.name, email: user.email, url: inviteUrl }, emailed: emailSent });
+          toast({ message: emailSent ? `Invite emailed to ${user.email}. You can send the link too.` : `${user.name} is added. The email didn't go, so send them the link.` });
         },
         onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
       },
     );
   };
 
+  const another = () => {
+    setName("");
+    setEmails([""]);
+    setRole(defaultRole);
+    setDepartmentId("");
+    setMade(null);
+  };
+
+  if (made) {
+    return (
+      <Sheet
+        open={open}
+        onClose={onClose}
+        title="Invite someone"
+        subtitle={made.emailed ? `Emailed to ${made.link.email} as well.` : "The email didn't go — send them this link."}
+        footer={
+          <div className="flex gap-2">
+            <Button variant="secondary" full onClick={another}>
+              Invite someone else
+            </Button>
+            <Button variant="primary" full onClick={onClose}>
+              Done
+            </Button>
+          </div>
+        }
+      >
+        <InviteLinks links={[made.link]} className="mt-1" />
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet
       open={open}
       onClose={onClose}
       title="Invite someone"
-      subtitle="They'll get an email to set a password."
+      subtitle="They'll get an email, and a link you can send on WhatsApp."
       footer={
         <Button variant="primary" full onClick={submit} disabled={!ready} loading={createUser.isPending}>
           Send invite

@@ -42,12 +42,17 @@ export function useUserMutations() {
       role: UserRole;
       departmentId?: string | null;
     }) =>
-      apiPost<{ user: UserDTO; emailSent: boolean }>("/api/users", input),
+      apiPost<{ user: UserDTO; emailSent: boolean; inviteUrl: string }>("/api/users", input),
     onSuccess: refresh,
   });
 
   const resendInvite = useMutation({
-    mutationFn: (id: string) => apiPost<{ ok: true; emailSent: boolean }>(`/api/users/${id}/resend`, {}),
+    /** `email: false` makes a new link without emailing it (2026-09-10). */
+    mutationFn: (input: string | { id: string; email?: boolean }) => {
+      const id = typeof input === "string" ? input : input.id;
+      const email = typeof input === "string" ? true : input.email ?? true;
+      return apiPost<{ ok: true; emailSent: boolean; inviteUrl: string }>(`/api/users/${id}/resend`, { email });
+    },
     onSuccess: refresh,
   });
 

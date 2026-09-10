@@ -6,9 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { ROLE_LABEL, type UserRole } from "@/lib/types";
 
 /**
- * Invite tokens (phase 10). The raw token lives ONLY in the emailed link; the
- * database stores just its sha256, exactly as passwords store only a hash — a
- * leaked table cannot be turned into a working set-password link.
+ * Invite tokens (phase 10). The raw token lives only in the link — the emailed
+ * one, and the same link handed once to whoever made the invite, so they can
+ * send it on WhatsApp or any other way when an email lands in spam (owner,
+ * 2026-09-10). The database stores just its sha256, exactly as passwords store
+ * only a hash — a leaked table cannot be turned into a working set-password link.
  */
 
 export const INVITE_TTL_HOURS = 72;
@@ -34,7 +36,9 @@ export function inviteExpiry(now = new Date()): Date {
  * Create or rotate a user's invite and email the set-password link. Used by both
  * the invite-create path and Resend — one place, so a resend behaves exactly
  * like a fresh invite (new token, fresh 72h, prior link dead). Returns the raw
- * token (for tests) and whether the email actually sent. Never throws.
+ * token (for tests), the link (for the person inviting, to pass on by hand) and
+ * whether the email actually sent. `send: false` makes the link without the
+ * email. Never throws.
  */
 export async function issueInvite(opts: {
   user: { id: string; name: string; email: string; role: UserRole };
@@ -43,7 +47,9 @@ export async function issueInvite(opts: {
   /** Phase 29: invited straight into a project — the invite email names it, and
       the new user gets no separate "added to project" email. */
   projectName?: string;
-}): Promise<{ token: string; sent: boolean }> {
+  /** false: only make the link, for the person inviting to send themselves (2026-09-10). */
+  send?: boolean;
+}): Promise<{ token: string; url: string; sent: boolean }> {
   const token = generateInviteToken();
   const tokenHash = hashInviteToken(token);
   const expiresAt = inviteExpiry();
@@ -54,11 +60,14 @@ export async function issueInvite(opts: {
     create: { userId: opts.user.id, tokenHash, expiresAt, createdById: opts.createdById },
   });
 
+  const url = `${APP_URL}/invite/${token}`;
+  if (opts.send === false) return { token, url, sent: false };
+
   const body = inviteEmail({
     name: opts.user.name,
     roleLabel: ROLE_LABEL[opts.user.role],
     inviterName: opts.inviterName,
-    url: `${APP_URL}/invite/${token}`,
+    url,
     projectName: opts.projectName,
   });
   const res = await sendEmail({
@@ -72,5 +81,5 @@ export async function issueInvite(opts: {
     kind: "invite",
     refId: opts.user.id,
   });
-  return { token, sent: res.sent };
+  return { token, url, sent: res.sent };
 }

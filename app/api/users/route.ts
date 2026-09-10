@@ -126,14 +126,15 @@ export const POST = route(async (req: Request) => {
   });
   await addOtherEmails(user.id, others);
 
-  const { sent } = await issueInvite({
+  const { sent, url } = await issueInvite({
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
     inviterName: actor.name,
     createdById: actor.id,
   });
 
+  // The link comes back too, to send on WhatsApp when an email lands in spam (2026-09-10).
   return NextResponse.json(
-    { user: { ...serializeUser(user), emails: [email, ...others] }, emailSent: sent },
+    { user: { ...serializeUser(user), emails: [email, ...others] }, emailSent: sent, inviteUrl: url },
     { status: 201 },
   );
 });
