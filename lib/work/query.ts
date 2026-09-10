@@ -114,23 +114,24 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   return { AND: and };
 }
 
-const PRIORITY_ORDER: Record<WorkPriority, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
-
 export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: number };
 
 export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promise<WorkListDTO> {
   const where = filterWhere(actor, scope, f);
   const limit = Math.min(Math.max(f.limit ?? 50, 1), 200);
+  // Every order ends on the id, so two tasks touched in the same instant can
+  // never swap or vanish at a page break. Priority is the enum's own order —
+  // Critical, High, Medium, Low — then the soonest due (owner, 2026-09-10).
   const orderBy: Prisma.TaskOrderByWithRelationInput[] =
     f.sort === "due"
-      ? [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }]
+      ? [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }, { id: "desc" }]
       : f.sort === "created"
-        ? [{ createdAt: "desc" }]
+        ? [{ createdAt: "desc" }, { id: "desc" }]
         : f.sort === "number"
-          ? [{ number: "desc" }]
+          ? [{ number: "desc" }, { id: "desc" }]
           : f.sort === "priority"
-            ? [{ priority: "asc" }, { dueDate: { sort: "asc", nulls: "last" } }]
-            : [{ updatedAt: "desc" }];
+            ? [{ priority: "asc" }, { dueDate: { sort: "asc", nulls: "last" } }, { id: "desc" }]
+            : [{ updatedAt: "desc" }, { id: "desc" }];
   const [rows, total] = await Promise.all([
     prisma.task.findMany({
       where,
@@ -142,7 +143,6 @@ export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promi
     prisma.task.count({ where }),
   ]);
   const page = rows.slice(0, limit);
-  if (f.sort === "priority") page.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
   const counts = await noteCounts(page.map((r) => r.id), true);
 
   // The same task given to several people is one record each. Who ELSE holds it

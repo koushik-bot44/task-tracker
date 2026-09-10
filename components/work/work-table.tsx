@@ -18,7 +18,7 @@ export const SLICES: { key: Slice; label: string }[] = [
   { key: "open", label: "Open" },
   { key: "unassigned", label: "Unassigned" },
   { key: "overdue", label: "Overdue" },
-  { key: "high", label: "High priority" },
+  { key: "high", label: "Highest priority first" },
   { key: "waiting", label: "On Hold" },
   { key: "resolved", label: "Resolved" },
   { key: "finished", label: "Closed" },
@@ -30,8 +30,10 @@ export function sliceQuery(s: Slice): WorkQuery {
       return { unassigned: true };
     case "overdue":
       return { overdue: true };
+    // Not a filter: every open task, Critical → High → Medium → Low
+    // (owner, 2026-09-10 — "it only shows high priority").
     case "high":
-      return { priority: "CRITICAL,HIGH" };
+      return {};
     case "waiting":
       return { state: "WAITING" };
     case "resolved":
@@ -79,7 +81,7 @@ export function WorkTable({
   const [pages, setPages] = useState<string[]>([]);
   const [raising, setRaising] = useState(false);
   const cursor = pages[pages.length - 1];
-  const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: slice === "overdue" ? "due" : "updated", limit: PAGE, cursor };
+  const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: slice === "high" ? "priority" : slice === "overdue" ? "due" : "updated", limit: PAGE, cursor };
   const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me));
   const from = pages.length * PAGE + 1;
   // A task given to several people is several records; the list shows it once,

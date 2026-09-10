@@ -23,7 +23,7 @@ const SLICES: { key: Slice; label: string }[] = [
   { key: "open", label: "Open" },
   { key: "unassigned", label: "Unassigned" },
   { key: "overdue", label: "Overdue" },
-  { key: "high", label: "High priority" },
+  { key: "high", label: "Highest priority first" },
   { key: "waiting", label: "On Hold" },
   { key: "resolved", label: "Resolved" },
   { key: "finished", label: "Closed" },
@@ -36,8 +36,10 @@ function sliceQuery(s: Slice): WorkQuery {
       return { unassigned: true };
     case "overdue":
       return { overdue: true };
+    // Not a filter: every open task, Critical → High → Medium → Low
+    // (owner, 2026-09-10 — "it only shows high priority").
     case "high":
-      return { priority: "CRITICAL,HIGH" };
+      return {};
     case "waiting":
       return { state: "WAITING" };
     case "resolved":
@@ -133,7 +135,7 @@ export function WorkPage() {
   const narrowed = EXTRA_KEYS.some((k) => params.get(k));
 
   const query: WorkQuery = useMemo(() => {
-    const base: WorkQuery = { ...sliceQuery(slice), q: q || undefined, sort: params.get("sort") ?? (slice === "overdue" ? "due" : "updated"), limit: PAGE, cursor };
+    const base: WorkQuery = { ...sliceQuery(slice), q: q || undefined, sort: params.get("sort") ?? (slice === "high" ? "priority" : slice === "overdue" ? "due" : "updated"), limit: PAGE, cursor };
     for (const k of ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state"]) {
       const v = params.get(k);
       if (v) base[k] = v;
@@ -303,7 +305,7 @@ export function WorkPage() {
           </select>
 
           <select
-            value={params.get("sort") ?? (slice === "overdue" ? "due" : "updated")}
+            value={params.get("sort") ?? (slice === "high" ? "priority" : slice === "overdue" ? "due" : "updated")}
             onChange={(e) => { setPages([]); set({ sort: e.target.value === "updated" ? null : e.target.value, cursor: null }); }}
             className={cn(snInput, "!w-auto")}
             aria-label="Order"
