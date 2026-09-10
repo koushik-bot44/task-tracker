@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { requireManager, route } from "@/lib/session";
 import { parseBody, routinePersonCreateSchema } from "@/lib/validation";
-import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getManagerPerson, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
+import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
 import type { RoutineOverviewDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -64,8 +64,9 @@ export const GET = route(async (req: Request) => {
 export const POST = route(async (req: Request) => {
   const actor = await requireManager();
 
-  const existing = await getManagerPerson(actor.id);
-  if (existing) {
+  // One person per owner, counting one the CEO runs because nobody else can (2026-09-10).
+  const existing = await getOwnedPersons(actor.id);
+  if (existing.length > 0) {
     return NextResponse.json({ error: "You already have a person. Only one is allowed." }, { status: 409 });
   }
 

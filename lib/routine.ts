@@ -129,19 +129,7 @@ export const DEFAULT_SEGMENTS: { name: string; habits: { name: string; targetPer
 
 /* ── Ownership guards: every mutation is scoped to the manager's OWN person. ─ */
 
-/** The manager's own person, or null. One per manager (Person.managerId unique). */
-export async function getManagerPerson(managerId: string) {
-  return prisma.person.findUnique({
-    where: { managerId },
-    select: { id: true, name: true, userId: true, user: { select: { email: true } } },
-  });
-}
-/** The manager's own person or a 404 — used by every routine mutation. */
-export async function requireOwnPerson(managerId: string) {
-  const person = await getManagerPerson(managerId);
-  if (!person) throw new HttpError(404, "No person yet.");
-  return person;
-}
+// Which persons a caller owns is decided in one place: getOwnedPersons, below (2026-09-10).
 /** A segment that belongs to the manager's own person, or 404. */
 export async function requireOwnSegment(personId: string, segmentId: string) {
   const seg = await prisma.habitSegment.findFirst({ where: { id: segmentId, personId }, select: { id: true } });
@@ -199,7 +187,7 @@ export async function requireOwnWeight(personId: string, id: string) {
 }
 
 /* ── Phase 39 — the ONE routine access resolver (owner / editable / read-only /
-      none). A manager reaches a routine if they OWN the person (Person.managerId)
+      none). A manager reaches a routine if they OWN the person (getOwnedPersons)
       OR are an ACCEPTED collaborator; the granted permission decides read vs write.
       Every routine endpoint funnels through requireRoutineAccess — no parallel
       relationship checks anywhere else. Admin/lead/dev never reach here (the
@@ -208,20 +196,44 @@ export async function requireOwnWeight(personId: string, id: string) {
 export type PersonRef = { id: string; name: string; userId: string; user: { email: string } };
 const PERSON_SELECT = { id: true, name: true, userId: true, user: { select: { email: true } } } as const;
 
-/** Every routine the caller can see: their OWN person (OWNER, if any) followed by
-    each ACCEPTED collaboration at its granted permission. The switcher list too. */
+/** The persons the caller runs as OWNER: their own (Person.managerId). A CEO with
+    none of his own also runs every person whose manager is not a CEO (2026-09-10).
+    Well Being has been the CEO's alone since 2026-09-04, so nobody else can open
+    those; on the live site the one person still belongs to a manager. Worked out
+    on every read: nobody is reassigned. Oldest first. */
+export async function getOwnedPersons(callerId: string): Promise<PersonRef[]> {
+  const caller = await prisma.user.findUnique({
+    where: { id: callerId },
+    select: { role: true, managedPerson: { select: PERSON_SELECT } },
+  });
+  if (!caller) return [];
+  if (caller.managedPerson) return [caller.managedPerson];
+  if (caller.role !== "FOUNDER") return [];
+  return prisma.person.findMany({
+    where: { manager: { role: { not: "FOUNDER" } } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: PERSON_SELECT,
+  });
+}
+
+/** Every routine the caller can see: the persons they run as OWNER (above)
+    followed by each ACCEPTED collaboration at its granted permission. The
+    switcher list too. */
 export async function getAccessibleRoutines(callerId: string): Promise<{ person: PersonRef; role: RoutineRole }[]> {
-  const [own, collabs] = await Promise.all([
-    prisma.person.findUnique({ where: { managerId: callerId }, select: PERSON_SELECT }),
+  const [owned, collabs] = await Promise.all([
+    getOwnedPersons(callerId),
     prisma.routineCollaborator.findMany({
       where: { managerId: callerId, status: "ACCEPTED" },
       select: { permission: true, person: { select: PERSON_SELECT } },
       orderBy: { createdAt: "asc" },
     }),
   ]);
-  const out: { person: PersonRef; role: RoutineRole }[] = [];
-  if (own) out.push({ person: own, role: "OWNER" });
-  for (const c of collabs) out.push({ person: c.person, role: c.permission === "EDITABLE" ? "EDITABLE" : "READ_ONLY" });
+  const out: { person: PersonRef; role: RoutineRole }[] = owned.map((person) => ({ person, role: "OWNER" as const }));
+  for (const c of collabs) {
+    // A person the caller runs as owner is not listed again as a collaboration (2026-09-10).
+    if (out.some((r) => r.person.id === c.person.id)) continue;
+    out.push({ person: c.person, role: c.permission === "EDITABLE" ? "EDITABLE" : "READ_ONLY" });
+  }
   return out;
 }
 
