@@ -8,6 +8,27 @@ import { usePush } from "@/lib/hooks/use-push";
 const DISMISS_KEY = "orbit-push-ask-dismissed";
 
 /**
+ * Turn on alerts for this device from a click, saying the same thing wherever
+ * it is offered — this nudge, and the account page's install section.
+ */
+export function useTurnOnAlerts() {
+  const { permission, serverConfigured, busy, enable } = usePush();
+  const { show: toast } = useToast();
+  const turnOn = async () => {
+    const res = await enable();
+    if (res.ok) {
+      toast({ message: "Notifications enabled." });
+    } else if (res.reason === "denied") {
+      toast({ message: "Notifications blocked — enable them in your browser settings.", tone: "danger" });
+    } else if (res.reason !== "default") {
+      toast({ message: "Couldn't enable notifications.", tone: "danger" });
+    }
+    return res;
+  };
+  return { permission, serverConfigured, busy, turnOn };
+}
+
+/**
  * A soft, in-context request for notification permission — NOT the raw browser
  * prompt on load (which gets reflexively denied). It appears only when the
  * browser permission is still "default" AND the server actually has VAPID keys,
@@ -15,8 +36,7 @@ const DISMISS_KEY = "orbit-push-ask-dismissed";
  * remembered. Enable() triggers the real browser prompt on the user's click.
  */
 export function PushAsk() {
-  const { permission, serverConfigured, busy, enable } = usePush();
-  const { show: toast } = useToast();
+  const { permission, serverConfigured, busy, turnOn } = useTurnOnAlerts();
   // Read the dismissal AFTER hydration. Reading it while rendering meant the
   // server drew the card (it has no localStorage) and the browser did not,
   // which React reports as a hydration failure (owner, 2026-09-08).
@@ -43,16 +63,8 @@ export function PushAsk() {
   if (permission !== "default") return null; // already granted, denied, or unsupported
 
   const onEnable = async () => {
-    const res = await enable();
-    if (res.ok) {
-      toast({ message: "Notifications enabled." });
-      setDismissed(true);
-    } else if (res.reason === "denied") {
-      toast({ message: "Notifications blocked — enable them in your browser settings.", tone: "danger" });
-      setDismissed(true);
-    } else if (res.reason !== "default") {
-      toast({ message: "Couldn't enable notifications.", tone: "danger" });
-    }
+    const res = await turnOn();
+    if (res.ok || res.reason === "denied") setDismissed(true);
   };
 
   return (

@@ -1,0 +1,12 @@
+PASS  01-login               sideways 0px, small targets 0
+PASS  02-today               sideways 0px, small targets 0
+PASS  03-projects            sideways 0px, small targets 0
+PASS  04-project             sideways 0px, small targets 0
+PASS  05-work                sideways 0px, small targets 0
+PASS  06-people              sideways 0px, small targets 0
+PASS  07-calendar            sideways 0px, small targets 0
+PASS  08-account             sideways 0px, small targets 0
+PASS  09-new-project-invite  sideways 0px, small targets 0
+PASS  10-new-task-invite     sideways 0px, small targets 0
+
+0 screens with problems

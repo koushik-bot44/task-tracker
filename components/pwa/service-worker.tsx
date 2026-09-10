@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { startInstallCapture } from "@/lib/pwa/install-store";
 
 /**
  * Registers the minimal service worker (public/sw.js) once, on the client. It
@@ -10,6 +11,8 @@ import { useEffect } from "react";
  */
 export function ServiceWorkerRegister() {
   useEffect(() => {
+    // Keep the browser's install offer from the very first page, signed in or not.
+    startInstallCapture();
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
     const register = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
     // Register after load so it never competes with first paint.

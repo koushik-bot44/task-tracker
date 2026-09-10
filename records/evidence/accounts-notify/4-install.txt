@@ -1,0 +1,18 @@
+PASS  the service worker registers
+PASS  the manifest loads without errors  (http://localhost:3000/manifest.webmanifest · no errors)
+PASS  Chrome reports Orbit installable  (no installability errors)
+PASS  Chrome/Edge, no offer: points to the address bar and the browser menu  (desktop-chrome-no-offer.png)
+PASS  Chrome/Edge, pop-up closed earlier: the Install Orbit button still appears  (desktop-chrome-offer-after-popup-closed.png)
+PASS  …and pressing it opens the browser's own install prompt, once  (prompt() called 1×)
+PASS  …after which the offer is spent and the button goes
+PASS  …and when the browser says it installed, the section says Installed ✓  (desktop-chrome-just-installed.png)
+PASS  Android Chrome, no offer: menu → Install app / Add to Home screen  (android-no-offer.png)
+PASS  Android Chrome, with the offer: Install Orbit button  (android-offer.png)
+PASS  iPhone Safari: Share → Add to Home Screen, step by step  (iphone-safari.png)
+PASS  …with the note that notifications need it on the Home Screen first
+PASS  Mac Safari: File → Add to Dock  (mac-safari.png)
+PASS  Firefox: says it can't, suggests Chrome or Edge  (desktop-firefox.png)
+PASS  installed, notifications not on: Installed ✓ and a Turn on notifications button  (installed-notifications-off.png)
+PASS  installed, notifications on: says so, no button  (installed-notifications-on.png)
+
+16 passed, 0 failed

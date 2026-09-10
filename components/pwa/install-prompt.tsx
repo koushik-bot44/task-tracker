@@ -2,26 +2,23 @@
 
 import { Download, Share, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useInstall } from "@/lib/hooks/use-install";
 
 const DISMISS_KEY = "orbit-install-dismissed";
 
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
 /**
- * A quiet install nudge. On Android/desktop it appears when the browser fires
- * `beforeinstallprompt` and drives the real prompt; on iOS Safari — which has
- * no programmatic install — it shows the Add-to-Home-Screen instruction
- * instead. Dismissible and remembered in localStorage.
+ * A quiet install nudge. On Android/desktop it appears once the browser has
+ * offered to install and drives the real prompt; on iOS Safari — which has no
+ * programmatic install — it shows the Add-to-Home-Screen instruction instead.
+ * Dismissible and remembered in localStorage.
  *
- * When already installed the whole thing is hidden by a CSS
- * `display-mode: standalone` rule (see globals.css) — no JS matchMedia.
+ * The browser's offer is no longer held here: it lives in the shared store
+ * (lib/pwa/install-store.ts), so closing this nudge only hides the nudge — the
+ * account page can still install. When already installed the nudge is hidden,
+ * both by the store and by a CSS `display-mode: standalone` rule (globals.css).
  */
 export function InstallPrompt() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIOS, setShowIOS] = useState(false);
+  const { platform, installed, canPrompt, promptInstall } = useInstall();
   const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
@@ -31,24 +28,6 @@ export function InstallPrompt() {
       return;
     }
     setHidden(false);
-
-    const ua = window.navigator.userAgent;
-    const isIOS = /iphone|ipad|ipod/i.test(ua);
-    // iOS Safari only; a standalone launch sets navigator.standalone.
-    const standalone = (window.navigator as { standalone?: boolean }).standalone === true;
-    if (isIOS && !standalone) setShowIOS(true);
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    const onInstalled = () => dismiss();
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
   }, []);
 
   const dismiss = () => {
@@ -61,15 +40,13 @@ export function InstallPrompt() {
   };
 
   const install = async () => {
-    if (!deferred) return;
-    await deferred.prompt();
-    await deferred.userChoice.catch(() => undefined);
-    setDeferred(null);
+    await promptInstall();
     dismiss();
   };
 
-  if (hidden) return null;
-  if (!deferred && !showIOS) return null;
+  if (hidden || installed) return null;
+  const showIOS = platform === "ios";
+  if (!canPrompt && !showIOS) return null;
 
   return (
     <div className="pwa-install pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-sheet border border-line bg-surface p-3 shadow-lift">
@@ -80,7 +57,7 @@ export function InstallPrompt() {
           <Download className="h-4 w-4" strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
-          {deferred ? (
+          {canPrompt ? (
             <>
               <p className="text-sm font-medium text-ink">Install Orbit</p>
               <p className="mt-0.5 text-micro text-muted">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { InstallAppRow } from "@/components/settings/install-app-row";
 import { NotificationsRow } from "@/components/settings/notifications-row";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Field, inputClass } from "@/components/ui/sheet";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useMe, useUserMutations } from "@/lib/hooks/use-users";
 
-/** Account: who you are, how Orbit reaches you, and your password. */
+/** Account: who you are, how Orbit reaches you, installing the app, and your password. */
 export function AccountPage() {
   const { data: me } = useMe();
   const { changeMyPassword } = useUserMutations();
@@ -66,6 +67,8 @@ export function AccountPage() {
       <div className="mt-6">
         <NotificationsRow />
       </div>
+
+      <InstallAppRow />
 
       <section className="mt-6" aria-label="Change password">
         <h2 className="mb-2 px-1 text-micro font-semibold uppercase tracking-wider text-muted">Change password</h2>

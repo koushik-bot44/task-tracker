@@ -56,6 +56,16 @@ const clearLegacyTheme = `
 })();
 `;
 
+/* Chrome and Edge offer to install once, early — often before the app has
+   loaded. This keeps that offer on the window so the install button on the
+   account page can still use it (lib/pwa/install-store.ts adopts it). */
+const keepInstallOffer = `
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault();
+  window.__orbitInstallOffer = e;
+});
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -63,6 +73,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <script dangerouslySetInnerHTML={{ __html: clearLegacyTheme }} />
+        <script dangerouslySetInnerHTML={{ __html: keepInstallOffer }} />
       </head>
       <body className={`${geist.variable} font-sans`}>
         <ServiceWorkerRegister />
