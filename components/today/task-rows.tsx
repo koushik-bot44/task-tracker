@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/toast";
 import { Card } from "@/components/ui/card";
@@ -11,7 +12,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Face } from "@/components/ui/face";
 import { Check } from "@/components/ui/row";
 import { cn } from "@/lib/cn";
-import { usePanelParams } from "@/lib/hooks/use-panel";
 import { useTaskMutations } from "@/lib/hooks/use-tasks";
 import { todayKey } from "@/lib/hooks/use-today";
 import { useMe } from "@/lib/hooks/use-users";
@@ -34,7 +34,8 @@ type Lingering = { task: TodayTask; index: number; checked: boolean };
 export function TaskRows({ tasks }: { tasks: TodayTask[] }) {
   const qc = useQueryClient();
   const reduce = useReducedMotion();
-  const { openTask } = usePanelParams();
+  // A row opens the task's full record — the old side panel is gone (owner, 2026-09-11).
+  const router = useRouter();
   const [justDone, setJustDone] = useState<Map<string, Lingering>>(() => new Map());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
@@ -122,7 +123,7 @@ export function TaskRows({ tasks }: { tasks: TodayTask[] }) {
                 checked={justDone.get(task.id)?.checked ?? false}
                 onDone={() => markDone(task, i)}
                 onUndo={() => unmark(task)}
-                onOpen={() => openTask(task.id)}
+                onOpen={() => router.push(`/work/${task.number}`)}
               />
             </motion.li>
           ))}

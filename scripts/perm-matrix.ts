@@ -314,6 +314,18 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("dev2 ticks it done -> 403", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { status: "DONE" })).status, 403);
   record("lead ticks it done -> 200", (await call(lead, "PATCH", `/api/tasks/${rootId}`, { status: "DONE" })).status, 200);
   record("another manager edits it -> 404", (await call(manager2, "PATCH", `/api/tasks/${rootId}`, { title: "PT nope" })).status, 404);
+  // A task's progress and its meetings (owner, 2026-09-11).
+  record("dev2 (holder) marks its progress -> 200", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { progress: 30 })).status, 200);
+  record("progress over 100 -> 400", (await call(dev2, "PATCH", `/api/tasks/${rootId}`, { progress: 120 })).status, 400);
+  record("another manager marks its progress -> 404", (await call(manager2, "PATCH", `/api/tasks/${rootId}`, { progress: 50 })).status, 404);
+  const taskMeetingDay = workingDay(today, 3);
+  const taskMeeting = { title: "PT task meeting", date: taskMeetingDay, startTime: "10:00", taskId: rootId };
+  record("dev schedules a meeting on the task -> 403", (await call(dev, "POST", "/api/events", { ...taskMeeting, attendeeIds: [dev.id] })).status, 403);
+  record("another manager puts a meeting on a task they can't see -> 404", (await call(manager2, "POST", "/api/events", { ...taskMeeting, attendeeIds: [manager2.id] })).status, 404);
+  const onTask = await call(manager, "POST", "/api/events", { ...taskMeeting, attendeeIds: [dev.id, dev2.id] });
+  record("manager (owner) schedules a meeting on the task -> 201", onTask.status, 201);
+  check("…and the task lists it", ((await call(dev2, "GET", `/api/tasks/${rootId}/meetings`)).json ?? []).some((m: any) => m.id === onTask.json?.id));
+  record("another manager reads the task's meetings -> 404", (await call(manager2, "GET", `/api/tasks/${rootId}/meetings`)).status, 404);
 
   console.log("\n── steps ─────────────────────────────────────────────────────");
   record(

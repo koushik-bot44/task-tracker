@@ -118,7 +118,7 @@ export function CommandPalette() {
                           <Item
                             key={task.id}
                             value={`${task.title} ${task.id}`}
-                            onSelect={() => go(`/project/${currentProject.slug}?task=${task.id}`)}
+                            onSelect={() => go(`/work/${task.number}`)}
                             icon={<span className="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden />}
                             label={task.title || "Untitled"}
                           />

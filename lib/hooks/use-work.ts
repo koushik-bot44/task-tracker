@@ -6,6 +6,7 @@ import type {
   ActivityDTO,
   AssignmentGroupDTO,
   AssignmentRuleDTO,
+  CalendarEventDTO,
   DashboardTodayDTO,
   ResolutionCode,
   TaskCategoryDTO,
@@ -49,6 +50,16 @@ export function useWorkItem(number: string | number | null) {
     queryKey: [...workKey, "item", String(number)],
     queryFn: () => apiGet<TaskDTO>(`/api/work/${number}`),
     enabled: number !== null && number !== "",
+  });
+}
+
+/** A task's meetings, for the small calendar on its record (owner, 2026-09-11). */
+export function useTaskMeetings(taskId: string | null) {
+  return useQuery({
+    queryKey: ["task-meetings", taskId ?? ""],
+    queryFn: () => apiGet<CalendarEventDTO[]>(`/api/tasks/${taskId}/meetings`),
+    enabled: Boolean(taskId),
+    staleTime: 15_000,
   });
 }
 

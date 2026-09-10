@@ -5,6 +5,11 @@ import { cn } from "@/lib/cn";
 import { dateWord } from "@/lib/dates";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
 
+/** "Tomorrow 10:30" — when a task's next meeting is (owner, 2026-09-11). */
+export function meetingWhen(m: NonNullable<TaskDTO["nextMeeting"]>): string {
+  return [dateWord(m.date), m.startTime].filter(Boolean).join(" ");
+}
+
 /**
  * The task list on a phone.
  *
@@ -47,6 +52,12 @@ export function WorkCards({
                   <>
                     <span aria-hidden>·</span>
                     <span className={cn(late && "font-medium text-danger-ink")}>due {dateWord(t.dueDate)}</span>
+                  </>
+                ) : null}
+                {t.nextMeeting ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="font-medium text-primary-ink">meeting {meetingWhen(t.nextMeeting)}</span>
                   </>
                 ) : null}
                 {hideProject || !t.projectName ? null : (

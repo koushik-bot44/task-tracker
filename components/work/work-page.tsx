@@ -6,22 +6,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import { useMe } from "@/lib/hooks/use-users";
+import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
-import { isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
+import { canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
 import { DepartmentTree } from "./department-tree";
 import { TaskTable } from "./task-table";
 import { NewWorkSheet } from "./new-work-sheet";
 import { Panel, PanelHeader, Tabs, snButton, snInput, snPrimary } from "./sn";
 
-type Scope = "assigned" | "requested" | "team" | "department" | "all";
-type Slice = "open" | "unassigned" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
+type Scope = "assigned" | "requested" | "team" | "department" | "individual" | "all";
+type Slice = "open" | "meeting" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
 
+/* Open reads Work in progress, Unassigned is gone, and Awaiting meeting lists
+   the tasks with a meeting ahead (owner, 2026-09-11). */
 const SLICES: { key: Slice; label: string }[] = [
-  { key: "open", label: "Open" },
-  { key: "unassigned", label: "Unassigned" },
+  { key: "open", label: "Work in progress" },
+  { key: "meeting", label: "Awaiting meeting" },
   { key: "overdue", label: "Overdue" },
   { key: "high", label: "Highest priority first" },
   { key: "waiting", label: "On Hold" },
@@ -37,8 +39,8 @@ const SLICES: { key: Slice; label: string }[] = [
  */
 function sliceQuery(s: Slice): WorkQuery {
   switch (s) {
-    case "unassigned":
-      return { open: "true", unassigned: true };
+    case "meeting":
+      return { open: "true", meeting: true };
     case "overdue":
       return { open: "true", overdue: true };
     // Not a filter: every open task, Critical → High → Medium → Low
@@ -64,7 +66,13 @@ const SORTS: { key: string; label: string }[] = [
   { key: "priority", label: "Priority" },
   { key: "created", label: "Newest" },
   { key: "number", label: "Number" },
+  { key: "meeting", label: "Next meeting" },
 ];
+
+/** The order a Show choice starts in. */
+function defaultSort(s: Slice): string {
+  return s === "high" ? "priority" : s === "overdue" ? "due" : s === "meeting" ? "meeting" : "updated";
+}
 
 const PAGE = 50;
 
@@ -85,7 +93,7 @@ const EXTRA_KEYS = ["departmentId", "assignmentGroupId", "assigneeId", "requeste
  * The list, the way a service desk shows it: a title bar with New, the
  * scope tabs (All → Departments → your own work), what a link narrowed it to,
  * a condition row (the slice and a search), then a full-width table — Number,
- * Short description, State, Priority, Assigned by, Assigned to, Assigned,
+ * Short description, Status, Priority, Assigned by, Assigned to, Assigned,
  * Due, Updated — one row per task, 50 a page, the page kept in the address.
  */
 export function WorkPage() {
@@ -106,7 +114,9 @@ export function WorkPage() {
   // "Your work" while the rows are a whole department (review, 2026-09-10).
   const landedNarrowed = !mineParam && NARROWINGS.some((n) => n.key !== "dueToday" && params.get(n.key));
   const scope: Scope = mineParam ?? (isExecutiveRole(me?.role) || landedNarrowed ? "all" : "assigned");
-  const slice = (params.get("f") ?? "open") as Slice;
+  // An old link may still say f=unassigned: it lands on Work in progress.
+  const wantedSlice = params.get("f");
+  const slice: Slice = SLICES.some((s) => s.key === wantedSlice) ? (wantedSlice as Slice) : "open";
   const q = params.get("q") ?? "";
   const page = Math.max(1, Math.floor(Number(params.get("page")) || 1));
   const [raising, setRaising] = useState(false);
@@ -115,6 +125,12 @@ export function WorkPage() {
   useEffect(() => setDraftQ(q), [q]);
   /** The extra axes stay folded away; most days "Show" and a search is the whole job. */
   const [moreFilters, setMoreFilters] = useState(false);
+  /** Who the Individual tab can narrow to (owner, 2026-09-11). */
+  const { data: users } = useUsers(Boolean(me) && canSeeUserListRole(me?.role) && scope === "individual");
+  const people = useMemo(
+    () => (users ?? []).filter((u) => u.status === "ACTIVE" && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON").sort((a, b) => a.name.localeCompare(b.name)),
+    [users],
+  );
 
   /* Two controls changed in quick succession (Priority, then Type) each built
      on the address still on screen, so the second quietly undid the first and
@@ -151,6 +167,8 @@ export function WorkPage() {
     // The co-founder oversees rather than runs departments, so this tab had
     // nothing of his to open (review, 2026-09-10).
     if ((isLeadOrAboveRole(me?.role) || me?.role === "HOD") && me?.role !== "CO_FOUNDER") out.push({ value: "department", label: "Departments" });
+    // Extra work given straight to a person, in no department (owner, 2026-09-11).
+    if (isLeadOrAboveRole(me?.role) || me?.role === "HOD" || me?.role === "CO_FOUNDER") out.push({ value: "individual", label: "Individual" });
     if (dash?.teams.length) out.push({ value: "team", label: "Your team's work", count: dash.teamWorkTotal });
     // The tasks this person handed out — they raised them, so they own the answer.
     out.push({ value: "requested", label: "Assigned by you" });
@@ -191,7 +209,7 @@ export function WorkPage() {
     const base: WorkQuery = {
       ...sliceQuery(slice),
       q: q || undefined,
-      sort: params.get("sort") ?? (slice === "high" ? "priority" : slice === "overdue" ? "due" : "updated"),
+      sort: params.get("sort") ?? defaultSort(slice),
       // One row per task, counted once, pages numbered.
       rows: "tasks",
       limit: PAGE,
@@ -323,6 +341,23 @@ export function WorkPage() {
             </select>
           ) : null}
 
+          {/* On the Individual tab, WHOSE extra work — one person's, or everyone's. */}
+          {scope === "individual" && people.length ? (
+            <select
+              value={params.get("assigneeId") ?? ""}
+              onChange={(e) => set({ assigneeId: e.target.value || null, page: null })}
+              className={cn(snInput, "!w-auto")}
+              aria-label="Person"
+            >
+              <option value="">Every person</option>
+              {people.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -400,8 +435,8 @@ export function WorkPage() {
             </select>
 
             <select
-              value={params.get("sort") ?? (slice === "high" ? "priority" : slice === "overdue" ? "due" : "updated")}
-              onChange={(e) => set({ sort: e.target.value === "updated" ? null : e.target.value, page: null })}
+              value={params.get("sort") ?? defaultSort(slice)}
+              onChange={(e) => set({ sort: e.target.value === defaultSort(slice) ? null : e.target.value, page: null })}
               className={cn(snInput, "!w-auto")}
               aria-label="Order"
             >

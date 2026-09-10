@@ -451,17 +451,18 @@ async function main() {
   record("task Attachments tab: a file's name opens it in the viewer, its note's other files a step away", await opened(fromTab, 10000));
   await page.keyboard.press("Escape");
 
-  /* ---- the task drawer's comments ---- */
+  /* ---- an old task link: the old panel is gone, the full record opens (owner, 2026-09-11) ---- */
   await page.goto(`${BASE}/?task=${task.id}`);
-  const inDrawer = page.getByRole("button", { name: `Open ${taskFiles[0].name}` }).first();
-  const shown = await opened(inDrawer, 90000);
-  record("task drawer: the comment shows its files", shown);
+  const landed = await until(async () => new URL(page.url()).pathname === `/work/${task.number}`, 30000);
+  const inRecord = page.getByRole("button", { name: `Open ${taskFiles[0].name}` }).first();
+  const shown = landed && (await opened(inRecord, 90000));
+  record("an old task link opens the full record, with the comment's files", shown, new URL(page.url()).pathname);
   if (shown) {
-    await inDrawer.click();
+    await inRecord.click();
     const viewer = page.getByRole("dialog", { name: `${taskFiles[0].name}, file 1 of 3` });
-    record("task drawer: a file opens in the viewer", await opened(viewer, 10000));
+    record("…a file opens in the viewer", await opened(viewer, 10000));
     await page.keyboard.press("Escape");
-    record("task drawer: Esc closes the viewer and leaves the drawer open", (await until(async () => (await viewer.count()) === 0, 5000)) && (await inDrawer.isVisible()));
+    record("…and Esc closes it", await until(async () => (await viewer.count()) === 0, 5000));
   }
 
   /* ---- a phone ---- */

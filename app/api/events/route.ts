@@ -7,6 +7,8 @@ import { canSeeProject } from "@/lib/project-visibility";
 import { HHMM_RE, eventDay, validAttendeeIds, validCompanyAttendeeIds } from "@/lib/meetings";
 import { eventInclude, eventToDTO } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
+import { validTaskAttendeeIds } from "@/lib/task-meetings";
+import { requireSee } from "@/lib/work/tasks";
 import { parseBody } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -23,6 +25,8 @@ const createSchema = z.object({
   startTime: z.string().regex(HHMM_RE, "time must be HH:MM"),
   endTime: z.string().regex(HHMM_RE, "time must be HH:MM").nullable().optional(),
   attendeeIds: z.array(z.string().min(1)),
+  /** Scheduled from a task's record: the meeting belongs to that task (owner, 2026-09-11). */
+  taskId: z.string().min(1).nullable().optional(),
 });
 
 export const POST = route(async (req: Request) => {
@@ -32,6 +36,7 @@ export const POST = route(async (req: Request) => {
   if (!parsed.ok) return parsed.response;
   const { title, description, date, startTime, endTime, attendeeIds } = parsed.data;
   const projectId = parsed.data.projectId ?? null;
+  const taskId = parsed.data.taskId ?? null;
 
   if (projectId) {
     const exists = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
@@ -40,11 +45,18 @@ export const POST = route(async (req: Request) => {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
   }
+  // Only someone who can see the task may put a meeting on it (404 otherwise, like every task route).
+  if (taskId) await requireSee(user, taskId);
   if (endTime && endTime <= startTime) {
     throw new HttpError(400, "The end time must be after the start time.");
   }
-  const attendees = projectId ? await validAttendeeIds(projectId, attendeeIds) : await validCompanyAttendeeIds(attendeeIds);
-  if (attendees.length === 0) throw new HttpError(400, "Pick at least one person.");
+  // A task's meeting invites — and tells — only the task's people (owner, 2026-09-11).
+  const attendees = taskId
+    ? await validTaskAttendeeIds(taskId, attendeeIds, user.id)
+    : projectId
+      ? await validAttendeeIds(projectId, attendeeIds)
+      : await validCompanyAttendeeIds(attendeeIds);
+  if (attendees.length === 0) throw new HttpError(400, taskId ? "Pick at least one person on the task." : "Pick at least one person.");
 
   const created = await prisma.calendarEvent.create({
     data: {
@@ -55,6 +67,7 @@ export const POST = route(async (req: Request) => {
       endTime: endTime ?? null,
       isMeeting: true,
       projectId,
+      taskId,
       createdById: user.id,
       attendees: { create: attendees.map((userId) => ({ userId })) },
     },

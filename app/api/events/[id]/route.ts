@@ -8,6 +8,7 @@ import { HHMM_RE, eventDay, validAttendeeIds, validCompanyAttendeeIds } from "@/
 import { eventInclude, eventToDTO } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
 import { isExecutiveRole } from "@/lib/roles";
+import { validTaskAttendeeIds } from "@/lib/task-meetings";
 import { parseBody } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -58,9 +59,12 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
       throw new HttpError(400, "The end time must be after the start time.");
     }
     if (patch.attendeeIds !== undefined) {
-      nextAttendees = existing.projectId
-        ? await validAttendeeIds(existing.projectId, patch.attendeeIds)
-        : await validCompanyAttendeeIds(patch.attendeeIds);
+      // A task's meeting stays with the task's people (owner, 2026-09-11).
+      nextAttendees = existing.taskId
+        ? await validTaskAttendeeIds(existing.taskId, patch.attendeeIds, existing.createdById)
+        : existing.projectId
+          ? await validAttendeeIds(existing.projectId, patch.attendeeIds)
+          : await validCompanyAttendeeIds(patch.attendeeIds);
       if (nextAttendees.length === 0) throw new HttpError(400, "Pick at least one person.");
     }
   }

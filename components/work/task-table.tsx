@@ -4,8 +4,9 @@ import Link from "next/link";
 import { Tooltip } from "@/components/tooltip";
 import { cn } from "@/lib/cn";
 import { dateWord, formatDMY } from "@/lib/dates";
+import { CalendarClock } from "lucide-react";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
-import { WorkCards } from "./work-cards";
+import { WorkCards, meetingWhen } from "./work-cards";
 import { snLink } from "./sn";
 
 /**
@@ -61,7 +62,7 @@ export function TaskTable({
               <Th className="w-[26%]">Short description</Th>
               <Th>Department</Th>
               {hideProject ? null : <Th>Project</Th>}
-              <Th>State</Th>
+              <Th>Status</Th>
               <Th>Priority</Th>
               <Th>Assigned by</Th>
               <Th>Assigned to</Th>
@@ -119,6 +120,13 @@ function RowLine({ t, sharedWith, hideProject = false }: { t: TaskDTO; sharedWit
         <Link href={`/work/${t.number}`} className="hover:underline">
           {t.title.trim() || "(empty)"}
         </Link>
+        {/* When its next meeting is, so a meeting coming up is seen from the list (owner, 2026-09-11). */}
+        {t.nextMeeting ? (
+          <span title={`Meeting: ${t.nextMeeting.title}`} className="ml-2 inline-flex items-center gap-1 rounded-chip bg-primary-soft px-1.5 py-0.5 align-middle text-micro font-medium text-primary-ink">
+            <CalendarClock className="h-3 w-3" strokeWidth={2} aria-hidden />
+            {meetingWhen(t.nextMeeting)}
+          </span>
+        ) : null}
       </td>
       <td className="max-w-[10rem] truncate whitespace-nowrap px-3 py-2 text-ink">{t.departmentName ?? ""}</td>
       {hideProject ? null : (

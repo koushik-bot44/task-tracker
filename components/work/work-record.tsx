@@ -27,12 +27,15 @@ import { TRANSITION_LABEL } from "@/lib/work/workflow";
 import { ActivityStream } from "./activity-stream";
 import { AttachmentViewer, type Attached } from "./attachment-viewer";
 import { TaskFiles } from "./task-files";
+import { TaskMeetings } from "./task-meetings";
+import { TaskProgress } from "./task-progress";
 import { FormRow, Panel, PanelHeader, Tabs, snButton, snInput, snLink, snPrimary } from "./sn";
 import { AssignSheet, ConfirmSheet, MorePeopleSheet, WaitSheet } from "./work-sheets";
 
 /** The moves on the button row, in order; the rest sit under "More". */
 const PRIMARY: WorkState[] = ["IN_PROGRESS", "RESOLVED", "CLOSED", "REOPENED", "WAITING"];
-const SECONDARY: WorkState[] = ["ESCALATED", "ASSIGNED", "NEW", "CANCELLED"];
+// No "Stop Work": a task in somebody's hands is work in progress (owner, 2026-09-11).
+const SECONDARY: WorkState[] = ["ESCALATED", "NEW", "CANCELLED"];
 
 function stamp(iso: string | null): string {
   if (!iso) return "";
@@ -235,15 +238,22 @@ function RecordBody({ task }: { task: TaskDTO }) {
             <FormRow label="Department"><input value={task.departmentName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
             {project ? (
               <FormRow label="Project">
-                <Link href={`/project/${project.slug}${task.parentId ? "" : `?task=${task.id}`}`} className={cn(snLink, "inline-flex h-8 items-center")}>
+                <Link href={`/project/${project.slug}`} className={cn(snLink, "inline-flex h-8 items-center")}>
                   {project.name}
                 </Link>
               </FormRow>
             ) : null}
+            {/* This task's meetings on a small calendar (owner, 2026-09-11). */}
+            <FormRow label="Meetings">
+              <TaskMeetings task={task} />
+            </FormRow>
           </div>
           <div>
-            <FormRow label="State">
+            <FormRow label="Status">
               <input value={`${WORK_STATE_LABEL[task.state]}${task.state === "WAITING" && task.waitingReason ? ` · ${WAITING_REASON_LABEL[task.waitingReason]}` : ""}`} readOnly className={snInput} />
+            </FormRow>
+            <FormRow label="Progress">
+              <TaskProgress task={task} canEdit={access.canEdit} />
             </FormRow>
             <FormRow label="Priority">
               <select value={task.priority} disabled={ro} onChange={(e) => update.mutate({ priority: e.target.value as WorkPriority }, { onError: fail })} className={snInput} aria-label="Priority">

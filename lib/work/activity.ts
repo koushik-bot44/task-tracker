@@ -60,6 +60,7 @@ export const TRACKED_FIELDS = [
   ["resolutionCode", "Resolution"],
   ["archived", "Put away"],
   ["important", "Important"],
+  ["progress", "Progress"],
   ["deletedAt", "Deleted"],
 ] as const;
 export type TrackedField = (typeof TRACKED_FIELDS)[number][0];
@@ -112,6 +113,8 @@ async function labelFor(tx: Tx, field: TrackedField, value: unknown): Promise<st
     case "archived":
     case "important":
       return value ? "Yes" : "No";
+    case "progress":
+      return `${Number(value)}%`;
     default:
       return id;
   }

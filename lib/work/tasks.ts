@@ -77,7 +77,7 @@ export async function requireSee(actor: ActorUser, id: string): Promise<{ scope:
 
 /* ---------------------------------------------------------------- helpers */
 
-const TRACK = ["title", "state", "priority", "type", "assigneeId", "assignmentGroupId", "departmentId", "requesterId", "categoryId", "dueDate", "milestoneId", "projectId", "parentId", "waitingReason", "resolutionCode", "archived", "important", "deletedAt"] as const;
+const TRACK = ["title", "state", "priority", "type", "assigneeId", "assignmentGroupId", "departmentId", "requesterId", "categoryId", "dueDate", "milestoneId", "projectId", "parentId", "waitingReason", "resolutionCode", "archived", "important", "progress", "deletedAt"] as const;
 type Tracked = (typeof TRACK)[number];
 function snapshot(t: Partial<Task>): Partial<Pick<Task, Tracked>> {
   const out: Record<string, unknown> = {};
@@ -317,7 +317,8 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
   }
 
   const now = new Date();
-  const state: WorkState = assigneeId ? "ASSIGNED" : "NEW";
+  // Given to someone = work in progress straight away (owner, 2026-09-11).
+  const state: WorkState = assigneeId ? "IN_PROGRESS" : "NEW";
   const created = await prisma.$transaction(async (tx) => {
     const t = await tx.task.create({
       data: {
@@ -395,6 +396,8 @@ export type UpdateWorkInput = Partial<{
   important: boolean;
   archived: boolean;
   deliverableUrl: string | null;
+  /** 0–100 by hand, or null to clear it (owner, 2026-09-11). */
+  progress: number | null;
   deletedAt: null;
   status: TaskStatus;
 }>;
@@ -419,7 +422,7 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
   }
   if (existing.deletedAt) throw new HttpError(409, "Task is deleted");
 
-  const editing = ["title", "descriptionMd", "type", "priority", "categoryId", "requesterId", "departmentId", "dueDate", "milestoneId", "parentId", "orderKey", "important", "archived", "deliverableUrl"].some((k) => k in patch);
+  const editing = ["title", "descriptionMd", "type", "priority", "categoryId", "requesterId", "departmentId", "dueDate", "milestoneId", "parentId", "orderKey", "important", "archived", "deliverableUrl", "progress"].some((k) => k in patch);
   const assigning = "assigneeId" in patch || "assignmentGroupId" in patch;
   const [mayEdit, mayAssign] = await Promise.all([editing ? canEditTask(actor, root, scope) : true, assigning ? canAssignTask(actor, root, scope) : true]);
   if (!mayEdit) throw new HttpError(403, "You can't change this task.");
@@ -430,6 +433,7 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
   if (patch.descriptionMd !== undefined) data.descriptionMd = patch.descriptionMd;
   if (patch.orderKey !== undefined) data.orderKey = patch.orderKey;
   if (patch.deliverableUrl !== undefined) data.deliverableUrl = patch.deliverableUrl;
+  if (patch.progress !== undefined) data.progress = patch.progress;
   if (patch.archived !== undefined) data.archived = patch.archived;
   if (patch.type !== undefined && !existing.isPrivate) data.type = patch.type;
   if (patch.categoryId !== undefined) data.categoryId = patch.categoryId;

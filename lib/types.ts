@@ -104,7 +104,7 @@ export type WorkState = (typeof WORK_STATES)[number];
 export const WORK_STATE_LABEL: Record<WorkState, string> = {
   NEW: "New",
   ASSIGNED: "Assigned",
-  IN_PROGRESS: "In Progress",
+  IN_PROGRESS: "Work in progress",
   WAITING: "On Hold",
   RESOLVED: "Resolved",
   CLOSED: "Closed",
@@ -296,6 +296,10 @@ export type TaskDTO = {
   /** The project it sits in (work model: shown on the list). */
   projectName: string | null;
   projectSlug: string | null;
+  /** How far along, 0–100, marked by hand (owner, 2026-09-11); null = not marked. */
+  progress: number | null;
+  /** The soonest meeting ahead on this task, when a list asked for it. */
+  nextMeeting: { date: string; startTime: string | null; title: string } | null;
   /** Present on a single-task read: what the caller may do. */
   access?: TaskAccessDTO;
 };
@@ -430,6 +434,11 @@ export type CalendarEventDTO = {
   /** Set when this meeting is a milestone's review. */
   milestoneId: string | null;
   milestoneName: string | null;
+  /** Set when the meeting was scheduled from a task's record (2026-09-11). */
+  taskId: string | null;
+  taskNumber: number | null;
+  taskRef: string | null;
+  taskTitle: string | null;
   isGlobal: boolean;
   attendees: MeetingAttendeeDTO[];
   /** The caller's own reply, if they are an attendee. */

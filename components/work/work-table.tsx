@@ -11,12 +11,14 @@ import { TaskTable, collapseSiblings } from "./task-table";
 import { NewWorkSheet } from "./new-work-sheet";
 import { Panel, PanelHeader, snButton, snInput, snPrimary } from "./sn";
 
-export type Slice = "open" | "unassigned" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
+export type Slice = "open" | "meeting" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
 
+/* Open reads Work in progress, Unassigned is gone, and Awaiting meeting lists
+   the tasks with a meeting ahead (owner, 2026-09-11). */
 export const SLICES: { key: Slice; label: string }[] = [
   { key: "everything", label: "All" },
-  { key: "open", label: "Open" },
-  { key: "unassigned", label: "Unassigned" },
+  { key: "open", label: "Work in progress" },
+  { key: "meeting", label: "Awaiting meeting" },
   { key: "overdue", label: "Overdue" },
   { key: "high", label: "Highest priority first" },
   { key: "waiting", label: "On Hold" },
@@ -26,8 +28,8 @@ export const SLICES: { key: Slice; label: string }[] = [
 
 export function sliceQuery(s: Slice): WorkQuery {
   switch (s) {
-    case "unassigned":
-      return { unassigned: true };
+    case "meeting":
+      return { meeting: true };
     case "overdue":
       return { overdue: true };
     // Not a filter: every open task, Critical → High → Medium → Low
@@ -51,7 +53,7 @@ const PAGE = 50;
 
 /**
  * The task table, the way a service desk lists records: Number, Short
- * description, Project, State, Priority, Assignment group, Assigned to,
+ * description, Project, Status, Priority, Assignment group, Assigned to,
  * Assigned, Due, Updated; a Show filter, a search, 50 a page. Drop it
  * on the Work page, inside a project, or inside a department with `fixed`.
  */
@@ -81,7 +83,7 @@ export function WorkTable({
   const [pages, setPages] = useState<string[]>([]);
   const [raising, setRaising] = useState(false);
   const cursor = pages[pages.length - 1];
-  const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: slice === "high" ? "priority" : slice === "overdue" ? "due" : "updated", limit: PAGE, cursor };
+  const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: slice === "high" ? "priority" : slice === "overdue" || slice === "meeting" ? "due" : "updated", limit: PAGE, cursor };
   const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me));
   const from = pages.length * PAGE + 1;
   // A task given to several people is several records; the list shows it once,

@@ -92,7 +92,7 @@ async function main() {
     const wrong = await call(leadA, "POST", `/api/tasks/${t1Id}/assign`, { assigneeId: devB.id });
     record("a person outside the team cannot be given it", wrong.status === 400, `status ${wrong.status}`);
     const right = await call(leadA, "POST", `/api/tasks/${t1Id}/assign`, { assigneeId: devA.id });
-    record("a team member can", right.status === 200 && right.json?.assigneeId === devA.id && right.json?.state === "ASSIGNED", `status ${right.status} · ${right.json?.state}`);
+    record("a team member can, and it is work in progress at once", right.status === 200 && right.json?.assigneeId === devA.id && right.json?.state === "IN_PROGRESS", `status ${right.status} · ${right.json?.state}`);
     const bell = await prisma.notification.count({ where: { userId: devA.id, taskId: t1Id, type: "task_given" } });
     record("the holder gets exactly one 'gave you a task'", bell === 1, `${bell}`);
     const bellRow = await prisma.notification.findFirst({ where: { userId: devA.id, taskId: t1Id, type: "task_given" }, select: { data: true } });
@@ -107,9 +107,10 @@ async function main() {
 
     console.log("\n── the state machine ──────────────────────────────────────────");
     const skip = await call(devA, "POST", `/api/tasks/${t1Id}/transition`, { to: "CLOSED" });
-    record("Assigned → Closed is not a move", skip.status === 409, `status ${skip.status}`);
-    const start = await call(devA, "POST", `/api/tasks/${t1Id}/transition`, { to: "IN_PROGRESS" });
-    record("the holder starts it", start.status === 200 && start.json?.state === "IN_PROGRESS" && start.json?.status === "DOING", `${start.json?.state}/${start.json?.status}`);
+    record("Work in progress → Closed is not a move", skip.status === 409, `status ${skip.status}`);
+    // Given to someone, it is work in progress at once — no Start Work press (owner, 2026-09-11).
+    const start = await call(devA, "GET", `/api/tasks/${t1Id}`);
+    record("given to the holder, it is already work in progress", start.status === 200 && start.json?.state === "IN_PROGRESS" && start.json?.status === "DOING", `${start.json?.state}/${start.json?.status}`);
     const waitNo = await call(devA, "POST", `/api/tasks/${t1Id}/transition`, { to: "WAITING" });
     record("Waiting needs a reason", waitNo.status === 400, `status ${waitNo.status}`);
     const wait = await call(devA, "POST", `/api/tasks/${t1Id}/transition`, { to: "WAITING", waitingReason: "REQUESTER", waitingNote: "Need the laptop model" });
@@ -137,7 +138,7 @@ async function main() {
     const types = (act.json ?? []).map((a: any) => a.type);
     record("field changes were recorded from the moves themselves", act.status === 200 && types.filter((t: string) => t === "FIELD_CHANGE").length >= 8, `${types.length} rows, ${types.filter((t: string) => t === "FIELD_CHANGE").length} changes`);
     const stateRows = (act.json ?? []).filter((a: any) => a.type === "FIELD_CHANGE" && a.metadata?.field === "state");
-    record("a status change carries old and new words", stateRows.some((a: any) => a.metadata.oldLabel === "In Progress" && a.metadata.newLabel === "On Hold"), `${stateRows.length} state rows`);
+    record("a status change carries old and new words", stateRows.some((a: any) => a.metadata.oldLabel === "Work in progress" && a.metadata.newLabel === "On Hold"), `${stateRows.length} state rows`);
     record("the reopen note is in the stream", (act.json ?? []).some((a: any) => a.type === "COMMENT" && a.body.includes("3rd floor")));
     const tn = await call(devA, "POST", `/api/tasks/${t1Id}/work-notes`, { body: "AP-204 logs show auth failures" });
     record("the holder writes a team note", tn.status === 201 && tn.json?.visibility === "INTERNAL", `status ${tn.status}`);
@@ -156,7 +157,7 @@ async function main() {
     projectId = proj.json?.id ?? "";
     record("a manager starts a project", proj.status === 201, `status ${proj.status}`);
     const pt = await call(leadA, "POST", "/api/tasks", { projectId, title: "WM fix login", assigneeId: devA.id });
-    record("a lead gives a project task", pt.status === 201 && pt.json?.type === "PROJECT_TASK" && pt.json?.state === "ASSIGNED", `${pt.json?.type}/${pt.json?.state}`);
+    record("a lead gives a project task", pt.status === 201 && pt.json?.type === "PROJECT_TASK" && pt.json?.state === "IN_PROGRESS", `${pt.json?.type}/${pt.json?.state}`);
     const ptId: string = pt.json?.id;
     const doneByMember = await call(devA, "PATCH", `/api/tasks/${ptId}`, { status: "DONE" });
     record("a team member still cannot tick it done", doneByMember.status === 403, `status ${doneByMember.status}`);

@@ -44,6 +44,9 @@ export function ScheduleMeetingSheet({
   projectName: presetProjectName,
   meeting,
   defaultDate,
+  taskId: presetTaskId = null,
+  taskTitle,
+  people: presetPeople,
 }: {
   open: boolean;
   onClose: () => void;
@@ -54,6 +57,11 @@ export function ScheduleMeetingSheet({
   meeting?: CalendarEventDTO;
   /** "YYYY-MM-DD" to start on — the day that was open. */
   defaultDate?: string;
+  /** Scheduled from a task's record: the meeting belongs to that task (owner, 2026-09-11). */
+  taskId?: string | null;
+  taskTitle?: string;
+  /** A task's people: the only ones a task's meeting can invite, all ticked to start with. */
+  people?: { userId: string; name: string }[];
 }) {
   const { show: toast } = useToast();
   const { data: me } = useMe();
@@ -97,10 +105,12 @@ export function ScheduleMeetingSheet({
   );
 
   const people = useMemo<Candidate[]>(() => {
+    // A task's meeting is the task's alone: only its people can be invited (owner, 2026-09-11).
+    if (presetPeople && (presetTaskId || meeting?.taskId)) return presetPeople;
     if (about === "project") return candidates ?? [];
     if (about === "department") return colleagues.filter((c) => (users ?? []).find((u) => u.id === c.userId)?.departmentId === departmentId);
     return colleagues;
-  }, [about, candidates, colleagues, users, departmentId]);
+  }, [about, candidates, colleagues, users, departmentId, presetPeople, presetTaskId, meeting?.taskId]);
 
   const shown = useMemo(() => {
     const needle = findQ.trim().toLowerCase();
@@ -111,7 +121,7 @@ export function ScheduleMeetingSheet({
   // from the preset project and day.
   useEffect(() => {
     if (!open) return;
-    setAbout(meeting ? (meeting.projectId ? "project" : "everyone") : presetProjectId ? "project" : "project");
+    setAbout(meeting ? (meeting.projectId ? "project" : "everyone") : presetTaskId ? "person" : "project");
     setProjectId(meeting?.projectId ?? presetProjectId);
     setDepartmentId("");
     setFindQ("");
@@ -122,7 +132,7 @@ export function ScheduleMeetingSheet({
     setEnd(meeting?.endTime ?? "");
     setTitle(meeting?.title ?? "");
     setTitleTouched(Boolean(meeting));
-  }, [open, meeting, presetProjectId, defaultDate]);
+  }, [open, meeting, presetProjectId, presetTaskId, defaultDate]);
 
   // The choice fills the faces: a project's people, a department's people,
   // the whole company — all picked; "People" starts empty. An edit keeps
@@ -140,10 +150,11 @@ export function ScheduleMeetingSheet({
       if (!users) return;
       setWho(new Set(people.map((p) => p.userId)));
     } else {
-      setWho(new Set());
+      // From a task, its people start ticked; otherwise "People" starts empty.
+      setWho(new Set(presetTaskId ? (presetPeople ?? []).map((p) => p.userId) : []));
     }
     setSeededFor(seedKey);
-  }, [open, meeting, about, seedKey, seededFor, projectId, departmentId, candidates, users, people]);
+  }, [open, meeting, about, seedKey, seededFor, projectId, departmentId, candidates, users, people, presetTaskId, presetPeople]);
 
   // The title follows the choice until the person writes their own.
   useEffect(() => {
@@ -151,8 +162,8 @@ export function ScheduleMeetingSheet({
     if (about === "project") setTitle(projectName ? `${projectName} meeting` : "");
     else if (about === "department") setTitle(departmentName ? `${departmentName} meeting` : "");
     else if (about === "everyone") setTitle("Company meeting");
-    else setTitle("Catch-up");
-  }, [open, titleTouched, about, projectName, departmentName]);
+    else setTitle(presetTaskId && taskTitle ? taskTitle : "Catch-up");
+  }, [open, titleTouched, about, projectName, departmentName, presetTaskId, taskTitle]);
 
   const toggle = (id: string) =>
     setWho((prev) => {
@@ -178,6 +189,7 @@ export function ScheduleMeetingSheet({
       startTime: start,
       endTime: end || null,
       attendeeIds: [...who],
+      ...(presetTaskId && !meeting ? { taskId: presetTaskId } : {}),
     };
     const onError = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
     if (meeting) {
@@ -214,7 +226,16 @@ export function ScheduleMeetingSheet({
     });
   };
 
-  const subtitle = about === "project" ? projectName : about === "department" ? departmentName : about === "everyone" ? "The whole company" : null;
+  const subtitle =
+    presetTaskId && !meeting
+      ? taskTitle ?? null
+      : about === "project"
+        ? projectName
+        : about === "department"
+          ? departmentName
+          : about === "everyone"
+            ? "The whole company"
+            : null;
 
   return (
     <Sheet
@@ -240,7 +261,7 @@ export function ScheduleMeetingSheet({
       }
     >
       <div className="space-y-5 pt-1">
-        {presetProjectId || meeting ? null : (
+        {presetProjectId || presetTaskId || meeting ? null : (
           <div>
             <span className="mb-1.5 block text-micro font-medium text-muted">About what?</span>
             <div role="group" aria-label="About what" className="flex flex-wrap gap-2">

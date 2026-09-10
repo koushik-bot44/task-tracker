@@ -139,7 +139,8 @@ function changeLine(a: ActivityDTO): string | null {
     case "state":
       switch (m.newValue) {
         case "IN_PROGRESS":
-          return `${who} started work`;
+          // Given to someone, a task is work in progress at once; the handover line already says so (2026-09-11).
+          return m.oldLabel === "New" ? null : `${who} started work`;
         case "RESOLVED":
           return `${who} marked it complete`;
         case "CLOSED":
@@ -155,7 +156,7 @@ function changeLine(a: ActivityDTO): string | null {
         case "NEW":
           return `${who} returned it to the queue`;
         case "ASSIGNED":
-          return m.oldLabel === "In Progress" ? `${who} stopped work` : `${who} assigned it`;
+          return m.oldLabel === "In Progress" || m.oldLabel === "Work in progress" ? `${who} stopped work` : `${who} assigned it`;
         default:
           return `${who} moved it to ${to}`;
       }
@@ -184,6 +185,8 @@ function changeLine(a: ActivityDTO): string | null {
       return `${who} changed the type to ${to}`;
     case "deletedAt":
       return m.newLabel ? `${who} deleted it` : `${who} brought it back`;
+    case "progress":
+      return m.newLabel ? `${who} marked it ${to} done` : `${who} cleared the progress`;
     case "resolutionCode":
     case "important":
     case "archived":

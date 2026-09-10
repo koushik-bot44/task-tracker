@@ -197,12 +197,12 @@ async function main() {
   record("the Attachments tab offers a file with its description", await desk.getByRole("button", { name: "Attach a file with its description" }).isVisible());
   await desk.screenshot({ path: `${DIR}/2-task-attachments-tab.png`, fullPage: true });
 
+  // The old task panel is gone (owner, 2026-09-11): an old ?task= link opens the full record.
   await desk.goto(`${BASE}/?task=${task.id}`);
-  await desk.waitForLoadState("domcontentloaded");
-  await desk.waitForTimeout(3500);
-  const drawerAttach = await desk.getByRole("button", { name: "Attach a file" }).count();
-  record("the task drawer's comments offer Attach", drawerAttach > 0, `${drawerAttach} found`);
-  await desk.screenshot({ path: `${DIR}/3-task-drawer.png`, fullPage: true });
+  await desk.waitForURL(new RegExp(`/work/${task.number}$`), { timeout: 30000 }).catch(() => undefined);
+  await desk.waitForTimeout(2500);
+  const recordAttach = await desk.getByRole("button", { name: "Attach a file" }).count();
+  record("an old task link opens the full record, whose chat offers Attach", new URL(desk.url()).pathname === `/work/${task.number}` && recordAttach > 0, `${new URL(desk.url()).pathname}, ${recordAttach} found`);
 
   await desk.goto(`${BASE}/project/${task.project!.slug}`);
   await desk.waitForLoadState("domcontentloaded");

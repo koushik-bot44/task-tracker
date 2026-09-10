@@ -28,7 +28,7 @@ export async function buildTomorrow(now = new Date()): Promise<TomorrowPlan[]> {
   const [due, overdue, meetings] = await Promise.all([
     prisma.task.findMany({
       where: { deletedAt: null, isPrivate: false, archived: false, parentId: null, status: { not: "DONE" }, assigneeId: { not: null }, dueDate: { gte: start, lte: end } },
-      select: { id: true, title: true, assigneeId: true, project: { select: { name: true, slug: true } } },
+      select: { id: true, number: true, title: true, assigneeId: true, project: { select: { name: true, slug: true } } },
     }),
     prisma.task.groupBy({
       by: ["assigneeId"],
@@ -60,7 +60,7 @@ export async function buildTomorrow(now = new Date()): Promise<TomorrowPlan[]> {
   };
   for (const t of due) {
     if (!t.assigneeId || !t.project) continue;
-    bucket(t.assigneeId).dueTomorrow.push({ title: t.title || "Untitled", projectName: t.project.name, url: `${base}/project/${t.project.slug}?task=${t.id}` });
+    bucket(t.assigneeId).dueTomorrow.push({ title: t.title || "Untitled", projectName: t.project.name, url: `${base}/work/${t.number}` });
   }
   for (const o of overdue) if (o.assigneeId) bucket(o.assigneeId).overdueCount = o._count._all;
   for (const m of meetings) {

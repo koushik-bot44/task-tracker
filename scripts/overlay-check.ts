@@ -57,13 +57,9 @@ async function probe(page: Page, vp: string, label: string, open: (p: Page) => P
       await p.getByRole("menuitem", { name: "How Orbit works" }).first().click({ timeout: 5000 }).catch(() => {});
     }, '[role="dialog"]');
     await probe(page, vp.n, "search palette", async (p) => { await p.keyboard.press("Control+k"); }, "[cmdk-root]");
-    if (busiest && task) {
-      await probe(page, vp.n, "task drawer", async (p) => {
-        await p.goto(`${BASE}/project/${busiest.slug}?task=${task.id}`);
-        await p.waitForLoadState("networkidle").catch(() => {});
-        await p.waitForTimeout(1200);
-      }, '[role="dialog"][aria-label="Task"]');
-    }
+    // The task drawer is gone (owner, 2026-09-11): a ?task= link opens the full record instead.
+    void busiest;
+    void task;
     await ctx.close();
   }
   await b.close();

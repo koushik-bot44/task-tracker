@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,12 @@ export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-row font-medium text-ink">{headline}</p>
           <p className="truncate text-micro text-muted">{when}</p>
+          {/* A meeting scheduled from a task says which one, and opens it (owner, 2026-09-11). */}
+          {meeting.taskNumber ? (
+            <Link href={`/work/${meeting.taskNumber}`} className="block truncate text-micro font-medium text-primary-ink hover:underline">
+              {meeting.taskRef} · {meeting.taskTitle}
+            </Link>
+          ) : null}
         </div>
         {meeting.milestoneId ? <Chip tone="primary">Review</Chip> : null}
       </div>

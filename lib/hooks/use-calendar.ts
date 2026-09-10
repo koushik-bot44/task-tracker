@@ -26,6 +26,8 @@ type EventInput = {
   startTime?: string; // HH:MM
   endTime?: string | null;
   attendeeIds?: string[];
+  /** Scheduled from a task's record (2026-09-11). */
+  taskId?: string | null;
 };
 
 export function useEventMutations() {
@@ -37,6 +39,10 @@ export function useEventMutations() {
     // Creating/moving/cancelling an event can produce notifications for others,
     // and the actor may be a recipient of nothing — but refresh the bell anyway.
     void qc.invalidateQueries({ queryKey: ["notifications"] });
+    // A task's meeting shows on its record, on Today, and on the Work list.
+    void qc.invalidateQueries({ queryKey: ["task-meetings"] });
+    void qc.invalidateQueries({ queryKey: ["today"] });
+    void qc.invalidateQueries({ queryKey: ["work"] });
   };
 
   const createEvent = useMutation({

@@ -179,7 +179,7 @@ export function useTaskMutations(scope: MutationScope) {
         number: 0,
         ref: "",
         type: isPrivate ? "GENERAL" : "PROJECT_TASK",
-        state: input.assigneeId ? "ASSIGNED" : "NEW",
+        state: input.assigneeId ? "IN_PROGRESS" : "NEW",
         priority: input.important ? "HIGH" : "MEDIUM",
         categoryId: null,
         categoryName: null,
@@ -205,6 +205,8 @@ export function useTaskMutations(scope: MutationScope) {
         escalatedAt: null,
         projectName: null,
         projectSlug: null,
+        progress: null,
+        nextMeeting: null,
       };
       const prior = writeLists((rows) => [...rows, optimistic]);
       return { prior };

@@ -26,10 +26,11 @@ const OPEN: WorkState[] = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "ESCALAT
 const STATES: WorkState[] = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED", "CANCELLED", "ESCALATED", "REOPENED"];
 const PRIORITIES: WorkPriority[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 const TYPES: WorkType[] = ["GENERAL", "ISSUE", "REQUEST", "PROJECT_TASK", "APPROVAL", "SUPPORT"];
-const SLICES = ["open", "unassigned", "overdue", "high", "waiting", "resolved", "finished", "everything"] as const;
+// Show: Unassigned is gone and Awaiting meeting is new (owner, 2026-09-11).
+const SLICES = ["open", "meeting", "overdue", "high", "waiting", "resolved", "finished", "everything"] as const;
 type Slice = (typeof SLICES)[number];
-type ScopeKey = "all" | "department" | "team" | "requested" | "assigned";
-const TAB_LABEL: Record<string, ScopeKey> = { All: "all", Departments: "department", "Your team's work": "team", "Assigned by you": "requested", "Your work": "assigned" };
+type ScopeKey = "all" | "department" | "individual" | "team" | "requested" | "assigned";
+const TAB_LABEL: Record<string, ScopeKey> = { All: "all", Departments: "department", Individual: "individual", "Your team's work": "team", "Assigned by you": "requested", "Your work": "assigned" };
 
 // ── bookkeeping ─────────────────────────────────────────────────────────────
 const sections: { name: string; checks: number; fails: string[] }[] = [];
@@ -59,6 +60,8 @@ let rows: Row[] = [];
 let byNumber = new Map<number, Row>();
 let byId = new Map<string, Row>();
 let childNumbers = new Set<number>();
+/** Tasks with a meeting ahead, today included. */
+let withMeeting = new Set<string>();
 const todayStart = () => istDayRange(istDayKey(new Date())).start;
 
 async function loadRows() {
@@ -73,6 +76,11 @@ async function loadRows() {
   byNumber = new Map(rows.map((r) => [r.number, r]));
   byId = new Map(rows.map((r) => [r.id, r]));
   childNumbers = new Set((await prisma.task.findMany({ where: { parentId: { not: null } }, select: { number: true } })).map((c) => c.number));
+  const events = await prisma.calendarEvent.findMany({
+    where: { taskId: { not: null }, isMeeting: true, date: { gte: new Date(`${istDayKey(new Date())}T00:00:00.000Z`) } },
+    select: { taskId: true },
+  });
+  withMeeting = new Set(events.map((e) => e.taskId!));
 }
 
 /** What each control MEANS, written independently of the code under test. */
@@ -80,7 +88,7 @@ function sliceMatch(s: Slice, r: Row): boolean {
   const open = OPEN.includes(r.state);
   switch (s) {
     case "open": return open;
-    case "unassigned": return open && r.assigneeId === null;
+    case "meeting": return open && withMeeting.has(r.id);
     case "overdue": return open && r.dueDate !== null && r.dueDate < todayStart();
     // Not a filter since 7e7a3e3: every open task, highest priority first
     // (owner, 2026-09-10 — "it only shows high priority").
@@ -99,6 +107,8 @@ function mineMatch(scope: ScopeKey, r: Row, who: Who): boolean {
     case "requested": return r.requesterId === who.id;
     case "team": return r.assignmentGroupId !== null && who.groupIds.has(r.assignmentGroupId);
     case "department": return who.all || (r.departmentId !== null && who.departmentIds.has(r.departmentId));
+    // Given straight to a person, in no department (owner, 2026-09-11).
+    case "individual": return r.departmentId === null && r.assigneeId !== null;
   }
 }
 function searchMatch(q: string, r: Row): boolean {
@@ -164,7 +174,7 @@ function scopesOffered(who: Who): ScopeKey[] {
   const leadOrAbove = ["FOUNDER", "CO_FOUNDER", "HOD", "MANAGER", "TEAM_LEAD"].includes(who.role);
   const out: ScopeKey[] = [];
   if (who.role === "FOUNDER") out.push("all");
-  if (leadOrAbove) out.push("department");
+  if (leadOrAbove) out.push("department", "individual");
   if (who.groupIds.size) out.push("team");
   out.push("requested", "assigned");
   return out;
@@ -243,6 +253,11 @@ async function seed() {
     select: { id: true },
   });
   made.taskIds.push(mt.id);
+  // A meeting ahead on one open task, for Awaiting meeting (owner, 2026-09-11).
+  const withAMeeting = await prisma.task.findFirstOrThrow({ where: { id: { in: made.taskIds }, state: "IN_PROGRESS", parentId: null }, select: { id: true } });
+  await prisma.calendarEvent.create({
+    data: { title: `${PREFIX}meeting`, date: new Date(`${istDayKey(day(2))}T00:00:00.000Z`), startTime: "11:00", isMeeting: true, taskId: withAMeeting.id, createdById: ceo, attendees: { create: [{ userId: ceo }] } },
+  });
   // Twenty rows touched at the same instant: an order with ties must still page cleanly.
   const tie = new Date(Date.now() - 3_600_000);
   await prisma.$executeRawUnsafe(`UPDATE "Task" SET "updatedAt" = $1 WHERE id = ANY($2::text[])`, tie, made.taskIds.slice(0, 20));
@@ -250,6 +265,7 @@ async function seed() {
 
 async function cleanup() {
   const ids = made.taskIds;
+  await prisma.calendarEvent.deleteMany({ where: { title: { startsWith: PREFIX } } }).catch(() => undefined);
   if (made.milestoneId) {
     await prisma.calendarEvent.deleteMany({ where: { milestoneId: made.milestoneId } }).catch(() => undefined);
   }
@@ -313,7 +329,7 @@ async function partA() {
     const params: Record<string, string> = {};
     switch (j.slice) {
       case "open": params.open = "true"; break;
-      case "unassigned": params.open = "true"; params.unassigned = "1"; break;
+      case "meeting": params.open = "true"; params.meeting = "1"; break;
       case "overdue": params.open = "true"; params.overdue = "1"; break;
       case "high": params.open = "true"; params.sort = "priority"; break;
       case "waiting": params.state = "WAITING"; break;
@@ -688,6 +704,7 @@ async function partC(browser: Browser, visible: Map<string, Set<string>>, whos: 
 // ── run ─────────────────────────────────────────────────────────────────────
 async function main() {
   const started = Date.now();
+  await prisma.calendarEvent.deleteMany({ where: { title: { startsWith: PREFIX } } });
   await prisma.task.deleteMany({ where: { title: { startsWith: PREFIX }, parentId: { not: null } } });
   await prisma.task.deleteMany({ where: { title: { startsWith: PREFIX } } });
   await prisma.assignmentGroup.deleteMany({ where: { name: `${PREFIX}team` } });

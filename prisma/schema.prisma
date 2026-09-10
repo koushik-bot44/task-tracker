@@ -498,8 +498,13 @@ model Task {
   closedBy          User?            @relation("TaskClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
   closedAt          DateTime?
   escalatedAt       DateTime?
+  /// Owner, 2026-09-11: how far along it is, 0–100, marked by hand like a
+  /// project's own number. Null = not marked yet.
+  progress          Int?
   activities        TaskActivity[]
   notifications     Notification[]
+  /// Meetings scheduled from the task's record.
+  meetings          CalendarEvent[]  @relation("TaskMeetings")
 
   @@index([projectId, parentId])
   @@index([milestoneId])
@@ -597,6 +602,9 @@ model CalendarEvent {
   milestoneId String?
   milestone   Milestone? @relation("EventMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
   reviewOf    Milestone? @relation("MilestoneReviewEvent")
+  /// Owner, 2026-09-11: set when the meeting was scheduled from a task's record.
+  taskId      String?
+  task        Task?    @relation("TaskMeetings", fields: [taskId], references: [id], onDelete: SetNull)
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
   attendees   EventAttendee[]
@@ -606,6 +614,7 @@ model CalendarEvent {
   @@index([date])
   @@index([projectId, date])
   @@index([milestoneId])
+  @@index([taskId, date])
 }
 
 /// The SELECTED attendees of a meeting (phase 22). Present only for isMeeting

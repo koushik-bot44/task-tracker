@@ -42,6 +42,8 @@ export type WorkFilter = {
   projectId?: string;
   milestoneId?: string;
   unassigned?: boolean;
+  /** Tasks with a meeting ahead, today included (owner, 2026-09-11). */
+  meeting?: boolean;
   overdue?: boolean;
   dueToday?: boolean;
   dueFrom?: string;
@@ -49,10 +51,11 @@ export type WorkFilter = {
   createdFrom?: string;
   createdTo?: string;
   /** Shortcuts for the four tabs. */
-  mine?: "assigned" | "requested" | "team" | "department";
+  mine?: "assigned" | "requested" | "team" | "department" | "individual";
   /** Default true: open work only. `false` = everything, `finished` = the other half. */
   open?: "true" | "false" | "finished";
-  sort?: "updated" | "due" | "priority" | "created" | "number";
+  /** "meeting": the soonest meeting first, tasks with none after. */
+  sort?: "updated" | "due" | "priority" | "created" | "number" | "meeting";
   /**
    * "tasks": one row per TASK. The same task given to several people is one
    * record each; listed this way it is shown, counted and paged once, and
@@ -82,6 +85,8 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   if (f.projectId) and.push({ projectId: f.projectId === "none" ? null : f.projectId });
   if (f.milestoneId) and.push({ milestoneId: f.milestoneId });
   if (f.unassigned) and.push({ assigneeId: null });
+  // Meetings are stored as the UTC midnight of their day, so "today" is that too.
+  if (f.meeting) and.push({ meetings: { some: { isMeeting: true, date: { gte: new Date(`${istDayKey(now)}T00:00:00.000Z`) } } } });
   if (f.overdue) and.push({ dueDate: { lt: istDayRange(istDayKey(now)).start }, state: { in: [...OPEN_STATES] } });
   if (f.dueToday) {
     const day = istDayRange(istDayKey(now));
@@ -101,6 +106,10 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
       break;
     case "department":
       and.push(scope.all ? {} : scope.departmentIds.size ? { departmentId: { in: [...scope.departmentIds] } } : { id: "" });
+      break;
+    // Extra work given straight to a person, in no department (owner, 2026-09-11).
+    case "individual":
+      and.push({ departmentId: null, assigneeId: { not: null } });
       break;
   }
   if (f.q?.trim()) {
@@ -133,7 +142,8 @@ export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: 
  * Critical, High, Medium, Low — then the soonest due (owner, 2026-09-10).
  */
 function orderFor(sort: WorkFilter["sort"]): Prisma.TaskOrderByWithRelationInput[] {
-  if (sort === "due") return [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }, { id: "desc" }];
+  // "meeting" is ordered after the read (listWorkTasks); the due date is its base.
+  if (sort === "due" || sort === "meeting") return [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }, { id: "desc" }];
   if (sort === "created") return [{ createdAt: "desc" }, { id: "desc" }];
   if (sort === "number") return [{ number: "desc" }, { id: "desc" }];
   if (sort === "priority") return [{ priority: "asc" }, { dueDate: { sort: "asc", nulls: "last" } }, { id: "desc" }];
@@ -150,9 +160,24 @@ function findListed(args: Omit<Prisma.TaskFindManyArgs, "include" | "select">) {
 }
 type ListedRow = Awaited<ReturnType<typeof findListed>>[number];
 
+/** The soonest meeting ahead on each of these tasks, today included (owner, 2026-09-11). */
+export async function nextMeetings(taskIds: string[], now = new Date()): Promise<Map<string, NonNullable<TaskDTO["nextMeeting"]>>> {
+  const out = new Map<string, NonNullable<TaskDTO["nextMeeting"]>>();
+  if (!taskIds.length) return out;
+  const events = await prisma.calendarEvent.findMany({
+    where: { taskId: { in: taskIds }, isMeeting: true, date: { gte: new Date(`${istDayKey(now)}T00:00:00.000Z`) } },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    select: { taskId: true, date: true, startTime: true, title: true },
+  });
+  for (const e of events) {
+    if (e.taskId && !out.has(e.taskId)) out.set(e.taskId, { date: e.date.toISOString(), startTime: e.startTime, title: e.title });
+  }
+  return out;
+}
+
 /** Records as the list shows them: their note counts, and who else holds each shared task. */
 async function present(page: ListedRow[]): Promise<TaskDTO[]> {
-  const counts = await noteCounts(page.map((r) => r.id), true);
+  const [counts, upcoming] = await Promise.all([noteCounts(page.map((r) => r.id), true), nextMeetings(page.map((r) => r.id))]);
 
   // The same task given to several people is one record each. Who ELSE holds it
   // is answered here, in one query for the whole page, so a row can say so
@@ -178,7 +203,7 @@ async function present(page: ListedRow[]): Promise<TaskDTO[]> {
   return withCounts(page, counts).map((row) => {
     const dto = serializeTask(row);
     const all = row.siblingKey ? crew.get(row.siblingKey) ?? [] : [];
-    return { ...dto, alsoWith: all.filter((p) => p.id !== row.assigneeId) };
+    return { ...dto, alsoWith: all.filter((p) => p.id !== row.assigneeId), nextMeeting: upcoming.get(row.id) ?? null };
   });
 }
 
@@ -214,6 +239,22 @@ export async function listWorkTasks(actor: Actor, scope: Scope, f: WorkFilter): 
     if (seen.has(key)) continue;
     seen.add(key);
     firsts.push(r.id);
+  }
+  // Soonest meeting first; tasks with none keep their order after them.
+  if (f.sort === "meeting" && firsts.length) {
+    const next = await nextMeetings(firsts);
+    const at = (id: string) => {
+      const m = next.get(id);
+      return m ? `${m.date}|${m.startTime ?? "99:99"}` : null;
+    };
+    const place = new Map(firsts.map((id, i) => [id, i] as const));
+    firsts.sort((a, b) => {
+      const ka = at(a);
+      const kb = at(b);
+      if (ka && kb) return ka < kb ? -1 : ka > kb ? 1 : place.get(a)! - place.get(b)!;
+      if (ka || kb) return ka ? -1 : 1;
+      return place.get(a)! - place.get(b)!;
+    });
   }
   const ids = firsts.slice((page - 1) * pageSize, page * pageSize);
   const rows = ids.length ? await findListed({ where: { id: { in: ids } } }) : [];
@@ -360,17 +401,18 @@ export function parseFilter(params: URLSearchParams): WorkFilter {
     projectId: str("projectId"),
     milestoneId: str("milestoneId"),
     unassigned: bool("unassigned"),
+    meeting: bool("meeting"),
     overdue: bool("overdue"),
     dueToday: bool("dueToday"),
     dueFrom: str("dueFrom"),
     dueTo: str("dueTo"),
     createdFrom: str("createdFrom"),
     createdTo: str("createdTo"),
-    mine: mine === "assigned" || mine === "requested" || mine === "team" || mine === "department" ? mine : undefined,
+    mine: mine === "assigned" || mine === "requested" || mine === "team" || mine === "department" || mine === "individual" ? mine : undefined,
     // A search or an explicit state looks at everything; a plain list is open
     // work. The Work screen always says which it means, so its search keeps Show.
     open: open === "false" || open === "finished" ? open : open === "true" ? "true" : params.get("state") || params.get("q") ? "false" : "true",
-    sort: sort === "due" || sort === "priority" || sort === "created" || sort === "number" || sort === "updated" ? sort : undefined,
+    sort: sort === "due" || sort === "priority" || sort === "created" || sort === "number" || sort === "updated" || sort === "meeting" ? sort : undefined,
     rows: str("rows") === "tasks" ? "tasks" : undefined,
     page: params.get("page") ? Number(params.get("page")) : undefined,
     cursor: str("cursor"),

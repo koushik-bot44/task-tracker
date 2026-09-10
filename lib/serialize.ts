@@ -118,6 +118,9 @@ export function serializeTask(task: TaskRow): TaskDTO {
     escalatedAt: task.escalatedAt ? task.escalatedAt.toISOString() : null,
     projectName: task.project?.name ?? null,
     projectSlug: task.project?.slug ?? null,
+    progress: task.progress ?? null,
+    // Filled by the lists that show it; a single record reads its meetings itself.
+    nextMeeting: null,
   };
 }
 
@@ -319,6 +322,7 @@ export function serializeMilestone(m: MilestoneRow): MilestoneDTO {
 export const eventInclude = {
   project: { select: { name: true, color: true, slug: true } },
   milestone: { select: { name: true } },
+  task: { select: { number: true, type: true, title: true } },
   createdBy: { select: { name: true } },
   attendees: { select: { userId: true, response: true, respondedAt: true, user: { select: { name: true } } } },
 } as const;
@@ -338,6 +342,8 @@ export function eventToDTO(
     createdAt: Date;
     project: { name: string; color: string; slug: string } | null;
     milestone?: { name: string } | null;
+    taskId?: string | null;
+    task?: { number: number; type: Task["type"]; title: string } | null;
     createdBy: { name: string };
     attendees?: { userId: string; response: string | null; respondedAt: Date | null; user: { name: string } }[];
   },
@@ -364,6 +370,10 @@ export function eventToDTO(
     projectSlug: e.project?.slug ?? null,
     milestoneId: e.milestoneId,
     milestoneName: e.milestone?.name ?? null,
+    taskId: e.taskId ?? null,
+    taskNumber: e.task?.number ?? null,
+    taskRef: e.task ? workRef(e.task.type, e.task.number) : null,
+    taskTitle: e.task?.title ?? null,
     isGlobal: e.projectId === null,
     attendees,
     myResponse: mine?.response ?? null,

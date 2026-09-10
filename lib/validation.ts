@@ -335,6 +335,8 @@ export const updateTaskSchema = z
     assigneeId: z.string().min(1).nullable(),
     important: z.boolean(),
     archived: z.boolean(),
+    /** How far along, 0–100, marked by hand; null clears it (owner, 2026-09-11). */
+    progress: z.number().int().min(0).max(100).nullable(),
     deletedAt: z.null(),
     // A link, or a file uploaded here (files everywhere, owner 2026-09-10). Only
     // http(s) or an /api/uploads address, so a javascript: URL can never be
