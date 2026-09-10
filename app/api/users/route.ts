@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeUser } from "@/lib/serialize";
 import { assertCanCreateUserWithRole, assertCanListUsers } from "@/lib/permissions";
 import { adminAlreadyExists } from "@/lib/account-guards";
-import { canAdministerAccountsRole, isAdminRole, isExecutiveRole } from "@/lib/roles";
+import { canAdministerAccountsRole, isAdminRole, oversesCompanyRole } from "@/lib/roles";
 import { requireUser, route } from "@/lib/session";
 import { addOtherEmails, dedupeEmails, isEmailShaped, takenEmails } from "@/lib/user-emails";
 import { parseBody, roleSchema } from "@/lib/validation";
@@ -30,10 +30,13 @@ export const GET = route(async () => {
   const actor = await requireUser();
   assertCanListUsers(actor);
 
-  // Owner, 2026-09-04: only the CEO (and the admin who runs
-  // accounts) sees everyone. Everyone else sees their own department, any
-  // department they head, the CEO, and themselves.
-  const wide = isExecutiveRole(actor.role) || isAdminRole(actor.role);
+  // Owner, 2026-09-04: the CEO (and the admin who runs accounts) sees everyone.
+  // 2026-09-10: so does a co-founder. He sees every department, and a People
+  // page that listed all of them with none of their people told him each one
+  // was empty. The directory is names and places, not work — projects and tasks
+  // stay closed to him unless he is on them. Everyone else sees their own
+  // department, any department they head, the top of the company, and themselves.
+  const wide = oversesCompanyRole(actor.role) || isAdminRole(actor.role);
   const headed = wide ? [] : await prisma.department.findMany({ where: { hodId: actor.id }, select: { id: true } });
   const departmentIds = [...(actor.departmentId ? [actor.departmentId] : []), ...headed.map((d) => d.id)];
   const users = await prisma.user.findMany({

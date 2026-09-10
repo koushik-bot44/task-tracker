@@ -23,8 +23,8 @@ export const isExecutiveRole = (r: UserRole | null | undefined): boolean =>
 
 /**
  * Oversight without entry (owner, 2026-09-09). A co-founder sees the SHAPE of
- * the company — every department and how much work sits in each — but opens
- * only the projects he has been put on, like anybody else. He may still invite
+ * the company — every department, how much work sits in each, and who is in
+ * it — but opens only the projects he has been put on, like anybody else. He may still invite
  * people and run what he is on; Well Being and the CEO account stay the CEO's.
  */
 export const oversesCompanyRole = (r: UserRole | null | undefined): boolean =>
