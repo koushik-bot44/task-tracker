@@ -169,6 +169,15 @@ async function main() {
     const second = await until(async () => (await nameOf(at("screen1"))) === "PPL Screen First");
     record("People renames a person, and renames them again", first && second, (await nameOf(at("screen1"))) ?? "");
     record("…and the sheet shows the new name", await until(async () => page.getByRole("dialog").getByText("PPL Screen First").first().isVisible(), 8000));
+    const emailBox = personSheet.getByRole("textbox", { name: "Email", exact: true });
+    const hasEmail = async (address: string) => Boolean(await prisma.user.findUnique({ where: { email: address }, select: { id: true } }));
+    await emailBox.fill(at("screen1-moved"));
+    await personSheet.getByRole("button", { name: "Save email" }).click();
+    const moved = await until(async () => hasEmail(at("screen1-moved")));
+    await emailBox.fill(at("screen1-again"));
+    await personSheet.getByRole("button", { name: "Save email" }).click();
+    const movedAgain = await until(async () => hasEmail(at("screen1-again")));
+    record("People changes a person's email, and changes it again", moved && movedAgain);
     await page.keyboard.press("Escape");
   } catch (e) {
     record("People renames a person, and renames them again", false, (e as Error).message.split("\n")[0]);

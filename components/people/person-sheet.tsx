@@ -70,7 +70,7 @@ export function PersonSheet({
   );
 }
 
-type Action = "name" | "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
+type Action = "name" | "email" | "department" | "role" | "phone" | "reset" | "disable" | "resend" | "cancel" | "delete" | "password";
 
 function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: UserDTO; departments: DepartmentDTO[]; onClose: () => void }) {
   const { updateUser, updateMe, resendInvite, cancelInvite, setPassword } = useUserMutations();
@@ -83,6 +83,8 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
   useEffect(() => setPhone(savedPhone), [savedPhone]);
   const [name, setName] = useState(user.name);
   useEffect(() => setName(user.name), [user.name]);
+  const [email, setEmail] = useState(user.email);
+  useEffect(() => setEmail(user.email), [user.email]);
 
   const isSelf = user.id === me.id;
   const pending = user.status === "PENDING";
@@ -93,6 +95,9 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
   const busy = updateUser.isPending || updateMe.isPending || resendInvite.isPending || cancelInvite.isPending || setPassword.isPending;
   const trimmedName = name.trim();
   const nameDirty = trimmedName !== user.name;
+  const nextEmail = email.trim().toLowerCase();
+  const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nextEmail);
+  const emailDirty = nextEmail !== user.email;
 
   const savePassword = () => {
     const pw = (newPassword ?? "").trim();
@@ -125,6 +130,16 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
     const after = { onSuccess: () => toast({ message: `Name saved: ${trimmedName}` }), onError: fail, onSettled: done };
     if (isSelf) updateMe.mutate({ name: trimmedName }, after);
     else updateUser.mutate({ id: user.id, patch: { name: trimmedName } }, after);
+  };
+
+  // The address someone signs in with, changed as often as needed (owner, 2026-09-10).
+  const saveEmail = () => {
+    if (!emailValid || !emailDirty) return;
+    setAction("email");
+    updateUser.mutate(
+      { id: user.id, patch: { email: nextEmail } },
+      { onSuccess: () => toast({ message: `${user.name} signs in with ${nextEmail} now` }), onError: fail, onSettled: done },
+    );
   };
 
   const setDepartment = (departmentId: string | null) => {
@@ -264,6 +279,37 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
         </div>
         {!trimmedName ? <p className="mt-1 text-micro text-danger-ink">A name can&apos;t be empty.</p> : null}
       </div>
+
+      {isSelf ? null : (
+        <div>
+          <label htmlFor={`email-${user.id}`} className="mb-1.5 block text-micro font-medium text-muted">
+            Email
+          </label>
+          <div className="flex gap-2">
+            <input
+              id={`email-${user.id}`}
+              type="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveEmail();
+                }
+              }}
+              autoComplete="off"
+              className={cn(inputClass, "min-w-0 flex-1", !emailValid && "border-danger")}
+            />
+            <Button variant="secondary" onClick={saveEmail} disabled={!emailValid || !emailDirty || busy} loading={action === "email"} aria-label="Save email">
+              Save
+            </Button>
+          </div>
+          <p className={cn("mt-1 text-micro", emailValid ? "text-muted" : "text-danger-ink")}>
+            {emailValid ? "The address they sign in with, and where Orbit writes to them." : "That doesn't look like an email."}
+          </p>
+        </div>
+      )}
 
       {/* The admin can't read the department list, so placement is read-only there. */}
       {departments.length > 0 ? (

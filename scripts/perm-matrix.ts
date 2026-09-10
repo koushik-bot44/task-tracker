@@ -236,6 +236,12 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("an empty name -> 400", (await call(manager, "PATCH", `/api/users/${dev.id}`, { name: "   " })).status, 400);
   record("dev renames themselves -> 200", (await call(dev, "PATCH", "/api/users/me", { name: "Perm dev self" })).status, 200);
   record("…and back again -> 200", (await call(dev, "PATCH", "/api/users/me", { name: "Perm dev" })).status, 200);
+  // …and the address someone signs in with (owner, 2026-09-10).
+  record("manager changes dev's email -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { email: `${PREFIX}dev-moved@orbit.local` })).status, 200);
+  record("…onto someone else's address -> 409", (await call(manager, "PATCH", `/api/users/${dev.id}`, { email: dev2.email })).status, 409);
+  record("…a malformed address -> 400", (await call(manager, "PATCH", `/api/users/${dev.id}`, { email: "not-an-address" })).status, 400);
+  record("dev changes dev2's email -> 403", (await call(dev, "PATCH", `/api/users/${dev2.id}`, { email: `${PREFIX}nope@orbit.local` })).status, 403);
+  record("…and dev's goes back to the old one -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { email: dev.email })).status, 200);
 
   console.log("\n── edit project ──────────────────────────────────────────────");
   record("dev renames the project -> 403", (await call(dev, "PATCH", `/api/projects/${projectId}`, { name: "PT nope" })).status, 403);

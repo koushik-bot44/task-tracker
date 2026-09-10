@@ -67,7 +67,7 @@ export function useUserMutations() {
       patch,
     }: {
       id: string;
-      patch: { name?: string; role?: UserRole; disable?: boolean; reset?: true; phone?: string | null; departmentId?: string | null };
+      patch: { name?: string; email?: string; role?: UserRole; disable?: boolean; reset?: true; phone?: string | null; departmentId?: string | null };
     }) => apiPatch<{ user: UserDTO; tempPassword?: string }>(`/api/users/${id}`, patch),
     onSuccess: refresh,
   });

@@ -8,6 +8,7 @@ import { HttpError, requireAccountAdmin, route } from "@/lib/session";
 import { assertCanAdministerTarget, assertCanGrantRole, isAdmin } from "@/lib/permissions";
 import { adminAlreadyExists, otherActiveAuthorities, otherAdmins } from "@/lib/account-guards";
 import { isManagerRole } from "@/lib/roles";
+import { isEmailShaped, normalizeEmail, takenEmails } from "@/lib/user-emails";
 import { parseBody, phoneInput, roleSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -19,6 +20,8 @@ const patchSchema = z
   .object({
     /** A name can change as often as it needs to (owner, 2026-09-10). */
     name: z.string().trim().min(1, "Write a name").max(80),
+    /** So can the address they sign in with — never onto someone else's. */
+    email: z.string().trim().min(3).max(320),
     role: roleSchema,
     disable: z.boolean(),
     reset: z.literal(true),
@@ -44,7 +47,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
 
   const parsed = await parseBody(req, patchSchema);
   if (!parsed.ok) return parsed.response;
-  const { name, role, disable, reset, phone, departmentId } = parsed.data;
+  const { name, email, role, disable, reset, phone, departmentId } = parsed.data;
 
   const target = await prisma.user.findUnique({ where: { id: params.id } });
   if (!target) {
@@ -52,6 +55,14 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   }
 
   await assertCanAdministerTarget(actor, target);
+  // A new sign-in address (owner, 2026-09-10): well-formed, and nobody else's, main or extra.
+  const nextEmail = email === undefined ? undefined : normalizeEmail(email);
+  if (nextEmail !== undefined) {
+    if (!isEmailShaped(nextEmail)) return NextResponse.json({ error: "That email doesn't look right." }, { status: 400 });
+    if (nextEmail !== target.email && (await takenEmails([nextEmail], target.id)).length > 0) {
+      return NextResponse.json({ error: "That email already belongs to someone else." }, { status: 409 });
+    }
+  }
   // The NEW role must sit below the actor too (a manager could mint a head).
   if (role !== undefined && role !== target.role && role !== "FOUNDER" && role !== "PERSON") assertCanGrantRole(actor, role);
 
@@ -103,8 +114,9 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     if (!dept) return NextResponse.json({ error: "That department does not exist." }, { status: 400 });
   }
 
-  const data: { name?: string; role?: UserRole; disabledAt?: Date | null; passwordHash?: string; phone?: string | null; departmentId?: string | null } = {};
+  const data: { name?: string; email?: string; role?: UserRole; disabledAt?: Date | null; passwordHash?: string; phone?: string | null; departmentId?: string | null } = {};
   if (name !== undefined) data.name = name;
+  if (nextEmail !== undefined && nextEmail !== target.email) data.email = nextEmail;
   if (role !== undefined) data.role = role;
   if (disable !== undefined) data.disabledAt = disable ? new Date() : null;
   if (phone !== undefined) data.phone = phone;
@@ -116,6 +128,8 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     data.passwordHash = await hashPassword(tempPassword);
   }
 
+  // One of their extra addresses becoming the main one is not kept twice.
+  if (data.email) await prisma.userEmail.deleteMany({ where: { userId: target.id, email: data.email } });
   const updated = await prisma.user.update({
     where: { id: params.id },
     // A reset ends every session the old password opened (work model).
