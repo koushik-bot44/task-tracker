@@ -6,6 +6,7 @@ import { canActAsProjectOwner, canSeeProject } from "@/lib/project-visibility";
 import { HttpError, requireUser, route } from "@/lib/session";
 import { isFounderRole } from "@/lib/roles";
 import { enrichProjects } from "@/lib/projects";
+import { releaseFiles } from "@/lib/uploads";
 import { badRequest, parseBody, updateProjectSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -111,18 +112,24 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
   // Notes have no FK to cascade from: sweep the project's, its milestones' and its tasks' first.
   const [milestones, tasks] = await Promise.all([
     prisma.milestone.findMany({ where: { projectId: params.id }, select: { id: true } }),
-    prisma.task.findMany({ where: { projectId: params.id }, select: { id: true } }),
+    prisma.task.findMany({ where: { projectId: params.id }, select: { id: true, deliverableUrl: true } }),
+  ]);
+  const notes: Prisma.CommentWhereInput = {
+    OR: [
+      { targetType: "PROJECT", targetId: params.id },
+      { targetType: "MILESTONE", targetId: { in: milestones.map((m) => m.id) } },
+      { targetType: "TASK", targetId: { in: tasks.map((t) => t.id) } },
+    ],
+  };
+  // Every file on what goes — notes, task notes, results, the logo — is let go once it has gone (2026-09-10).
+  const fileOf = { attachmentUrl: true, attachments: { select: { url: true } } } as const;
+  const [noteFiles, activityFiles, logo] = await Promise.all([
+    prisma.comment.findMany({ where: notes, select: fileOf }),
+    prisma.taskActivity.findMany({ where: { taskId: { in: tasks.map((t) => t.id) }, OR: [{ attachmentUrl: { not: null } }, { attachments: { some: {} } }] }, select: fileOf }),
+    prisma.project.findUnique({ where: { id: params.id }, select: { logoUrl: true } }),
   ]);
   await prisma.$transaction(async (tx) => {
-    await tx.comment.deleteMany({
-      where: {
-        OR: [
-          { targetType: "PROJECT", targetId: params.id },
-          { targetType: "MILESTONE", targetId: { in: milestones.map((m) => m.id) } },
-          { targetType: "TASK", targetId: { in: tasks.map((t) => t.id) } },
-        ],
-      },
-    });
+    await tx.comment.deleteMany({ where: notes });
     // Its meetings (review meetings included) go with it, or they would linger on
     // everyone's Calendar and Today with no project behind them.
     await tx.calendarEvent.deleteMany({
@@ -130,5 +137,7 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
     });
     await tx.project.delete({ where: { id: params.id } });
   });
+  const urls = [...noteFiles, ...activityFiles].flatMap((n) => [n.attachmentUrl, ...n.attachments.map((a) => a.url)]);
+  await releaseFiles([...urls, ...tasks.map((t) => t.deliverableUrl), logo?.logoUrl]).catch((error) => console.error("[projects] files not let go:", error));
   return NextResponse.json({ ok: true });
 });

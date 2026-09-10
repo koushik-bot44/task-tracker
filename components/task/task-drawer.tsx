@@ -10,6 +10,7 @@ import { DateChip, StatusChip } from "@/components/ui/chip";
 import { Face } from "@/components/ui/face";
 import { Check } from "@/components/ui/row";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
+import { AttachmentViewer } from "@/components/work/attachment-viewer";
 import { cn } from "@/lib/cn";
 import { dayInputValue, dateWord, isoDaysFromNow } from "@/lib/dates";
 import { uploadFile, useUploadsEnabled } from "@/lib/hooks/use-comments";
@@ -49,6 +50,7 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
   const [resultOpen, setResultOpen] = useState(false);
   const [resultDraft, setResultDraft] = useState(task.deliverableUrl ?? "");
   const [resultUploading, setResultUploading] = useState(false);
+  const [resultViewing, setResultViewing] = useState(false);
   const resultFileRef = useRef<HTMLInputElement>(null);
   const { data: uploads } = useUploadsEnabled();
   const [stepDraft, setStepDraft] = useState("");
@@ -252,14 +254,18 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
           <h3 className="mb-1 text-micro font-medium text-muted">Result</h3>
           {task.deliverableUrl && !resultOpen ? (
             <div className="flex items-center gap-2">
-              <a href={task.deliverableUrl} target="_blank" rel="noopener noreferrer" className="press flex h-11 min-w-0 flex-1 items-center gap-2 rounded-input bg-hover px-3 text-sm font-medium text-primary-ink">
-                {task.deliverableUrl.startsWith("/api/uploads/") ? (
+              {task.deliverableUrl.startsWith("/api/uploads/") ? (
+                // A file opens beside the page, like every other file (2026-09-10).
+                <button type="button" onClick={() => setResultViewing(true)} className="press flex h-11 min-w-0 flex-1 items-center gap-2 rounded-input bg-hover px-3 text-left text-sm font-medium text-primary-ink">
                   <Paperclip className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
-                ) : (
+                  <span className="truncate">The attached file</span>
+                </button>
+              ) : (
+                <a href={task.deliverableUrl} target="_blank" rel="noopener noreferrer" className="press flex h-11 min-w-0 flex-1 items-center gap-2 rounded-input bg-hover px-3 text-sm font-medium text-primary-ink">
                   <ExternalLink className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
-                )}
-                <span className="truncate">{task.deliverableUrl.startsWith("/api/uploads/") ? "The attached file" : task.deliverableUrl.replace(/^https?:\/\//, "")}</span>
-              </a>
+                  <span className="truncate">{task.deliverableUrl.replace(/^https?:\/\//, "")}</span>
+                </a>
+              )}
               <Button variant="quiet" onClick={() => { setResultDraft(task.deliverableUrl ?? ""); setResultOpen(true); }}>
                 Change
               </Button>
@@ -304,6 +310,12 @@ export function TaskDrawer({ task }: { task: TaskDTO }) {
             </div>
           )}
           <input ref={resultFileRef} type="file" className="hidden" aria-label="Result file" onChange={(e) => void attachResult(e.target.files?.[0])} />
+          <AttachmentViewer
+            files={task.deliverableUrl?.startsWith("/api/uploads/") ? [{ url: task.deliverableUrl, name: null, type: null }] : []}
+            index={resultViewing ? 0 : null}
+            onIndex={() => undefined}
+            onClose={() => setResultViewing(false)}
+          />
         </section>
       ) : null}
 

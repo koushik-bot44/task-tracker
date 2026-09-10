@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { MAX_FILES_PER_NOTE } from "@/lib/note-files";
 import {
   ACTIVITY_TYPES,
   COMMENT_TARGETS,
@@ -147,6 +148,23 @@ export const milestoneOutcomeInput = z.object({
   note: z.string().trim().max(2000).optional(),
 });
 
+/* An uploaded file's URL is relative when this app serves it (/api/uploads/<id>)
+   and absolute when Blob storage holds it. Nothing after /api/uploads/ but an id,
+   so a note can't point at /api/uploads/../../something. */
+const noteFileUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .regex(/^(https?:\/\/\S+|\/api\/uploads\/[A-Za-z0-9._-]+)$/i, "Must be an http(s) link or a file attached here");
+
+/** One of a note's files (2026-09-10: a note can carry several). */
+const noteFileSchema = z.object({
+  url: noteFileUrl,
+  name: z.string().trim().min(1).max(200),
+  type: z.string().trim().max(120),
+  size: z.number().int().min(0).max(100 * 1024 * 1024).nullable().optional(),
+});
+
 /** Restructure: one note shape for projects, milestones and tasks. */
 export const createCommentSchema = z
   .object({
@@ -157,11 +175,13 @@ export const createCommentSchema = z
        (/api/uploads/...) and absolute when Blob storage holds it. Requiring an
        absolute one refused every locally stored file, so a project note could
        never carry an attachment (defect, 2026-09-09). Same shape as noteSchema. */
-    attachmentUrl: z.string().trim().max(2000).regex(/^(https?:\/\/\S+|\/api\/uploads\/\S+)$/i, "Must be an http(s) link").nullable().optional(),
+    attachmentUrl: noteFileUrl.nullable().optional(),
     attachmentName: z.string().trim().max(200).nullable().optional(),
     attachmentType: z.string().trim().max(120).nullable().optional(),
+    /** Every file on the note; the attachment* fields are what an older screen sends. */
+    attachments: z.array(noteFileSchema).max(MAX_FILES_PER_NOTE).optional(),
   })
-  .refine((v) => v.body.length > 0 || Boolean(v.attachmentUrl), { message: "Write something or attach a file" });
+  .refine((v) => v.body.length > 0 || Boolean(v.attachmentUrl) || Boolean(v.attachments?.length), { message: "Write something or attach a file" });
 
 export const createTaskSchema = z.object({
   id: z.string().uuid().optional(),
@@ -372,12 +392,14 @@ export const assignSchema = z
 export const noteSchema = z
   .object({
     body: z.string().trim().max(4000).default(""),
-    attachmentUrl: z.string().trim().max(2000).regex(/^(https?:\/\/\S+|\/api\/uploads\/\S+)$/i, "Must be an http(s) link").nullable().optional(),
+    attachmentUrl: noteFileUrl.nullable().optional(),
     attachmentName: z.string().trim().max(200).nullable().optional(),
     attachmentType: z.string().trim().max(120).nullable().optional(),
+    /** Every file on the note; the attachment* fields are what an older screen sends. */
+    attachments: z.array(noteFileSchema).max(MAX_FILES_PER_NOTE).optional(),
     mentions: z.array(z.string().min(1)).max(20).optional(),
   })
-  .refine((v) => v.body.length > 0 || Boolean(v.attachmentUrl), { message: "Write something or attach a file" });
+  .refine((v) => v.body.length > 0 || Boolean(v.attachmentUrl) || Boolean(v.attachments?.length), { message: "Write something or attach a file" });
 
 export const createGroupSchema = z.object({
   departmentId: z.string().min(1),

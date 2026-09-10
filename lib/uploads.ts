@@ -104,9 +104,9 @@ export async function storeUpload(file: { name: string; type: string; bytes: Buf
 }
 
 /** A file the database keeps, by the id in its /api/uploads/<id> address. */
-export async function readStoredUpload(id: string): Promise<{ name: string; type: string; bytes: Uint8Array } | null> {
+export async function readStoredUpload(id: string): Promise<{ name: string; type: string; bytes: Uint8Array; createdById: string | null } | null> {
   if (!/^c[a-z0-9]{20,40}$/.test(id)) return null;
-  return prisma.storedFile.findUnique({ where: { id }, select: { name: true, type: true, bytes: true } });
+  return prisma.storedFile.findUnique({ where: { id }, select: { name: true, type: true, bytes: true, createdById: true } });
 }
 
 /** Kinds a browser shows without running anything. */
@@ -126,28 +126,49 @@ export function servedAs(type: string): { contentType: string; inline: boolean }
   return { contentType: "application/octet-stream", inline: false };
 }
 
+const PREFIX = "/api/uploads/";
+
 /**
- * Files nobody points at any more — picked and then cancelled, a note deleted,
- * a logo replaced — go a day later, so the database store holds only files in
- * use. Every column that can hold an /api/uploads address is checked. Returns
- * how many were removed.
+ * Of these stored files, the ones something still points at: any file on a
+ * note (and the first, kept on the note itself), a project's logo, a task's
+ * result. Every column that can hold an /api/uploads address is checked.
+ */
+async function idsInUse(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const urls = ids.map((id) => `${PREFIX}${id}`);
+  const [held, comments, activity, projects, tasks] = await Promise.all([
+    prisma.commentAttachment.findMany({ where: { url: { in: urls } }, select: { url: true } }),
+    prisma.comment.findMany({ where: { attachmentUrl: { in: urls } }, select: { attachmentUrl: true } }),
+    prisma.taskActivity.findMany({ where: { attachmentUrl: { in: urls } }, select: { attachmentUrl: true } }),
+    prisma.project.findMany({ where: { logoUrl: { in: urls } }, select: { logoUrl: true } }),
+    prisma.task.findMany({ where: { deliverableUrl: { in: urls } }, select: { deliverableUrl: true } }),
+  ]);
+  const addresses = [...held.map((h) => h.url), ...comments.map((c) => c.attachmentUrl), ...activity.map((a) => a.attachmentUrl), ...projects.map((p) => p.logoUrl), ...tasks.map((t) => t.deliverableUrl)];
+  return new Set(addresses.map((u) => (u ?? "").slice(PREFIX.length)));
+}
+
+/**
+ * Files nobody points at any more — picked and then cancelled, a logo replaced —
+ * go a day later, so the database store holds only files in use. Returns how
+ * many were removed.
  */
 export async function sweepUnusedFiles(now = new Date()): Promise<number> {
   const before = new Date(now.getTime() - 24 * HOUR_MS);
-  const candidates = await prisma.storedFile.findMany({ where: { createdAt: { lt: before } }, select: { id: true } });
-  if (!candidates.length) return 0;
-  const prefix = "/api/uploads/";
-  const [comments, activity, projects, tasks] = await Promise.all([
-    prisma.comment.findMany({ where: { attachmentUrl: { startsWith: prefix } }, select: { attachmentUrl: true } }),
-    prisma.taskActivity.findMany({ where: { attachmentUrl: { startsWith: prefix } }, select: { attachmentUrl: true } }),
-    prisma.project.findMany({ where: { logoUrl: { startsWith: prefix } }, select: { logoUrl: true } }),
-    prisma.task.findMany({ where: { deliverableUrl: { startsWith: prefix } }, select: { deliverableUrl: true } }),
-  ]);
-  const addresses = [...comments.map((c) => c.attachmentUrl), ...activity.map((a) => a.attachmentUrl), ...projects.map((p) => p.logoUrl), ...tasks.map((t) => t.deliverableUrl)];
-  const used = new Set(addresses.map((u) => (u ?? "").slice(prefix.length).split(/[?#]/)[0]));
-  const unused = candidates.map((c) => c.id).filter((id) => !used.has(id));
+  const candidates = (await prisma.storedFile.findMany({ where: { createdAt: { lt: before } }, select: { id: true } })).map((c) => c.id);
+  const used = await idsInUse(candidates);
+  const unused = candidates.filter((id) => !used.has(id));
   if (!unused.length) return 0;
   const { count } = await prisma.storedFile.deleteMany({ where: { id: { in: unused } } });
+  return count;
+}
+
+/** A note was deleted: its files go now, unless something else still shows them. Returns how many went. */
+export async function releaseFiles(urls: (string | null | undefined)[]): Promise<number> {
+  const ids = [...new Set(urls.filter((u): u is string => Boolean(u && u.startsWith(PREFIX))).map((u) => u.slice(PREFIX.length)))];
+  const used = await idsInUse(ids);
+  const gone = ids.filter((id) => !used.has(id));
+  if (!gone.length) return 0;
+  const { count } = await prisma.storedFile.deleteMany({ where: { id: { in: gone } } });
   return count;
 }
 

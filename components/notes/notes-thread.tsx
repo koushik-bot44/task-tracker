@@ -1,15 +1,18 @@
 "use client";
 
-import { Camera, FileText, Loader2, MessageSquare, Paperclip, SendHorizontal, X } from "lucide-react";
+import { Camera, Loader2, MessageSquare, Paperclip, SendHorizontal, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/components/toast";
 import { Face } from "@/components/ui/face";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AttachmentViewer, type Attached } from "@/components/work/attachment-viewer";
 import { cn } from "@/lib/cn";
 import { dateWord } from "@/lib/dates";
-import { uploadFile, useCommentMutations, useComments, useUploadsEnabled } from "@/lib/hooks/use-comments";
+import { useCommentMutations, useComments, useUploadsEnabled } from "@/lib/hooks/use-comments";
 import { useMe } from "@/lib/hooks/use-users";
 import type { CommentDTO, CommentTarget } from "@/lib/types";
+import { NoteFiles } from "./note-files";
+import { PendingFileChips, usePendingFiles } from "./pending-files";
 
 function when(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -19,8 +22,6 @@ function when(iso: string): string {
   if (hours < 24) return `${hours} h ago`;
   return dateWord(iso);
 }
-
-const isImage = (type: string | null) => Boolean(type && type.startsWith("image/"));
 
 const LINK_RE = /(https?:\/\/[^\s<>()]+|www\.[^\s<>()]+)/gi;
 
@@ -61,7 +62,9 @@ export function Linkified({ text }: { text: string }) {
  * ONE notes thread for projects, milestones and tasks (restructure). Text,
  * author-only delete, a camera and a paper-clip on the composer — always
  * offered (2026-09-10): without a Blob store, files are kept in the database.
- * attachments={false} leaves them out. Reads like a chat.
+ * A note carries several files, picked at once, each uploading on its own;
+ * a tap on one opens the viewer beside the page. attachments={false} leaves
+ * them out. Reads like a chat.
  */
 export function NotesThread({
   targetType,
@@ -88,34 +91,29 @@ export function NotesThread({
   const { addComment, removeComment } = useCommentMutations(targetType, targetId);
   const { data: uploads } = useUploadsEnabled();
   const { show: toast } = useToast();
+  const files = usePendingFiles();
   const [draft, setDraft] = useState("");
-  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [viewing, setViewing] = useState<{ files: Attached[]; index: number } | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const attach = async (file: File | undefined) => {
-    if (!file) return;
-    setUploading(true);
-    try {
-      setPending(await uploadFile(file, uploads?.maxBytes));
-    } catch (e) {
-      toast({ message: (e as Error).message, tone: "danger" });
-    } finally {
-      setUploading(false);
-    }
+  const pick = (list: FileList | null) => {
+    const leftOut = files.add(list);
+    if (leftOut) toast({ message: leftOut, tone: "danger" });
   };
 
   const submit = () => {
     const body = draft.trim();
-    if (!body && !pending) return;
+    if (files.uploading) return;
+    if (files.failed) {
+      toast({ message: "A file didn't upload. Try it again, or take it off before sending.", tone: "danger" });
+      return;
+    }
+    const attached = files.ready;
+    if (!body && !attached.length) return;
     setDraft("");
-    const att = pending;
-    setPending(null);
-    addComment.mutate(
-      { body, attachmentUrl: att?.url ?? null, attachmentName: att?.name ?? null, attachmentType: att?.type ?? null },
-      { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) },
-    );
+    files.clear();
+    addComment.mutate({ body, attachments: attached }, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) });
   };
 
   return (
@@ -161,6 +159,7 @@ export function NotesThread({
                 mine={me?.id === note.author.id}
                 canDelete={me?.id === note.author.id || me?.role === "FOUNDER"}
                 onDelete={() => removeComment.mutate(note.id)}
+                onOpenFile={(index) => setViewing({ files: note.attachments, index })}
                 compact={compact}
                 grouped={grouped}
               />
@@ -171,42 +170,28 @@ export function NotesThread({
 
       </div>
 
-      <div className={cn(fill && "shrink-0 space-y-2 border-t border-line bg-surface px-3 py-3")}>
-      {attachments && pending ? (
-        <div className="flex items-center gap-2 rounded-input bg-hover px-3 py-2 text-micro text-ink">
-          {isImage(pending.type) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pending.url} alt="" className="h-10 w-10 rounded-lg object-cover" />
-          ) : (
-            <FileText className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
-          )}
-          <span className="min-w-0 flex-1 truncate">{pending.name}</span>
-          <button type="button" onClick={() => setPending(null)} aria-label="Remove attachment" className="press grid h-8 w-8 place-items-center rounded-full text-muted">
-            <X className="h-4 w-4" strokeWidth={2} aria-hidden />
-          </button>
-        </div>
-      ) : null}
+      <div className={cn(fill ? "shrink-0 space-y-2 border-t border-line bg-surface px-3 py-3" : "space-y-2")}>
+      {attachments ? <PendingFileChips items={files.items} onRemove={files.remove} onRetry={files.retry} /> : null}
 
       <div className="flex items-end gap-1">
         {attachments ? (
           <>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
             {/* Any ordinary file — documents, sheets, slides, pictures,
-                recordings, archives. The server refuses only what would run
-                on a colleague's machine; this picker used to offer a few kinds. */}
-            <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
+                recordings, archives — and several at once (2026-09-10). The
+                server refuses only what would run on a colleague's machine. */}
+            <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
+            <button type="button" onClick={() => cameraRef.current?.click()} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
               <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
             </button>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              disabled={uploading}
               aria-label="Attach a file"
-              title={uploads?.maxBytes ? `Attach any kind of file, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB` : "Attach any kind of file"}
+              title={uploads?.maxBytes ? `Attach files — any kind, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB each` : "Attach files — any kind"}
               className="press inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted hover:bg-hover hover:text-ink"
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
+              {files.uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
               <span className="hidden sm:inline">Attach</span>
             </button>
           </>
@@ -229,7 +214,7 @@ export function NotesThread({
         <button
           type="button"
           onClick={submit}
-          disabled={(!draft.trim() && !pending) || addComment.isPending}
+          disabled={(!draft.trim() && !files.ready.length) || files.uploading || addComment.isPending}
           aria-label="Send"
           className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-on-primary disabled:opacity-40"
         >
@@ -237,6 +222,13 @@ export function NotesThread({
         </button>
       </div>
       </div>
+
+      <AttachmentViewer
+        files={viewing?.files ?? []}
+        index={viewing?.index ?? null}
+        onIndex={(index) => setViewing((v) => (v ? { ...v, index } : v))}
+        onClose={() => setViewing(null)}
+      />
     </div>
   );
 }
@@ -255,6 +247,7 @@ function NoteItem({
   mine,
   canDelete,
   onDelete,
+  onOpenFile,
   compact,
   grouped = false,
 }: {
@@ -264,6 +257,8 @@ function NoteItem({
   /** Its author, or the CEO, who may remove anyone's. */
   canDelete: boolean;
   onDelete: () => void;
+  /** Opens the viewer at this note's file `index`. */
+  onOpenFile: (index: number) => void;
   compact: boolean;
   /** The one before it is from the same person, close in time. */
   grouped?: boolean;
@@ -293,7 +288,7 @@ function NoteItem({
               <Linkified text={note.body} />
             </p>
           ) : null}
-          {note.attachmentUrl ? <Attachment url={note.attachmentUrl} name={note.attachmentName} type={note.attachmentType} /> : null}
+          <NoteFiles files={note.attachments} onOpen={onOpenFile} tint={mine} small={compact} />
           <span className={cn("mt-0.5 block text-right text-[10px] leading-none", mine ? "text-on-primary/70" : "text-muted")}>
             {when(note.createdAt)}
           </span>
@@ -311,27 +306,5 @@ function NoteItem({
         </button>
       ) : null}
     </li>
-  );
-}
-
-export function Attachment({ url, name, type, small = false }: { url: string; name: string | null; type: string | null; small?: boolean }) {
-  if (isImage(type)) {
-    return (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="mt-1 block w-fit">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={name ?? "Photo"} className={cn("rounded-input object-cover", small ? "h-12 w-12" : "max-h-48 max-w-full")} />
-      </a>
-    );
-  }
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="press mt-1 inline-flex h-9 max-w-full items-center gap-1.5 rounded-chip bg-hover px-3 text-micro font-medium text-ink"
-    >
-      <FileText className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} aria-hidden />
-      <span className="truncate">{name ?? "File"}</span>
-    </a>
   );
 }

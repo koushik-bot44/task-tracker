@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertCanSeeTarget } from "@/lib/comments";
-import { COMMENT_INCLUDE, DEPARTED_AUTHOR, serializeComment } from "@/lib/serialize";
+import { attachmentRows, firstFileColumns, noteFilesFrom, noteSaid } from "@/lib/note-files";
+import { COMMENT_INCLUDE, DEPARTED_AUTHOR, attachmentsOf, serializeComment } from "@/lib/serialize";
 import { requireUser, route } from "@/lib/session";
 import type { CommentDTO } from "@/lib/types";
 import { isStaffOnTask } from "@/lib/work/access";
@@ -28,6 +29,7 @@ function activityAsComment(a: ActivityRow): CommentDTO {
     attachmentUrl: a.attachmentUrl,
     attachmentName: a.attachmentName,
     attachmentType: a.attachmentType,
+    attachments: attachmentsOf(a),
     createdAt: a.createdAt.toISOString(),
     author: a.author ?? DEPARTED_AUTHOR,
   };
@@ -59,13 +61,15 @@ export const POST = route(async (req: Request) => {
   const user = await requireUser();
   const parsed = await parseBody(req, createCommentSchema);
   if (!parsed.ok) return parsed.response;
-  const { targetType, targetId, body, attachmentUrl, attachmentName, attachmentType } = parsed.data;
+  const { targetType, targetId, body } = parsed.data;
+  // Several files, or one from a screen that still sends one (2026-09-10).
+  const files = noteFilesFrom(parsed.data);
   if (targetType === "TASK") {
     await requireSee(user, targetId);
-    const row = await addNote(targetId, user.id, { body, internal: false, attachmentUrl, attachmentName, attachmentType });
+    const row = await addNote(targetId, user.id, { body, internal: false, attachments: files });
     const task = await prisma.task.findUnique({ where: { id: targetId } });
-    // A note that is only a file still says what arrived, rather than an empty message.
-    if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: body.trim() ? body : `Attached ${attachmentName ?? "a file"}` } });
+    // A note that is only files still says what arrived, rather than an empty message.
+    if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(body, files) } });
     return NextResponse.json(activityAsComment(row), { status: 201 });
   }
   await assertCanSeeTarget(user, targetType, targetId);
@@ -75,9 +79,8 @@ export const POST = route(async (req: Request) => {
       targetId,
       authorId: user.id,
       body,
-      attachmentUrl: attachmentUrl ?? null,
-      attachmentName: attachmentName ?? null,
-      attachmentType: attachmentType ?? null,
+      ...firstFileColumns(files),
+      attachments: { create: attachmentRows(files) },
     },
     include: COMMENT_INCLUDE,
   });

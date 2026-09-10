@@ -8,6 +8,7 @@ import { notifyEvent } from "@/lib/notify";
 import { resendForMeeting } from "@/lib/tomorrow";
 import { serializeMilestone } from "@/lib/serialize";
 import { HttpError, requireUser, route } from "@/lib/session";
+import { releaseFiles } from "@/lib/uploads";
 import { parseBody, updateMilestoneSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -61,6 +62,8 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
     const ev = await prisma.calendarEvent.findUnique({ where: { id: m.reviewEventId }, include: { project: { select: { name: true } } } });
     if (ev) await notifyEvent(ev, "cancelled", ev.project?.name ?? null).catch(() => undefined);
   }
+  // Its notes' files, let go once the notes are gone (2026-09-10).
+  const notes = await prisma.comment.findMany({ where: { targetType: "MILESTONE", targetId: params.id }, select: { attachmentUrl: true, attachments: { select: { url: true } } } });
   await prisma.$transaction(async (tx) => {
     await tx.task.updateMany({ where: { milestoneId: params.id }, data: { milestoneId: null } });
     // Its notes go with it (Comment has no FK to follow).
@@ -69,5 +72,6 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
     if (m.reviewEventId) await tx.calendarEvent.deleteMany({ where: { id: m.reviewEventId } });
     await tx.milestone.delete({ where: { id: params.id } });
   });
+  await releaseFiles(notes.flatMap((n) => [n.attachmentUrl, ...n.attachments.map((a) => a.url)])).catch((error) => console.error("[milestones] files not let go:", error));
   return NextResponse.json({ ok: true });
 });

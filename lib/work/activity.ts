@@ -5,7 +5,9 @@
  * priority" into a note — the row is made from the change itself.
  */
 import type { ActivityType, Prisma, Task } from "@prisma/client";
+import { attachmentRows, firstFileColumns, noteFilesFrom, type NoteFileInput } from "@/lib/note-files";
 import { prisma } from "@/lib/prisma";
+import { attachmentsOf } from "@/lib/serialize";
 import { formatISTDate } from "@/lib/timezone";
 import {
   RESOLUTION_CODE_LABEL,
@@ -18,7 +20,7 @@ import {
 
 export type Tx = Prisma.TransactionClient;
 
-export const ACTIVITY_INCLUDE = { author: { select: { id: true, name: true, role: true } } } as const;
+export const ACTIVITY_INCLUDE = { author: { select: { id: true, name: true, role: true } }, attachments: { orderBy: { orderKey: "asc" } } } as const;
 export type ActivityRow = Prisma.TaskActivityGetPayload<{ include: typeof ACTIVITY_INCLUDE }>;
 
 export function serializeActivity(a: ActivityRow): ActivityDTO {
@@ -32,6 +34,7 @@ export function serializeActivity(a: ActivityRow): ActivityDTO {
     attachmentUrl: a.attachmentUrl,
     attachmentName: a.attachmentName,
     attachmentType: a.attachmentType,
+    attachments: attachmentsOf(a),
     pinnedAt: a.pinnedAt ? a.pinnedAt.toISOString() : null,
     createdAt: a.createdAt.toISOString(),
     author: a.author,
@@ -171,14 +174,16 @@ export type NoteInput = {
   attachmentUrl?: string | null;
   attachmentName?: string | null;
   attachmentType?: string | null;
+  /** Every file on the note (2026-09-10); the attachment* fields are what an older screen sends. */
+  attachments?: NoteFileInput[] | null;
   /** User ids named with @ in the body. */
   mentions?: string[];
 };
 
-/** A note, a team note, or (words empty, file present) a file. */
+/** A note, a team note, or (words empty, files present) files — any number of them. */
 export async function addNote(taskId: string, actorId: string, input: NoteInput): Promise<ActivityRow> {
-  const hasFile = Boolean(input.attachmentUrl);
-  const type: ActivityType = input.body.trim().length === 0 && hasFile ? "ATTACHMENT" : input.internal ? "WORK_NOTE" : "COMMENT";
+  const files = noteFilesFrom(input);
+  const type: ActivityType = input.body.trim().length === 0 && files.length > 0 ? "ATTACHMENT" : input.internal ? "WORK_NOTE" : "COMMENT";
   const mentions = [...new Set(input.mentions ?? [])];
   return prisma.taskActivity.create({
     data: {
@@ -188,9 +193,9 @@ export async function addNote(taskId: string, actorId: string, input: NoteInput)
       visibility: input.internal ? "INTERNAL" : "PUBLIC",
       body: input.body,
       metadata: (mentions.length ? { mentions } : {}) as Prisma.InputJsonObject,
-      attachmentUrl: input.attachmentUrl ?? null,
-      attachmentName: input.attachmentName ?? null,
-      attachmentType: input.attachmentType ?? null,
+      // The first file stays on the row itself, so everything that reads one file keeps working.
+      ...firstFileColumns(files),
+      attachments: { create: attachmentRows(files) },
     },
     include: ACTIVITY_INCLUDE,
   });

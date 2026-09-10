@@ -16,6 +16,13 @@ const nextConfig = {
       { source: "/settings/users", destination: "/people", permanent: false },
     ];
   },
+  webpack(config) {
+    // pdf.js reaches for "canvas" only when it runs under Node, which it never
+    // does here — the PDF reader loads in the browser alone (2026-09-10). Its
+    // browser field already says so; the server build needs telling too.
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
+  },
 };
 
 export default nextConfig;

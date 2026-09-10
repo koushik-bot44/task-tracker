@@ -1,24 +1,24 @@
 "use client";
 
-import { AtSign, Camera, FileText, Loader2, Paperclip, SendHorizontal, X } from "lucide-react";
+import { AtSign, Camera, Loader2, Paperclip, SendHorizontal } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { PendingFileChips, usePendingFiles } from "@/components/notes/pending-files";
 import { useToast } from "@/components/toast";
 import { Face } from "@/components/ui/face";
 import { Sheet, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
-import { uploadFile, useUploadsEnabled } from "@/lib/hooks/use-comments";
+import { useUploadsEnabled } from "@/lib/hooks/use-comments";
 import { useProjectPeople } from "@/lib/hooks/use-projects";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { useGroups, useWorkMutations } from "@/lib/hooks/use-work";
 import { canSeeUserListRole } from "@/lib/roles";
 import type { TaskDTO } from "@/lib/types";
 
-const isImage = (type: string | null) => Boolean(type && type.startsWith("image/"));
-
 /**
  * The composer under the stream. A note reaches everyone on the task; a team
- * note (staff only) stays with the people working it. Paper-clip attaches a
- * file; @ names someone, who is told.
+ * note (staff only) stays with the people working it. Paper-clip attaches
+ * files — several at once, each uploading on its own (2026-09-10); @ names
+ * someone, who is told.
  */
 export function ActivityComposer({ task }: { task: TaskDTO }) {
   const { data: me } = useMe();
@@ -26,10 +26,9 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
   const { data: uploads } = useUploadsEnabled();
   const { show: toast } = useToast();
   const internal = false;
+  const files = usePendingFiles();
   const [draft, setDraft] = useState("");
   const [mentions, setMentions] = useState<{ id: string; name: string }[]>([]);
-  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
   const [pickQ, setPickQ] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -65,16 +64,9 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
     return candidates.filter((c) => c.name.toLowerCase().includes(needle) || c.hint.toLowerCase().includes(needle));
   }, [candidates, pickQ]);
 
-  const attach = async (file: File | undefined) => {
-    if (!file) return;
-    setUploading(true);
-    try {
-      setPending(await uploadFile(file, uploads?.maxBytes));
-    } catch (e) {
-      toast({ message: (e as Error).message, tone: "danger" });
-    } finally {
-      setUploading(false);
-    }
+  const pick = (list: FileList | null) => {
+    const leftOut = files.add(list);
+    if (leftOut) toast({ message: leftOut, tone: "danger" });
   };
 
   const mention = (p: { id: string; name: string }) => {
@@ -86,52 +78,43 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
 
   const submit = () => {
     const body = draft.trim();
-    if (!body && !pending) return;
-    const att = pending;
+    if (files.uploading) return;
+    if (files.failed) {
+      toast({ message: "A file didn't upload. Try it again, or take it off before sending.", tone: "danger" });
+      return;
+    }
+    const attached = files.ready;
+    if (!body && !attached.length) return;
     const named = mentions.filter((m) => body.includes(`@${m.name}`)).map((m) => m.id);
     setDraft("");
-    setPending(null);
+    files.clear();
     setMentions([]);
     addNote.mutate(
-      { body, internal, attachmentUrl: att?.url ?? null, attachmentName: att?.name ?? null, attachmentType: att?.type ?? null, mentions: named },
+      { body, internal, attachments: attached, mentions: named },
       { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) },
     );
   };
 
   return (
     <div className="space-y-2">
-      {pending ? (
-        <div className="flex items-center gap-2 rounded-input bg-hover px-3 py-2 text-micro text-ink">
-          {isImage(pending.type) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pending.url} alt="" className="h-10 w-10 rounded-lg object-cover" />
-          ) : (
-            <FileText className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
-          )}
-          <span className="min-w-0 flex-1 truncate">{pending.name}</span>
-          <button type="button" onClick={() => setPending(null)} aria-label="Remove attachment" className="press grid h-8 w-8 place-items-center rounded-full text-muted">
-            <X className="h-4 w-4" strokeWidth={2} aria-hidden />
-          </button>
-        </div>
-      ) : null}
+      <PendingFileChips items={files.items} onRemove={files.remove} onRetry={files.retry} />
 
       <div className="flex items-end gap-1">
-        <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+        <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
         {/* Always offered, and named (2026-09-10): on the live site the paper-clip
             hid itself because files had nowhere to go, and read as removed. */}
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          disabled={uploading}
           aria-label="Attach a file"
-          title={uploads?.maxBytes ? `Attach any document, picture, recording or archive, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB` : "Attach any document, picture, recording or archive"}
+          title={uploads?.maxBytes ? `Attach documents, pictures, recordings or archives — several at once, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB each` : "Attach documents, pictures, recordings or archives — several at once"}
           className="press inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted hover:bg-hover hover:text-ink"
         >
-          {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Paperclip className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          {files.uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Paperclip className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
           <span className="hidden sm:inline">Attach</span>
         </button>
-        <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink md:hidden">
+        <button type="button" onClick={() => cameraRef.current?.click()} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink md:hidden">
           <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
         </button>
         <button type="button" onClick={() => setPickOpen(true)} aria-label="Mention someone" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
@@ -155,7 +138,7 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
             internal ? "border-warn" : "border-line",
           )}
         />
-        <button type="button" onClick={submit} disabled={(!draft.trim() && !pending) || addNote.isPending} aria-label="Send" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-on-primary disabled:opacity-40">
+        <button type="button" onClick={submit} disabled={(!draft.trim() && !files.ready.length) || files.uploading || addNote.isPending} aria-label="Send" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-on-primary disabled:opacity-40">
           {addNote.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <SendHorizontal className="h-5 w-5" strokeWidth={2} aria-hidden />}
         </button>
       </div>

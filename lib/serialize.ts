@@ -1,5 +1,6 @@
 import type { Comment, Milestone, Project, Task, User } from "@prisma/client";
 import type {
+  AttachmentDTO,
   CalendarEventDTO,
   CommentDTO,
   DepartmentDTO,
@@ -249,12 +250,31 @@ export function serializeDepartment(
 
 export const COMMENT_INCLUDE = {
   author: { select: { id: true, name: true, role: true } },
+  attachments: { orderBy: { orderKey: "asc" } },
 } as const;
+
+/** A note's own single-file columns, and its rows of files when they were read with it. */
+type FileCarrier = {
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  attachments?: { id: string; url: string; name: string; type: string; size: number | null }[];
+};
+
+/**
+ * Every file on a note, in order (2026-09-10). A note from before notes could
+ * carry several — or one read without its rows — still shows its one file.
+ */
+export function attachmentsOf(note: FileCarrier): AttachmentDTO[] {
+  if (note.attachments?.length) return note.attachments.map((a) => ({ id: a.id, url: a.url, name: a.name, type: a.type, size: a.size }));
+  if (!note.attachmentUrl) return [];
+  return [{ id: "first", url: note.attachmentUrl, name: note.attachmentName ?? "File", type: note.attachmentType ?? "application/octet-stream", size: null }];
+}
 
 /** A note whose author's account was deleted keeps its words under this name (work model). */
 export const DEPARTED_AUTHOR = { id: "", name: "Someone who left", role: "RESOURCE" as UserDTO["role"] };
 
-export function serializeComment(c: Comment & { author: { id: string; name: string; role: UserDTO["role"] } | null }): CommentDTO {
+export function serializeComment(c: Comment & { author: { id: string; name: string; role: UserDTO["role"] } | null; attachments?: FileCarrier["attachments"] }): CommentDTO {
   return {
     id: c.id,
     targetType: c.targetType,
@@ -263,6 +283,7 @@ export function serializeComment(c: Comment & { author: { id: string; name: stri
     attachmentUrl: c.attachmentUrl,
     attachmentName: c.attachmentName,
     attachmentType: c.attachmentType,
+    attachments: attachmentsOf(c),
     createdAt: c.createdAt.toISOString(),
     author: c.author ?? DEPARTED_AUTHOR,
   };

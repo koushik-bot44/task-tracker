@@ -396,6 +396,8 @@ model Comment {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
+  /// Every file on the note, in order (2026-09-10); attachment* above keep the first.
+  attachments    CommentAttachment[]
   createdAt      DateTime      @default(now())
 
   @@index([targetType, targetId, createdAt])
@@ -656,6 +658,28 @@ model StoredFile {
 
   /// The upload limits count a person's files from the last hour.
   @@index([createdById, createdAt])
+}
+
+/// One file on a note (2026-09-10): a note can carry several. A project's or a
+/// milestone's note is a Comment and a task's is a TaskActivity — exactly one of
+/// commentId and activityId is set. Deleting the note deletes these rows, and the
+/// stored bytes go too unless something else still points at the file.
+model CommentAttachment {
+  id         String        @id @default(cuid())
+  commentId  String?
+  comment    Comment?      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  activityId String?
+  activity   TaskActivity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  url        String
+  name       String
+  type       String
+  size       Int?
+  orderKey   String
+  createdAt  DateTime      @default(now())
+
+  @@index([commentId, orderKey])
+  @@index([activityId, orderKey])
+  @@index([url])
 }
 
 model Invite {
@@ -965,6 +989,8 @@ model TaskActivity {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
+  /// Every file on the note, in order (2026-09-10); attachment* above keep the first.
+  attachments    CommentAttachment[]
   /// A file pinned to the top of the record (2026-09-09). The words that came
   /// with it — `body` — are the file's description, shown when the row opens.
   /// Null = an ordinary entry in the stream.

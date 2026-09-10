@@ -156,6 +156,9 @@ export const ACTIVITY_VISIBILITIES = ["PUBLIC", "INTERNAL"] as const;
 export type ActivityVisibility = (typeof ACTIVITY_VISIBILITIES)[number];
 
 /** One line of a task's activity stream. */
+/** One file on a note (2026-09-10): a note can carry several. */
+export type AttachmentDTO = { id: string; url: string; name: string; type: string; size: number | null };
+
 export type ActivityDTO = {
   id: string;
   taskId: string;
@@ -167,6 +170,8 @@ export type ActivityDTO = {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
+  /** Every file on the note, in order; the attachment* fields above hold the first. */
+  attachments: AttachmentDTO[];
   /** Set when the file is pinned to the top of the record. */
   pinnedAt: string | null;
   createdAt: string;
@@ -372,6 +377,8 @@ export type CommentDTO = {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
+  /** Every file on the note, in order; the attachment* fields above hold the first. */
+  attachments: AttachmentDTO[];
   createdAt: string;
   author: { id: string; name: string; role: UserRole };
 };

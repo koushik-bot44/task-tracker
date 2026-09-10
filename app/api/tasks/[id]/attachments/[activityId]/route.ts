@@ -48,7 +48,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
       ...(parsed.data.pinned === undefined ? {} : { pinnedAt: parsed.data.pinned ? new Date() : null }),
       ...(parsed.data.description === undefined ? {} : { body: parsed.data.description }),
     },
-    include: { author: { select: { id: true, name: true, role: true } } },
+    include: { author: { select: { id: true, name: true, role: true } }, attachments: { orderBy: { orderKey: "asc" } } },
   });
   return NextResponse.json(serializeActivity(updated));
 });

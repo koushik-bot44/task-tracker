@@ -73,9 +73,10 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const { transition, assign, update, remove } = useWorkMutations(task.id);
   const { data: projects } = useProjects();
   const { data: files, refetch: refetchFiles } = useActivity(task.id, { type: "ATTACHMENT,COMMENT,WORK_NOTE" });
-  const withFiles = (files ?? []).filter((a) => a.attachmentUrl);
-  const attachments: Attached[] = withFiles.map((a) => ({ url: a.attachmentUrl!, name: a.attachmentName, type: a.attachmentType }));
-  const pinnedFiles = withFiles.filter((a) => a.pinnedAt);
+  // Every note that carries files — a note can carry several (2026-09-10).
+  const withFiles = (files ?? []).filter((a) => a.attachments.length > 0);
+  const attachments: Attached[] = withFiles.flatMap((a) => a.attachments);
+  const pinned = withFiles.filter((a) => a.pinnedAt).flatMap((a) => a.attachments.map((file) => ({ file, description: a.body.trim() })));
   const project = task.projectId ? (projects ?? []).find((p) => p.id === task.projectId) ?? null : null;
   const { show: toast } = useToast();
   const [title, setTitle] = useState(task.title);
@@ -84,7 +85,8 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [waitOpen, setWaitOpen] = useState(false);
   const [confirm, setConfirm] = useState<WorkState | "delete" | null>(null);
-  const [viewing, setViewing] = useState<Attached | null>(null);
+  const [viewing, setViewing] = useState<{ files: Attached[]; index: number } | null>(null);
+  const openFiles = (list: Attached[], index: number) => setViewing({ files: list, index });
   const [moreOpen, setMoreOpen] = useState(false);
   const [morePeopleOpen, setMorePeopleOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -333,19 +335,19 @@ function RecordBody({ task }: { task: TaskDTO }) {
               className={cn(snInput, "h-auto resize-y py-1.5")}
             />
           </FormRow>
-          {pinnedFiles.length ? (
+          {pinned.length ? (
             <FormRow label="Pinned files">
               <ul className="flex flex-wrap gap-2">
-                {pinnedFiles.map((a) => (
-                  <li key={a.id}>
+                {pinned.map((p, i) => (
+                  <li key={`${p.file.url}-${i}`}>
                     <button
                       type="button"
-                      onClick={() => setViewing({ url: a.attachmentUrl!, name: a.attachmentName, type: a.attachmentType })}
-                      title={a.body.trim() || undefined}
+                      onClick={() => openFiles(pinned.map((x) => x.file), i)}
+                      title={p.description || undefined}
                       className="press flex min-h-[32px] max-w-[16rem] items-center gap-1.5 rounded-chip border border-line bg-surface px-2.5 text-[13px] text-ink hover:bg-hover"
                     >
                       <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted" strokeWidth={2} aria-hidden />
-                      <span className="truncate">{a.attachmentName ?? "File"}</span>
+                      <span className="truncate">{p.file.name}</span>
                     </button>
                   </li>
                 ))}
@@ -365,7 +367,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
 
         {tab === "notes" ? (
           <div className="p-3">
-            <ActivityStream task={task} staff={access.staff} onOpenFile={setViewing} />
+            <ActivityStream task={task} staff={access.staff} onOpenFile={openFiles} />
           </div>
         ) : (
           <div className="p-3">
@@ -373,7 +375,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
               taskId={task.id}
               files={withFiles}
               canPin={access.staff}
-              onOpen={setViewing}
+              onOpen={openFiles}
               onChanged={() => void refetchFiles()}
             />
           </div>
@@ -386,7 +388,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
       <ConfirmSheet open={confirm === "CANCELLED"} onClose={() => setConfirm(null)} title="Cancel this task?" body="It stays on record as Canceled; nobody works on it any more." action="Cancel the task" tone="danger" onConfirm={() => move("CANCELLED")} />
       <ConfirmSheet open={confirm === "REOPENED"} onClose={() => setConfirm(null)} title="Reopen this task?" body="It goes back to whoever held it, and they are told." action="Reopen" onConfirm={() => move("REOPENED")} />
       <ConfirmSheet open={confirm === "delete"} onClose={() => setConfirm(null)} title="Delete this record?" body="It disappears from every list. The history is kept." action="Delete" tone="danger" onConfirm={() => remove.mutate(undefined, { onSuccess: () => router.push("/work"), onError: fail })} />
-      <AttachmentViewer file={viewing} onClose={() => setViewing(null)} />
+      <AttachmentViewer files={viewing?.files ?? []} index={viewing?.index ?? null} onIndex={(index) => setViewing((v) => (v ? { ...v, index } : v))} onClose={() => setViewing(null)} />
     </div>
   );
 }

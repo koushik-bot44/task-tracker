@@ -3,7 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import { istDayKey } from "../lib/timezone";
 
-const BASE = "http://localhost:3000";
+const BASE = process.env.SCREEN_BASE ?? "http://localhost:3000";
 const prisma = new PrismaClient();
 
 let pass = 0;

@@ -3,7 +3,7 @@
 import { ArrowDownUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Linkified } from "@/components/notes/notes-thread";
-import { Paperclip } from "lucide-react";
+import { NoteFiles } from "@/components/notes/note-files";
 import type { Attached } from "./attachment-viewer";
 import { useToast } from "@/components/toast";
 import { Chip } from "@/components/ui/chip";
@@ -60,7 +60,7 @@ function when(iso: string): string {
  * notes, files, and every change written from the change itself. Filter
  * chips narrow it; the composer at the bottom adds to it.
  */
-export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; staff: boolean; onOpenFile: (f: Attached) => void }) {
+export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; staff: boolean; onOpenFile: (files: Attached[], index: number) => void }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [newest, setNewest] = useState(false);
   const { data, isLoading, isError, refetch } = useActivity(task.id, { ...toQuery(filter), order: newest ? "desc" : "asc" });
@@ -69,7 +69,7 @@ export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; sta
   const { show: toast } = useToast();
   const endRef = useRef<HTMLDivElement>(null);
   // Under Files, only the lines that carry one (review, 2026-09-10).
-  const rows = filter === "files" ? (data ?? []).filter((a) => Boolean(a.attachmentUrl)) : data ?? [];
+  const rows = filter === "files" ? (data ?? []).filter((a) => a.attachments.length > 0) : data ?? [];
   const count = rows.length;
   const seen = useRef(0);
   // A new line at the bottom scrolls into view, like a chat; the first load does not jump the page.
@@ -194,7 +194,7 @@ function changeLine(a: ActivityDTO): string | null {
   }
 }
 
-function ActivityItem({ item, mine, canDelete, onDelete, onOpenFile }: { item: ActivityDTO; mine: boolean; canDelete: boolean; onDelete: () => void; onOpenFile: (f: Attached) => void }) {
+function ActivityItem({ item, mine, canDelete, onDelete, onOpenFile }: { item: ActivityDTO; mine: boolean; canDelete: boolean; onDelete: () => void; onOpenFile: (files: Attached[], index: number) => void }) {
   if (item.type === "FIELD_CHANGE" || item.type === "SYSTEM") {
     const text = item.type === "SYSTEM" ? `${item.author?.name ? `${item.author.name}: ` : ""}${item.body}` : changeLine(item);
     if (!text) return null;
@@ -232,19 +232,8 @@ function ActivityItem({ item, mine, canDelete, onDelete, onOpenFile }: { item: A
             <Linkified text={item.body} />
           </p>
         ) : null}
-        {item.attachmentUrl ? (
-          <button type="button" onClick={() => onOpenFile({ url: item.attachmentUrl!, name: item.attachmentName, type: item.attachmentType })} className="mt-1 block text-left" aria-label={`Open ${item.attachmentName ?? "file"}`}>
-            {item.attachmentType?.startsWith("image/") ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.attachmentUrl} alt={item.attachmentName ?? "Photo"} className="max-h-48 max-w-full rounded-input object-cover" />
-            ) : (
-              <span className="press inline-flex h-9 max-w-full items-center gap-1.5 rounded-chip bg-surface px-3 text-micro font-medium text-ink shadow-e1">
-                <Paperclip className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} aria-hidden />
-                <span className="truncate">{item.attachmentName ?? "File"}</span>
-              </span>
-            )}
-          </button>
-        ) : null}
+        {/* Every file on the note, each opening the viewer beside the record (2026-09-10). */}
+        <NoteFiles files={item.attachments} onOpen={(index) => onOpenFile(item.attachments, index)} />
         <p className={cn("mt-0.5 text-[11px] leading-4 text-muted", mine ? "text-right" : "")}>{when(item.createdAt)}</p>
       </div>
     </li>

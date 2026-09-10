@@ -63,7 +63,16 @@ export function useActivity(taskId: string | null, filter: ActivityFilter = {}) 
   });
 }
 
-export type NoteInput = { body: string; internal?: boolean; attachmentUrl?: string | null; attachmentName?: string | null; attachmentType?: string | null; mentions?: string[] };
+export type NoteInput = {
+  body: string;
+  internal?: boolean;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  /** Every file on the note (2026-09-10). */
+  attachments?: { url: string; name: string; type: string; size?: number | null }[];
+  mentions?: string[];
+};
 export type TransitionInput = { to: WorkState; waitingReason?: WaitingReason | null; waitingNote?: string | null; resolutionCode?: ResolutionCode | null; resolutionNotes?: string | null; rootCause?: string | null; note?: string | null };
 
 /** Every write to a task from the work screens. Each refreshes every screen that shows tasks. */

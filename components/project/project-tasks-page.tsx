@@ -11,7 +11,9 @@ import { Drawer } from "@/components/ui/drawer";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkTable } from "@/components/work/work-table";
-import { snButton } from "@/components/work/sn";
+import { snButton, snInput } from "@/components/work/sn";
+import { cn } from "@/lib/cn";
+import { useMilestones } from "@/lib/hooks/use-milestones";
 import { useProjectBySlug, useProjectPeople } from "@/lib/hooks/use-projects";
 import { useWorkList } from "@/lib/hooks/use-work";
 import { useMe } from "@/lib/hooks/use-users";
@@ -37,6 +39,9 @@ export function ProjectTasksPage({ slug }: { slug: string }) {
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  /** "project", or the milestone whose notes are open (2026-09-10). */
+  const [notesFor, setNotesFor] = useState("project");
+  const { data: milestones } = useMilestones(notesOpen ? projectId : null);
   const { data: all } = useWorkList({ projectId: projectId ?? "", open: "false", limit: 200 }, Boolean(projectId));
 
   if (isLoading && !project) {
@@ -70,6 +75,7 @@ export function ProjectTasksPage({ slug }: { slug: string }) {
   }
 
   const roots = (all?.items ?? []).filter((t) => t.parentId === null);
+  const milestone = notesFor === "project" ? null : (milestones ?? []).find((m) => m.id === notesFor) ?? null;
   return (
     <Shell>
       <div className="mx-auto max-w-content">
@@ -102,12 +108,29 @@ export function ProjectTasksPage({ slug }: { slug: string }) {
         fill
         header={
           <div className="min-w-0">
-            <h2 className="truncate text-section font-semibold text-ink">Project notes</h2>
+            <h2 className="truncate text-section font-semibold text-ink">{milestone ? `${milestone.name} notes` : "Project notes"}</h2>
             <p className="truncate text-micro text-muted">{project.name}</p>
           </div>
         }
       >
-        <NotesThread targetType="PROJECT" targetId={project.id} autoFocus fill />
+        {/* Each milestone keeps its own notes and files; they are read and
+            written here, beside the project's (2026-09-10). */}
+        {milestones?.length ? (
+          <div className="shrink-0 border-b border-line px-3 py-2">
+            <label className="flex items-center gap-2 text-micro font-medium text-muted">
+              <span className="shrink-0">Notes for</span>
+              <select value={milestone?.id ?? "project"} onChange={(e) => setNotesFor(e.target.value)} aria-label="Notes for" className={cn(snInput, "min-w-0 flex-1")}>
+                <option value="project">The whole project</option>
+                {milestones.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : null}
+        <NotesThread key={milestone?.id ?? "project"} targetType={milestone ? "MILESTONE" : "PROJECT"} targetId={milestone?.id ?? project.id} autoFocus fill />
       </Drawer>
     </Shell>
   );

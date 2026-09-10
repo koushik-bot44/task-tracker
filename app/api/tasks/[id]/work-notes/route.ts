@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { noteFilesFrom, noteSaid } from "@/lib/note-files";
 import { HttpError, requireUser, route } from "@/lib/session";
 import { isStaffOnTask } from "@/lib/work/access";
 import { addNote, serializeActivity } from "@/lib/work/activity";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: { id: string } };
 
-/** A team note: only the people working the task read it. */
+/** A team note: only the people working the task read it. It can carry several files (2026-09-10). */
 export const POST = route(async (req: Request, { params }: Params) => {
   const user = await requireUser();
   const parsed = await parseBody(req, noteSchema);
@@ -22,8 +23,9 @@ export const POST = route(async (req: Request, { params }: Params) => {
   const mentions = parsed.data.mentions?.length
     ? (await prisma.user.findMany({ where: { id: { in: parsed.data.mentions }, disabledAt: null, status: "ACTIVE", role: { notIn: ["PERSON", "ADMIN"] } }, select: { id: true } })).map((u) => u.id)
     : [];
-  const row = await addNote(params.id, user.id, { ...parsed.data, internal: true, mentions });
+  const files = noteFilesFrom(parsed.data);
+  const row = await addNote(params.id, user.id, { ...parsed.data, internal: true, attachments: files, mentions });
   const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (task) await emit({ type: "WORK_NOTE_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: parsed.data.body, mentions } });
+  if (task) await emit({ type: "WORK_NOTE_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(parsed.data.body, files), mentions } });
   return NextResponse.json(serializeActivity(row), { status: 201 });
 });

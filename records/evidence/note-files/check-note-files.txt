@@ -1,0 +1,100 @@
+PASS  the CEO signs in
+PASS  a project with a task to try this on  (TASK0000001)
+PASS  a milestone to leave notes on  (status 201 )
+PASS  project note: the paper-clip takes several files at once
+PASS  project note: each picked file waits on its own chip
+PASS  project note: a refused file says so on its own chip, with a way to try it again  (nfx-sqnfa-tool.exe That kind of file can't be attached.)
+PASS  project note: …and the others finished uploading
+PASS  project note: nothing is sent while one of its files failed
+PASS  project note: a chip can be taken off
+PASS  project note: sent, each file shows on the note
+PASS  project note: stored with its three files, in the order picked  (3 files)
+PASS  project note: the picture shows as a thumbnail
+PASS  project note: a tap opens the file in the viewer, saying "1 of 3"
+PASS  project note: on a desktop the viewer is a panel on the right  (x 384, width 896 of 1280)
+PASS  project note: the PDF is drawn in the page by the viewer
+PASS  project note: Download sits in the viewer, for this file
+PASS  project note: Next shows the picture, "2 of 3"
+PASS  project note: → shows the Word document laid out in the page, "3 of 3"
+PASS  project note: ← steps back, and → past the last comes round to the first
+PASS  project note: nothing downloads just from looking
+PASS  project note: Download in the viewer saves the file under its own name  (nfx-sqnfa-project-brief.pdf)
+PASS  project note: Esc closes the viewer and leaves the notes open
+PASS  sheets note: sent, each file shows on the note
+PASS  an Excel workbook shows as a table in the viewer
+PASS  a CSV shows as a table, a quoted comma kept in its cell
+PASS  slides say a preview isn't available, and offer the download
+PASS  project notes offer each milestone's notes
+PASS  …and choosing one shows that milestone's notes
+PASS  milestone note: the paper-clip takes several files at once
+PASS  milestone note: sent, each file shows on the note
+PASS  milestone note: stored on the milestone with its three files  (3 files)
+PASS  milestone note: the picture shows as a thumbnail
+PASS  milestone note: a tap opens the file in the viewer, saying "1 of 3"
+PASS  milestone note: on a desktop the viewer is a panel on the right  (x 384, width 896 of 1280)
+PASS  milestone note: the PDF is drawn in the page by the viewer
+PASS  milestone note: Download sits in the viewer, for this file
+PASS  milestone note: Next shows the picture, "2 of 3"
+PASS  milestone note: → shows the Word document laid out in the page, "3 of 3"
+PASS  milestone note: ← steps back, and → past the last comes round to the first
+PASS  milestone note: nothing downloads just from looking
+PASS  milestone note: Download in the viewer saves the file under its own name  (nfx-sqnfa-milestone-brief.pdf)
+PASS  milestone note: Esc closes the viewer and leaves the notes open
+PASS  task comment: the paper-clip takes several files at once
+PASS  task comment: all three wait to be sent
+PASS  task comment: sent, each file shows on the note
+PASS  task comment: stored on the task with its three files, in order  (3 files)
+PASS  task comment: the picture shows as a thumbnail
+PASS  task comment: a tap opens the file in the viewer, saying "1 of 3"
+PASS  task comment: on a desktop the viewer is a panel on the right  (x 384, width 896 of 1280)
+PASS  task comment: the PDF is drawn in the page by the viewer
+PASS  task comment: Download sits in the viewer, for this file
+PASS  task comment: Next shows the picture, "2 of 3"
+PASS  task comment: → shows the Word document laid out in the page, "3 of 3"
+PASS  task comment: ← steps back, and → past the last comes round to the first
+PASS  task comment: nothing downloads just from looking
+PASS  task comment: Download in the viewer saves the file under its own name  (nfx-sqnfa-task-brief.pdf)
+PASS  task comment: Esc closes the viewer
+PASS  task Attachments tab: a file's name opens it in the viewer, its note's other files a step away
+PASS  task drawer: the comment shows its files
+PASS  task drawer: a file opens in the viewer
+PASS  task drawer: Esc closes the viewer and leaves the drawer open
+PASS  phone, project note: a tap opens the file in the viewer, saying "1 of 3"
+PASS  phone, project note: on a phone the viewer fills the screen  (x 0, width 390 of 390)
+PASS  phone, project note: the PDF is drawn in the page by the viewer
+PASS  phone, project note: Download sits in the viewer, for this file
+PASS  phone, project note: Next shows the picture, "2 of 3"
+PASS  phone, project note: → shows the Word document laid out in the page, "3 of 3"
+PASS  phone, project note: ← steps back, and → past the last comes round to the first
+PASS  phone, project note: nothing downloads just from looking
+PASS  phone, project note: Download in the viewer saves the file under its own name  (nfx-sqnfa-project-brief.pdf)
+PASS  phone, project note: Esc closes the viewer and leaves the notes open
+PASS  phone, task comment: a tap opens the file in the viewer, saying "1 of 3"
+PASS  phone, task comment: on a phone the viewer fills the screen  (x 0, width 390 of 390)
+PASS  phone, task comment: the PDF is drawn in the page by the viewer
+PASS  phone, task comment: Download sits in the viewer, for this file
+PASS  phone, task comment: Next shows the picture, "2 of 3"
+PASS  phone, task comment: → shows the Word document laid out in the page, "3 of 3"
+PASS  phone, task comment: ← steps back, and → past the last comes round to the first
+PASS  phone, task comment: nothing downloads just from looking
+PASS  phone, task comment: Download in the viewer saves the file under its own name  (nfx-sqnfa-task-brief.pdf)
+PASS  phone, task comment: Esc closes the viewer
+PASS  desktop: no console errors
+PASS  phone: no console errors
+PASS  someone outside the project signs in
+PASS  …who can't read the project's notes  (status 404)
+PASS  project note: its files open for someone who can see it  (200,200,200)
+PASS  project note: someone who can't see it gets nothing for them  (404,404,404)
+PASS  project note: nobody signed out gets them  (401,401,401)
+PASS  milestone note: its files open for someone who can see it  (200,200,200)
+PASS  milestone note: someone who can't see it gets nothing for them  (404,404,404)
+PASS  milestone note: nobody signed out gets them  (401,401,401)
+PASS  task comment: its files open for someone who can see it  (200,200,200)
+PASS  task comment: someone who can't see it gets nothing for them  (404,404,404)
+PASS  task comment: nobody signed out gets them  (401,401,401)
+PASS  deleting a task comment deletes its files  (status 200)
+PASS  …and they no longer open
+PASS  deleting a project note deletes its files  (status 200)
+PASS  deleting a milestone deletes its notes' files  (status 200)
+
+98 passed, 0 failed

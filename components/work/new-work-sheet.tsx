@@ -1,14 +1,15 @@
 "use client";
 
-import { Loader2, Paperclip, X } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { PendingFileChips, usePendingFiles } from "@/components/notes/pending-files";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { apiPost } from "@/lib/api";
-import { uploadFile, useUploadsEnabled } from "@/lib/hooks/use-comments";
+import { useUploadsEnabled } from "@/lib/hooks/use-comments";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useGroups, useRaiseWork } from "@/lib/hooks/use-work";
@@ -43,10 +44,10 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
   const [invites, setInvites] = useState<{ name: string; emails: string[] }[]>([]);
   const [peopleQ, setPeopleQ] = useState("");
   const [inviting, setInviting] = useState(false);
-  /** Files that go with the task: uploaded as they are picked, attached once it exists
-      (files everywhere, owner 2026-09-10). */
-  const [files, setFiles] = useState<{ url: string; name: string; type: string }[]>([]);
-  const [uploading, setUploading] = useState(false);
+  /** Files that go with the task: each uploads as soon as it is picked, side by
+      side with the others, and is attached once the task exists (files
+      everywhere, owner 2026-09-10). */
+  const files = usePendingFiles();
   const fileRef = useRef<HTMLInputElement>(null);
   const { data: uploads } = useUploadsEnabled();
   const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
@@ -54,20 +55,9 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
 
   const addInvitee = () => setInvites((prev) => [...prev, { name: "", emails: [""] }]);
 
-  const pickFiles = async (picked: FileList | null) => {
-    if (!picked?.length) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(picked)) {
-        const up = await uploadFile(file, uploads?.maxBytes);
-        setFiles((prev) => [...prev, up]);
-      }
-    } catch (e) {
-      toast({ message: (e as Error).message, tone: "danger" });
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
+  const pickFiles = (picked: FileList | null) => {
+    const leftOut = files.add(picked);
+    if (leftOut) toast({ message: leftOut, tone: "danger" });
   };
 
   const group = (groups ?? []).find((g) => g.id === groupId) ?? null;
@@ -97,12 +87,16 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
     setInvites([]);
     setPeopleQ("");
     setProjectId("");
-    setFiles([]);
+    files.clear();
   };
 
   const submit = async () => {
     const what = title.trim();
-    if (!what) return;
+    if (!what || files.uploading) return;
+    if (files.failed) {
+      toast({ message: "A file didn't upload. Try it again, or take it off before raising the task.", tone: "danger" });
+      return;
+    }
     const holders = new Set(assignees);
     // People not on Orbit yet: their accounts are made now (pending); the invite
     // mail goes first and each task waits in their bell.
@@ -148,11 +142,10 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
     try {
       const made = [];
       for (const assigneeId of list) made.push(await raise.mutateAsync({ ...base, assigneeId, ...(siblingKey ? { siblingKey } : {}) }));
-      // The files go on every record, so whoever holds the task sees them.
+      // The files go on every record, together as one note, so whoever holds the task sees them.
+      const attached = files.ready;
       try {
-        for (const t of made) {
-          for (const f of files) await apiPost(`/api/tasks/${t.id}/attachments`, { body: "", attachmentUrl: f.url, attachmentName: f.name, attachmentType: f.type });
-        }
+        if (attached.length) for (const t of made) await apiPost(`/api/tasks/${t.id}/attachments`, { body: "", attachments: attached });
       } catch (e) {
         toast({ message: `The task is raised, but a file couldn't be added: ${(e as Error).message}`, tone: "danger" });
       }
@@ -176,7 +169,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       onClose={onClose}
       title="New Task"
       footer={
-        <Button variant="primary" full loading={raise.isPending || inviting} disabled={!title.trim() || uploading} onClick={() => void submit()}>
+        <Button variant="primary" full loading={raise.isPending || inviting} disabled={!title.trim() || files.uploading} onClick={() => void submit()}>
           Submit
         </Button>
       }
@@ -373,23 +366,11 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
         </Field>
         <Field label="Files" hint={uploads?.maxBytes ? `Any document, picture or recording, up to ${Math.round(uploads.maxBytes / (1024 * 1024))} MB each.` : undefined}>
           <div className="space-y-2">
-            {files.length ? (
-              <ul className="divide-y divide-line rounded-input border border-line">
-                {files.map((f, i) => (
-                  <li key={`${f.url}-${i}`} className="flex min-h-[44px] items-center gap-2 pl-3 pr-1">
-                    <Paperclip className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{f.name}</span>
-                    <button type="button" onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))} aria-label={`Remove ${f.name}`} className="press grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted hover:text-danger-ink">
-                      <X className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => void pickFiles(e.target.files)} />
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="press inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 text-sm font-medium text-primary-ink hover:bg-hover disabled:opacity-50">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
-              {files.length ? "Attach another file" : "Attach a file"}
+            <PendingFileChips items={files.items} onRemove={files.remove} onRetry={files.retry} />
+            <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} className="press inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 text-sm font-medium text-primary-ink hover:bg-hover">
+              <Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              {files.items.length ? "Attach another file" : "Attach a file"}
             </button>
           </div>
         </Field>

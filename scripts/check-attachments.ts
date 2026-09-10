@@ -216,7 +216,8 @@ async function main() {
   await desk.waitForTimeout(800);
   await desk.getByRole("button", { name: "Change the project's look" }).click();
   await desk.waitForTimeout(1200);
-  record("a project's look offers a logo upload", await desk.getByRole("button", { name: /Upload a logo|Change logo/ }).isVisible());
+  // The visible button, not the file input behind it that carries the same name.
+  record("a project's look offers a logo upload", await desk.locator("button", { hasText: /Upload a logo|Change logo/ }).first().isVisible());
   await desk.screenshot({ path: `${DIR}/5-project-look.png` });
 
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
