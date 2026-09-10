@@ -189,15 +189,32 @@ export function NotesThread({
       ) : null}
 
       <div className="flex items-end gap-1">
-        {canAttach ? (
+        {attachments ? (
           <>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-            <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
-            <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
-              {uploading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
-            </button>
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach a file" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
-              <Paperclip className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+            {canAttach ? (
+              <>
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+                {/* Any ordinary file — documents, sheets, slides, pictures,
+                    recordings, archives. The server refuses only what would run
+                    on a colleague's machine; this picker used to offer a few kinds. */}
+                <input ref={fileRef} type="file" className="hidden" onChange={(e) => attach(e.target.files?.[0])} />
+                <button type="button" onClick={() => cameraRef.current?.click()} disabled={uploading} aria-label="Take a photo" className="press grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:text-ink">
+                  <Camera className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                </button>
+              </>
+            ) : null}
+            {/* Always offered, and named: where files can't be stored yet the
+                button says so, rather than silently not being there. */}
+            <button
+              type="button"
+              onClick={() => (canAttach ? fileRef.current?.click() : toast({ message: "Files can't be added on this site yet.", tone: "danger" }))}
+              disabled={uploading}
+              aria-label="Attach a file"
+              title="Attach any kind of file, up to 25 MB"
+              className="press inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted hover:bg-hover hover:text-ink"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Paperclip className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
+              <span className="hidden sm:inline">Attach</span>
             </button>
           </>
         ) : null}

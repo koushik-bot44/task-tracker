@@ -1,0 +1,6 @@
+PASS  the Attach button is there
+PASS  it is named on screen, not just an icon  (Attach)
+PASS  the file picker does not limit the kind of file  (any file)
+PASS  a .zip (refused by the old picker) is accepted and waits to be sent
+
+4 passed, 0 failed
