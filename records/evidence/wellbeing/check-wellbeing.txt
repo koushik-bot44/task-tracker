@@ -1,0 +1,40 @@
+PASS  the CEO's Well Being has a person  (Arjun)
+PASS  the CEO signs in
+PASS  Arjun signs in to his own screen
+PASS  the CEO opens Well Being and owns Arjun's routine  (status 200, role OWNER)
+PASS  his habit segments are all there  (6 segments, 12 habits)
+PASS  this week's grid has marks and a score  (25 of 70 days met)
+PASS  last week keeps its own record, short of a perfect score  (67 of 70)
+PASS  the weight trend covers several months  (2026-05 38.9kg, 2026-06 39.2kg, 2026-07 39.6kg, 2026-08 40kg, 2026-09 45kg)
+PASS  rules are scheduled this week  (3 rules, 2 with days this week)
+PASS  this week's tasks are listed  (7 tasks, 2 done)
+PASS  every task from before is still stored  (5 of 5)
+PASS  …and each one shows in the week it was due  (5 of 5, weeks of 2026-08-24, 2026-08-31)
+PASS  the Well Being tab is offered to the CEO
+PASS  a Well Being person never shows up in People
+PASS  Arjun's own screen opens  (status 200)
+PASS  …with his tasks for today and the undated ones  (4 tasks)
+PASS  …and never his weight or his weekly score  (name, today, week, segments, tasks, nonNegotiables, reminder)
+PASS  the CEO sets a task for today  (status 201)
+PASS  Arjun sees it on his screen
+PASS  Arjun ticks it done  (status 200)
+PASS  the CEO sees it done
+PASS  Arjun marks one of today's habits  (MET, status 200)
+PASS  the CEO's grid shows the same mark  (grid says MET)
+PASS  a day that hasn't happened can't be marked  (status 400)
+PASS  the co-founder can't open Well Being  (status 403)
+PASS  the manager who used to own this routine can't open Well Being  (status 403)
+PASS  a head of department can't open Well Being  (status 403)
+PASS  a team member can't open Well Being  (status 403)
+PASS  the admin can't open Well Being  (status 403)
+PASS  Arjun can't reach the CEO's Well Being view  (status 403)
+PASS  Arjun can't reach tasks  (status 403)
+PASS  Arjun can't reach People  (status 403)
+PASS  Arjun can't reach projects  (status 403)
+PASS  the Tracker stays open when going to another week
+PASS  going back on the CEO's screen shows the tasks from before  (Practice object oriented programming · Practice java)
+PASS  Arjun lands on his own screen, not the work app  (/person)
+PASS  the co-founder is not offered the Well Being tab  (Today · Work · Departments · Calendar)
+INFO  screens: ceo-1-summary, ceo-2-tracker-this-week, ceo-3-tracker-week-of-…, person-1-tasks, person-2-habits, person-3-rules
+
+37 passed, 0 failed

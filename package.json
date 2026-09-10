@@ -26,6 +26,7 @@
     "e2e": "tsx --env-file=.env.local scripts/e2e-restructure.ts",
     "check:work": "tsx --env-file=.env.local scripts/check-work-model.ts",
     "check:notify": "tsx --env-file=.env.local scripts/check-assign-notify.ts",
+    "check:wellbeing": "tsx --env-file=.env.local scripts/check-wellbeing.ts",
     "db:dryrun": "tsx --env-file=.env.local scripts/work-model-dryrun.ts",
     "db:deploy": "sh scripts/db-deploy.sh"
   },
