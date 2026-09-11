@@ -35,7 +35,8 @@ const prisma = new PrismaClient();
  *   { "emails": [...], "projects": [...], "removeDepartments": [...] }
  * The FOUNDER row always stays, whatever its address; every project not
  * named goes; every department not named under removeDepartments stays (its
- * head is cleared if the head goes).
+ * head is cleared if the head goes). removeDepartments: ["*"] removes every
+ * department. Empty emails and projects keep only the CEO, and nothing else.
  */
 type Keep = { emails: string[]; projects: string[]; removeDepartments: string[] };
 function readKeep(): Keep {
@@ -197,7 +198,7 @@ async function plan(): Promise<{ p: Plan; sets: Record<string, string[]>; expect
   const removedNotifications = notifications.filter((n) => gone(n.userId) || (n.taskId && removedTaskIds.has(n.taskId)) || (n.eventId && removedEventIds.has(n.eventId)) || mentionsRemoved(n.data));
 
   const departments = await prisma.department.findMany({ select: { id: true, name: true, hodId: true, createdById: true } });
-  const removedDepartments = departments.filter((d) => REMOVE_DEPARTMENTS.includes(d.name));
+  const removedDepartments = departments.filter((d) => REMOVE_DEPARTMENTS.includes("*") || REMOVE_DEPARTMENTS.includes(d.name));
   const removedDepartmentIds = new Set(removedDepartments.map((d) => d.id));
   const groups = await prisma.assignmentGroup.findMany({ select: { id: true, name: true, departmentId: true, leadId: true, members: { select: { id: true, userId: true } } } });
   const removedGroups = groups.filter((g) => removedDepartmentIds.has(g.departmentId));
