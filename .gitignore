@@ -46,3 +46,6 @@ Thumbs.db
 # The full production backup stays out of the repo: the repo is on GitHub and
 # the dump holds real emails, phone numbers and message texts.
 records/snapshots/prod-backup-*/
+
+# A reset manifest names people; it stays out of the repo like the backups.
+records/snapshots/reset-*
