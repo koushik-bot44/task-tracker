@@ -10,7 +10,6 @@ const KEEP = [
   "test-manager@orbit.local",   // owns all four real projects
   "hod-dev@orbit.local",        // heads Development
   "admin@orbit.local",          // the only remaining admin
-  "sgogineni122@gmail.com",     // Raju
 ];
 
 async function main() {

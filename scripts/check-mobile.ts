@@ -87,7 +87,7 @@ async function main() {
   await page.getByLabel(/^Email for /).first().fill("kiran@company.com");
   await page.getByRole("button", { name: /another email for this person/i }).first().click();
   await page.waitForTimeout(200);
-  await page.getByLabel(/^Another email for /).first().fill("kiran.personal@gmail.com");
+  await page.getByLabel(/^Another email for /).first().fill("kiran.home@example.com");
   });
   await audit(page, "09-new-project-invite");
 
@@ -105,7 +105,7 @@ async function main() {
   await page.getByLabel(/^Email for /).first().fill("kiran@company.com");
   await page.getByRole("button", { name: /another email for this person/i }).first().click();
   await page.waitForTimeout(200);
-  await page.getByLabel(/^Another email for /).first().fill("kiran.personal@gmail.com");
+  await page.getByLabel(/^Another email for /).first().fill("kiran.home@example.com");
   await page.getByRole("button", { name: /someone not on orbit yet/i }).first().click();
   await page.waitForTimeout(250);
   });

@@ -52,7 +52,9 @@ export const POST = route(async (req: Request, { params }: Params) => {
 
   const user = await prisma.user.update({
     where: { id: invite.userId },
-    data: { passwordHash: await hashPassword(parsed.data.password), status: "ACTIVE" },
+    // A new password ends every session the account already had: an admin's reset
+    // link comes through here too (2026-09-11).
+    data: { passwordHash: await hashPassword(parsed.data.password), status: "ACTIVE", sessionVersion: { increment: 1 } },
   });
 
   // Sign them straight in, like a fresh login.
