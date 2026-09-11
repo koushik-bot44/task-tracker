@@ -1,6 +1,7 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSessionToken, sessionCookie } from "@/lib/auth";
+import { SESSION_COOKIE, createSessionToken, readSessionToken, sessionCookie } from "@/lib/auth";
 import {
   clearFailures,
   clientIp,
@@ -9,6 +10,7 @@ import {
   recordFailure,
 } from "@/lib/login-attempts";
 import { verifyPassword } from "@/lib/password";
+import { prisma } from "@/lib/prisma";
 import { findUserByEmail } from "@/lib/user-emails";
 import { parseBody } from "@/lib/validation";
 
@@ -85,8 +87,18 @@ export async function POST(req: Request) {
   return res;
 }
 
-/** Sign out. */
+/**
+ * Sign out, on every device (owner, 2026-09-12: "signout all"). Moving the
+ * account's session version on ends every cookie minted before it, so a copied
+ * token stops working too; this browser's cookie is cleared as before.
+ */
 export async function DELETE() {
+  const claims = await readSessionToken(cookies().get(SESSION_COOKIE)?.value);
+  if (claims) {
+    await prisma.user
+      .updateMany({ where: { id: claims.userId, sessionVersion: claims.version }, data: { sessionVersion: { increment: 1 } } })
+      .catch((error) => console.error("[auth] could not end the account's sessions:", error));
+  }
   const res = NextResponse.json({ ok: true });
   res.cookies.set({ ...sessionCookie(""), maxAge: 0 });
   return res;

@@ -16,6 +16,7 @@
  * their bell rows and the built bodies (dumped to records/evidence/restructure).
  */
 import { PrismaClient } from "@prisma/client";
+import { istDayKey } from "../lib/timezone";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { generateTempPassword, hashPassword } from "../lib/password";
 import { issueInvite } from "../lib/invite";
@@ -55,11 +56,9 @@ async function call(actor: Actor | null, method: string, path: string, body?: un
   }
   return { status: res.status, json };
 }
-const day = (offset: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
-};
+/** A day's key in IST, as the app counts days: the UTC date is a day behind
+ * between midnight and 05:30 IST, when "tomorrow" pointed at today (2026-09-12). */
+const day = (offset: number) => istDayKey(new Date(Date.now() + offset * 86_400_000));
 
 async function main() {
   const department = await prisma.department.findFirst({ orderBy: { orderKey: "asc" } });

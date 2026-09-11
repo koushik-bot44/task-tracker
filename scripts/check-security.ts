@@ -250,8 +250,8 @@ async function attacks(ceo: string, ceoId: string) {
   const copy = await signIn(victim.email);
   await call(copy, "DELETE", "/api/auth");
   const afterSignOut = await me(copy);
-  if (afterSignOut.status === 200) note("sessions: a copy of a signed-out token still works until it expires (30 days) — sign-out only clears the browser's cookie");
-  else record("sessions: a signed-out token stops working", afterSignOut.status === 401, String(afterSignOut.status));
+  // Signing out ends every session of the account (owner, 2026-09-12), so a copied token dies with it.
+  record("sessions: signing out ends a copied token too", afterSignOut.status === 401, String(afterSignOut.status));
 
   const first = await signIn(victim.email);
   const second = await signIn(victim.email);

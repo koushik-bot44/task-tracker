@@ -231,7 +231,11 @@ async function journey(ceo: string, ceoId: string) {
   const signOut = await api(outCookie, "DELETE", "/api/auth");
   record("signing out clears the cookie", signOut.status === 200 && /orbit_session=;/.test(signOut.setCookie) && /Max-Age=0/i.test(signOut.setCookie), signOut.setCookie.slice(0, 60));
   const replay = await api(outCookie, "GET", "/api/users/me");
-  if (replay.status === 200) note("a copy of the signed-out token still works until it expires: sign-out only clears the browser's cookie (security review)");
+  // Signing out ends every session of the account (owner, 2026-09-12): the copy stops working, and so does
+  // the lead's earlier cookie, so the lead signs in again for the rest of the day.
+  record("…and a copy of the signed-out token stops working", replay.status === 401, `status ${replay.status}`);
+  const leadAgain = (await signIn(mail("lead"), PASSWORD)).cookie;
+  if (leadAgain) cookie.set("lead", leadAgain);
   const before = cookie.get("member")!;
   const reset = await api(ceo, "PATCH", `/api/users/${id("member")}`, { reset: true });
   const old = await api(before, "GET", "/api/users/me");
