@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { generateKeyBetween } from "fractional-indexing";
 import { NextResponse } from "next/server";
 import { MAX_FILES_PER_NOTE } from "@/lib/note-files";
 import {
@@ -45,6 +46,24 @@ export const workStateSchema = z.enum(WORK_STATES);
 export const workPrioritySchema = z.enum(WORK_PRIORITIES);
 export const waitingReasonSchema = z.enum(WAITING_REASONS);
 export const resolutionCodeSchema = z.enum(RESOLUTION_CODES);
+
+/**
+ * A place in a list, exactly as fractional-indexing writes it. A new item goes
+ * after the last key, so one made-up key stored here made the next project, task,
+ * team or department anyone added fail with a 500 (2026-09-11).
+ */
+const orderKeySchema = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine((key) => {
+    try {
+      generateKeyBetween(key, null);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Not a valid place in the list");
 export const activityTypeSchema = z.enum(ACTIVITY_TYPES);
 
 /** A date input — an ISO date(-time) string; "" or null clears it. */
@@ -98,7 +117,7 @@ export const updateProjectSchema = z
     /** An uploaded logo's URL (from /api/uploads), or null to go back to the icon. */
     logoUrl: z.string().max(500).nullable(),
     status: projectStatusSchema,
-    orderKey: z.string().min(1),
+    orderKey: orderKeySchema,
     description: z.string().trim().max(4000),
     leadId: z.string().min(1).nullable(),
     departmentId: z.string().min(1).nullable(),
@@ -116,7 +135,7 @@ export const createDepartmentSchema = z.object({
   name: z.string().trim().min(1).max(80),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   icon: z.string().max(40).nullable().optional(),
-  orderKey: z.string().min(1).optional(),
+  orderKey: orderKeySchema.optional(),
   description: z.string().trim().max(2000).optional(),
   hodId: z.string().min(1).nullable().optional(),
 });
@@ -126,7 +145,7 @@ export const updateDepartmentSchema = z
     name: z.string().trim().min(1).max(80),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     icon: z.string().max(40).nullable(),
-    orderKey: z.string().min(1),
+    orderKey: orderKeySchema,
     description: z.string().trim().max(2000),
     hodId: z.string().min(1).nullable(),
   })
@@ -142,7 +161,7 @@ export const updateMilestoneSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
     reviewDate: z.string().min(4).max(40),
-    orderKey: z.string().min(1),
+    orderKey: orderKeySchema,
   })
   .partial();
 export const milestoneOutcomeInput = z.object({
@@ -202,7 +221,7 @@ export const createTaskSchema = z.object({
   title: z.string().max(500).optional(),
   /** My notes only; the project path ignores it. */
   descriptionMd: z.string().max(20000).optional(),
-  orderKey: z.string().min(1).optional(),
+  orderKey: orderKeySchema.optional(),
   status: statusSchema.optional(),
   dueDate: z.string().nullable().optional(),
   assigneeId: z.string().min(1).nullable().optional(),
@@ -215,19 +234,19 @@ export const createTaskSchema = z.object({
 /** Personal (private) department/project create/edit (phase 33). */
 export const createPersonalDepartmentSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  orderKey: z.string().min(1).optional(),
+  orderKey: orderKeySchema.optional(),
 });
 export const updatePersonalDepartmentSchema = z
-  .object({ name: z.string().trim().min(1).max(80), orderKey: z.string().min(1) })
+  .object({ name: z.string().trim().min(1).max(80), orderKey: orderKeySchema })
   .partial();
 
 export const createPersonalProjectSchema = z.object({
   departmentId: z.string().min(1),
   name: z.string().trim().min(1).max(80),
-  orderKey: z.string().min(1).optional(),
+  orderKey: orderKeySchema.optional(),
 });
 export const updatePersonalProjectSchema = z
-  .object({ name: z.string().trim().min(1).max(80), orderKey: z.string().min(1) })
+  .object({ name: z.string().trim().min(1).max(80), orderKey: orderKeySchema })
   .partial();
 
 /** Phase 33: the My notes "Prompt" quick-capture (RESOURCE-only at the route). */
@@ -333,7 +352,7 @@ export const updateTaskSchema = z
     dueDate: z.string().nullable(),
     parentId: z.string().min(1).nullable(),
     milestoneId: z.string().min(1).nullable(),
-    orderKey: z.string().min(1),
+    orderKey: orderKeySchema,
     assigneeId: z.string().min(1).nullable(),
     important: z.boolean(),
     archived: z.boolean(),
@@ -418,7 +437,7 @@ export const updateGroupSchema = z
     description: z.string().trim().max(2000),
     leadId: z.string().min(1).nullable(),
     active: z.boolean(),
-    orderKey: z.string().min(1),
+    orderKey: orderKeySchema,
   })
   .partial();
 export const groupMembersSchema = z.object({ userIds: z.array(z.string().min(1)).min(1).max(200) });
@@ -435,7 +454,7 @@ export const updateCategorySchema = z
     departmentId: z.string().min(1).nullable(),
     assignmentGroupId: z.string().min(1).nullable(),
     active: z.boolean(),
-    orderKey: z.string().min(1),
+    orderKey: orderKeySchema,
   })
   .partial();
 

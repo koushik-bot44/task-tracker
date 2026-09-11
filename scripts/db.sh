@@ -13,7 +13,8 @@ fi
 
 case "$1" in
   start)
-    "$PG/pg_ctl" -D "$DATA" -l "$LOG" -o "-p 5433 -c unix_socket_directories=''" start
+    # UTC, as on Neon: a CURRENT_TIMESTAMP default then agrees with the times the app writes (2026-09-11).
+    "$PG/pg_ctl" -D "$DATA" -l "$LOG" -o "-p 5433 -c unix_socket_directories='' -c timezone=UTC" start
     ;;
   stop)
     "$PG/pg_ctl" -D "$DATA" stop

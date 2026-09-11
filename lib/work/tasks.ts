@@ -618,7 +618,10 @@ async function moveOnce(actor: ActorUser, existing: Task, to: WorkState, extra: 
     data.assigneeId = null;
   }
   const result = await prisma.$transaction(async (tx) => {
-    await tx.task.update({ where: { id: existing.id }, data });
+    // Only from the state it was read in: the same move pressed twice at once used
+    // to succeed twice, recording and announcing it twice (2026-09-11).
+    const moved = await tx.task.updateMany({ where: { id: existing.id, state: existing.state }, data: data as Prisma.TaskUncheckedUpdateManyInput });
+    if (moved.count !== 1) throw new HttpError(409, "Someone else moved this task just now. Refresh to see where it is.");
     const after = { ...existing, ...(data as Partial<Task>) } as Task;
     const rows = await recordChanges(tx, existing.id, snapshot(existing), snapshot(after), actor.id, extra.resolutionNotes ? { note: extra.resolutionNotes } : {});
     if (to === "RESOLVED" && (extra.resolutionNotes || extra.rootCause)) {

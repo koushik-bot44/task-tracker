@@ -121,7 +121,8 @@ export function CalendarView() {
   }, [ym]);
 
   const fade = {
-    initial: reduce ? false : { opacity: 0, y: 8 },
+    // The same first style on the server and in the browser; reduced motion takes no time.
+    initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
   };

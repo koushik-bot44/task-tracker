@@ -22,6 +22,11 @@ function canLead(u: UserDTO): boolean {
   return u.status === "ACTIVE" && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON";
 }
 
+/** Who may be put on a project: a work account, invited people too — they find it when they sign in (2026-09-11). */
+function canJoin(u: UserDTO): boolean {
+  return (u.status === "ACTIVE" || u.status === "PENDING") && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON";
+}
+
 /** A "YYYY-MM-DD" from a date input, as local midnight in ISO. */
 function dayToIso(day: string): string {
   return new Date(`${day}T00:00:00`).toISOString();
@@ -101,7 +106,10 @@ export function NewProjectSheet({
 
   // People to put on it: the department's own first, everyone else under "More".
   const people = useMemo(() => {
-    const all = (users ?? []).filter(canLead).filter((u) => u.id !== me?.id);
+    const all = (users ?? [])
+      .filter(canJoin)
+      .filter((u) => u.id !== me?.id)
+      .map((u) => (u.status === "PENDING" ? { ...u, name: `${u.name} (invited)` } : u));
     const here = all.filter((u) => u.departmentId === targetDepartment).sort((a, b) => a.name.localeCompare(b.name));
     const elsewhere = all.filter((u) => u.departmentId !== targetDepartment).sort((a, b) => a.name.localeCompare(b.name));
     return { here, elsewhere };

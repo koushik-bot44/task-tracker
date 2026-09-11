@@ -28,7 +28,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (!parsed.ok) return parsed.response;
   if (parsed.data.leadId) {
     const ok = await workAccounts([parsed.data.leadId]);
-    if (!ok.length) throw new HttpError(400, "Pick someone active on Orbit to lead the team.");
+    if (!ok.length) throw new HttpError(400, "Pick someone on Orbit to lead the team.");
     await prisma.assignmentGroupMember.upsert({ where: { groupId_userId: { groupId: params.id, userId: parsed.data.leadId } }, update: {}, create: { groupId: params.id, userId: parsed.data.leadId } });
   }
   const updated = await prisma.assignmentGroup.update({ where: { id: params.id }, data: parsed.data, include: GROUP_INCLUDE });

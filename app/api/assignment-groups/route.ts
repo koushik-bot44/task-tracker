@@ -31,7 +31,7 @@ export const POST = route(async (req: Request) => {
   const clash = await prisma.assignmentGroup.findUnique({ where: { departmentId_name: { departmentId, name } } });
   if (clash) throw new HttpError(409, "There is already a team with that name here.");
   const people = await workAccounts([...(memberIds ?? []), ...(leadId ? [leadId] : [])]);
-  if (leadId && !people.includes(leadId)) throw new HttpError(400, "Pick someone active on Orbit to lead the team.");
+  if (leadId && !people.includes(leadId)) throw new HttpError(400, "Pick someone on Orbit to lead the team.");
   const last = await prisma.assignmentGroup.findFirst({ where: { departmentId }, orderBy: { orderKey: "desc" }, select: { orderKey: true } });
   const created = await prisma.assignmentGroup.create({
     data: {

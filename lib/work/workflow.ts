@@ -76,7 +76,9 @@ export function pathToStatus(from: WorkState, status: TaskStatus, hasAssignee: b
     case "DOING":
       return finished ? ["REOPENED", "IN_PROGRESS"] : ["IN_PROGRESS"];
     case "STUCK":
-      if (from === "IN_PROGRESS" || from === "ESCALATED") return ["WAITING"];
+      // Only work in progress goes on hold: escalated work passes through it
+      // first (2026-09-11 — it used to try Escalated → On Hold, a move refused).
+      if (from === "IN_PROGRESS") return ["WAITING"];
       return finished ? ["REOPENED", "IN_PROGRESS", "WAITING"] : ["IN_PROGRESS", "WAITING"];
     case "TODO":
       if (finished) return ["REOPENED"];

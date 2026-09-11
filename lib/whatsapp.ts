@@ -129,6 +129,9 @@ async function twilioSend(
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: buildMessageParams(c, to, message, vars).toString(),
+      // The request that sends this waits for it: give up after 10 s rather than
+      // hold a save for as long as Twilio hangs (2026-09-11).
+      signal: AbortSignal.timeout(10_000),
     });
     if (res.ok) return { ok: true };
     let code: number | undefined;

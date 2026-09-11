@@ -2,9 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { OverlayPortal } from "@/components/overlay-portal";
 import { cn } from "@/lib/cn";
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * The sheet: a bottom sheet on a phone, a centred card on a desktop. One
@@ -32,15 +34,62 @@ export function Sheet({
   wide?: boolean;
 }) {
   const reduce = useReducedMotion();
+  const panelRef = useRef<HTMLDivElement>(null);
+  // The latest onClose, so the keyboard handling below is set up once per
+  // opening rather than again on every render of the page behind.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
+  // Keyboard (2026-09-11): focus moves into the sheet when it opens, Tab and
+  // Shift+Tab stay inside it, Escape closes it, and focus goes back to whatever
+  // opened it. With a sheet over a sheet, only the top one answers.
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    let tries = 0;
+    let frame = requestAnimationFrame(function settle() {
+      const panel = panelRef.current;
+      if (!panel) {
+        if (++tries < 30) frame = requestAnimationFrame(settle);
+        return;
+      }
+      if (!panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
+    });
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      const panel = panelRef.current;
+      if (panel) {
+        const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+        if (dialogs[dialogs.length - 1] !== panel) return;
+      }
+      if (e.key === "Escape") {
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !panel) return;
+      const list = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.getClientRects().length > 0);
+      const active = document.activeElement;
+      if (list.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && (!panel.contains(active) || active === first || active === panel)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!panel.contains(active) || active === last)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", onKey);
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [open]);
 
   return (
     <OverlayPortal>
@@ -60,6 +109,8 @@ export function Sheet({
             <div className="pointer-events-none fixed inset-0 z-drawer flex items-end justify-center md:items-center md:p-4">
               <motion.div
                 key="sheet"
+                ref={panelRef}
+                tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
                 aria-label={label ?? title}
@@ -68,7 +119,7 @@ export function Sheet({
                 exit={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
                 transition={{ duration: reduce ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
-                  "pointer-events-auto flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-sheet bg-surface shadow-lift md:max-h-[86dvh] md:rounded-sheet",
+                  "pointer-events-auto flex max-h-[92dvh] w-full outline-none flex-col overflow-hidden rounded-t-sheet bg-surface shadow-lift md:max-h-[86dvh] md:rounded-sheet",
                   wide ? "md:w-[min(40rem,94vw)]" : "md:w-[min(30rem,94vw)]",
                 )}
               >

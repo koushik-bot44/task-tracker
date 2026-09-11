@@ -71,10 +71,11 @@ function TeamSheet({ open, onClose, departmentId, people, group }: { open: boole
     setMembers(new Set(group?.members.map((m) => m.id) ?? []));
   }, [open, group]);
 
-  // Anyone active in the department, plus whoever is already on the team.
+  // Anyone in the department, invited people too (a new organisation builds its
+  // teams before everyone has signed in, 2026-09-11), plus whoever is already on the team.
   const candidates = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
-    for (const p of people) if (p.status === "ACTIVE" && !p.disabledAt && p.role !== "ADMIN" && p.role !== "PERSON") map.set(p.id, { id: p.id, name: p.name });
+    for (const p of people) if ((p.status === "ACTIVE" || p.status === "PENDING") && !p.disabledAt && p.role !== "ADMIN" && p.role !== "PERSON") map.set(p.id, { id: p.id, name: p.status === "PENDING" ? `${p.name} (invited)` : p.name });
     for (const m of group?.members ?? []) map.set(m.id, { id: m.id, name: m.name });
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [people, group]);

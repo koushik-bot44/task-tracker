@@ -229,13 +229,13 @@ function RecordBody({ task }: { task: TaskDTO }) {
 
         <div className="grid grid-cols-1 gap-x-6 py-2 md:grid-cols-2">
           <div>
-            <FormRow label="Number"><input value={task.ref} readOnly className={snInput} /></FormRow>
+            <FormRow label="Number"><input aria-label="Number" value={task.ref} readOnly className={snInput} /></FormRow>
             {/* Who handed it over. On a task raised straight onto somebody they are
                 the same person; when nobody was named yet, whoever raised it stands. */}
-            <FormRow label="Assigned by"><input value={task.assignedByName ?? ""} readOnly className={snInput} /></FormRow>
-            <FormRow label="Type"><input value={WORK_TYPE_LABEL[task.type]} readOnly className={snInput} /></FormRow>
-            <FormRow label="Category"><input value={task.categoryName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
-            <FormRow label="Department"><input value={task.departmentName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
+            <FormRow label="Assigned by"><input aria-label="Assigned by" value={task.assignedByName ?? ""} readOnly className={snInput} /></FormRow>
+            <FormRow label="Type"><input aria-label="Type" value={WORK_TYPE_LABEL[task.type]} readOnly className={snInput} /></FormRow>
+            <FormRow label="Category"><input aria-label="Category" value={task.categoryName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
+            <FormRow label="Department"><input aria-label="Department" value={task.departmentName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
             {project ? (
               <FormRow label="Project">
                 <Link href={`/project/${project.slug}`} className={cn(snLink, "inline-flex h-8 items-center")}>
@@ -250,7 +250,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
           </div>
           <div>
             <FormRow label="Status">
-              <input value={`${WORK_STATE_LABEL[task.state]}${task.state === "WAITING" && task.waitingReason ? ` · ${WAITING_REASON_LABEL[task.waitingReason]}` : ""}`} readOnly className={snInput} />
+              <input aria-label="Status" value={`${WORK_STATE_LABEL[task.state]}${task.state === "WAITING" && task.waitingReason ? ` · ${WAITING_REASON_LABEL[task.waitingReason]}` : ""}`} readOnly className={snInput} />
             </FormRow>
             <FormRow label="Progress">
               <TaskProgress task={task} canEdit={access.canEdit} />
@@ -310,8 +310,8 @@ function RecordBody({ task }: { task: TaskDTO }) {
             <FormRow label="Due date">
               <input type="date" disabled={ro} value={task.dueDate ? dayInputValue(new Date(task.dueDate)) : ""} onChange={(e) => update.mutate({ dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : null }, { onError: fail })} className={snInput} aria-label="Due date" />
             </FormRow>
-            <FormRow label="Opened"><input value={stamp(task.createdAt)} readOnly className={snInput} /></FormRow>
-            <FormRow label="Updated"><input value={stamp(task.updatedAt)} readOnly className={snInput} /></FormRow>
+            <FormRow label="Opened"><input aria-label="Opened" value={stamp(task.createdAt)} readOnly className={snInput} /></FormRow>
+            <FormRow label="Updated"><input aria-label="Updated" value={stamp(task.updatedAt)} readOnly className={snInput} /></FormRow>
           </div>
         </div>
 

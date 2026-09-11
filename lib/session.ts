@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import type { User } from "@prisma/client";
+import { Prisma, type User } from "@prisma/client";
 import { SESSION_COOKIE, readSessionToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAdministerAccountsRole, isManagerRole } from "@/lib/roles";
@@ -105,6 +105,12 @@ export async function requireAccountAdmin(): Promise<User> {
 export function errorResponse(error: unknown): NextResponse {
   if (error instanceof HttpError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  // Two presses racing each other (2026-09-11): the second save of the same record,
+  // or the second delete of one already gone, is a conflict, not a crash.
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") return NextResponse.json({ error: "That has already been saved." }, { status: 409 });
+    if (error.code === "P2025") return NextResponse.json({ error: "That is no longer there." }, { status: 404 });
   }
   console.error("[api] unhandled error:", error);
   return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
