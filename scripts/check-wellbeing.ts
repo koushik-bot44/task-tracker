@@ -1,5 +1,5 @@
 /* Well Being, from both sides (2026-09-10).
- *   npx tsx --env-file=.env.local scripts/check-wellbeing.ts   (dev server up; after dev-seed-wellbeing)
+ *   npx tsx --env-file=.env.local scripts/check-wellbeing.ts   (dev server up; after scripts/rig-fixture.ts create)
  *
  * The CEO's side: his person, a habit grid for this week and last, rules
  * scheduled, a weight trend, and the tasks from before still there in the weeks
@@ -16,6 +16,7 @@
 import { chromium, type Page } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { RIG_PERSON_BEFORE_TASKS } from "./rig-fixture-data";
 
 const prisma = new PrismaClient();
 const BASE = process.env.SCREEN_BASE ?? "http://localhost:3000";
@@ -49,8 +50,8 @@ function addDays(k: string, n: number): string {
 const mondayOf = (k: string) => addDays(k, -((new Date(`${k}T00:00:00Z`).getUTCDay() + 6) % 7));
 const thisMonday = mondayOf(today);
 
-/** The five tasks Arjun had before any of this. */
-const BEFORE = ["Complete Learning C this week.", "Practice programs on c", "Lear Python basics", "Practice object oriented programming", "Practice java"];
+/** The tasks the fixture's Well Being person had in earlier weeks (scripts/rig-fixture-data.ts). */
+const BEFORE = [...RIG_PERSON_BEFORE_TASKS];
 
 async function signIn(email: string): Promise<string | null> {
   const res = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: PASSWORD }) });

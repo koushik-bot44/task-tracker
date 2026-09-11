@@ -19,6 +19,7 @@
 import { chromium } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { RIG_PERSON, RIG_PROJECT } from "./rig-fixture-data";
 
 const prisma = new PrismaClient();
 const BASE = process.env.SCREEN_BASE ?? "http://localhost:3000";
@@ -83,7 +84,8 @@ async function main() {
     process.exit(1);
   }
   const ceo = await signIn("founder@orbit.local");
-  const wellBeing = await signIn("arjun@orbit.local");
+  // The fixture's Well Being person (scripts/rig-fixture.ts create).
+  const wellBeing = await signIn(RIG_PERSON.email);
   record("the CEO signs in", Boolean(ceo));
   if (!ceo) return;
 
@@ -136,7 +138,7 @@ async function main() {
 
   /* ---- a file reaches the people on the work ---- */
   const task = await prisma.task.findFirst({
-    where: { deletedAt: null, projectId: { not: null }, NOT: { title: { startsWith: "WFX" } }, assignee: { email: { startsWith: "staff-" }, status: "ACTIVE", disabledAt: null } },
+    where: { deletedAt: null, projectId: { not: null }, NOT: { title: { startsWith: "WFX" } }, project: { slug: RIG_PROJECT.slug }, assignee: { role: { not: "FOUNDER" }, status: "ACTIVE", disabledAt: null } },
     orderBy: { number: "asc" },
     select: { id: true, number: true, updatedAt: true, projectId: true, assignee: { select: { email: true } }, project: { select: { slug: true } } },
   });

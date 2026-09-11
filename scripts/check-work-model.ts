@@ -180,7 +180,10 @@ async function main() {
     const untick = await call(leadA, "PATCH", `/api/tasks/${ptId}`, { status: "TODO" });
     record("…and un-ticking reopens it", untick.status === 200 && untick.json?.state === "REOPENED" && untick.json?.status === "TODO", `${untick.json?.state}`);
     const ptAct = await call(leadA, "GET", `/api/tasks/${ptId}/activity?type=FIELD_CHANGE`);
-    record("both moves are in the stream", (ptAct.json ?? []).filter((a: any) => a.metadata?.field === "state").length >= 3, `${(ptAct.json ?? []).length}`);
+    // The two moves are the tick (Resolved) and the untick (Reopened). A task given to someone starts
+    // in Work in progress (2026-09-11), so there is no implicit start move any more.
+    const moves: string[] = (Array.isArray(ptAct.json) ? ptAct.json : []).filter((a: any) => a.metadata?.field === "state").map((a: any) => String(a.metadata?.newValue));
+    record("both moves are in the stream", moves.includes("RESOLVED") && moves.includes("REOPENED"), moves.join(" → "));
 
     console.log("\n── accounts: the ceiling and the department wall ──────────────");
     const promoteHod = await call(managerA, "PATCH", `/api/users/${devA.id}`, { role: "HOD" });
