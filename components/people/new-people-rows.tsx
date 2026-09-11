@@ -2,56 +2,81 @@
 
 import { Field, inputClass } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
+import { ROLE_LABEL, type UserRole } from "@/lib/types";
 
-/** Someone not on Orbit yet: a name, one or more addresses (the first gets the invite), and how they join. */
-export type NewPerson = { name: string; emails: string[]; role: "RESOURCE" | "TEAM_LEAD" };
+/**
+ * Someone not on Orbit yet: a name, one or more addresses (the first gets the
+ * invite), a position — a Team member unless one is picked — and, where the
+ * screen asks, the department they sit in.
+ */
+export type NewPerson = { name: string; emails: string[]; role: UserRole; departmentId: string };
 
-export const blankPerson = (): NewPerson => ({ name: "", emails: [""], role: "RESOURCE" });
+export const blankPerson = (departmentId = ""): NewPerson => ({ name: "", emails: [""], role: "RESOURCE", departmentId });
 
-const JOINS_AS: Record<NewPerson["role"], string> = { RESOURCE: "Team member", TEAM_LEAD: "Team lead" };
 const EMAIL_SHAPE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /** The rows as the server takes them: trimmed, and only the people given an address. */
-export function toInvites(rows: NewPerson[]): { name: string; emails: string[]; role: NewPerson["role"] }[] {
+export function toInvites(rows: NewPerson[]): { name: string; emails: string[]; role: UserRole; departmentId: string | null }[] {
   return rows
-    .map((p) => ({ name: p.name.trim(), emails: p.emails.map((e) => e.trim()).filter(Boolean), role: p.role }))
+    .map((p) => ({ name: p.name.trim(), emails: p.emails.map((e) => e.trim()).filter(Boolean), role: p.role, departmentId: p.departmentId || null }))
     .filter((p) => p.emails.length > 0);
 }
 
 /** What stops the rows being sent, in words — or null when nothing does. */
-export function invitesProblem(rows: NewPerson[]): string | null {
+export function invitesProblem(rows: NewPerson[], opts: { needDepartment?: boolean } = {}): string | null {
   const seen = new Set<string>();
-  for (const p of toInvites(rows)) {
-    for (const e of p.emails) {
+  for (const p of rows) {
+    const name = p.name.trim();
+    const emails = p.emails.map((e) => e.trim()).filter(Boolean);
+    if (!emails.length) {
+      // A name with no address used to be dropped without a word (2026-09-11).
+      if (name) return `Write an email for ${name}.`;
+      continue;
+    }
+    for (const e of emails) {
       if (!EMAIL_SHAPE.test(e)) return `“${e}” doesn't look like an email.`;
       if (seen.has(e.toLowerCase())) return `${e} is written twice.`;
       seen.add(e.toLowerCase());
     }
+    if (opts.needDepartment && !p.departmentId) return `Pick a department for ${name || emails[0]}.`;
   }
   return null;
 }
 
 /**
- * People who are not on Orbit yet, one row each — the same rows when a project
- * is made and when people are added to it later (owner, 2026-09-10). A person
- * may hold several addresses; the first is where the invite goes. `roles`
- * offers "Joins as" when there is more than one to choose from.
+ * People who are not on Orbit yet, one row each — the same rows on People →
+ * Invite, a new project, a project's Add people and a new task (owner,
+ * 2026-09-10; several people at once, with a position or without, everywhere:
+ * 2026-09-11). A person may hold several addresses; the first is where the
+ * invite goes. `roles` offers a position when there is more than one to give;
+ * `departments` offers where each person sits.
  */
 export function NewPeopleRows({
   rows,
   onChange,
   roles,
+  departments,
+  allowUnplaced = true,
+  defaultDepartmentId = "",
   addLabel = "+ Someone not on Orbit yet",
   autoFocusLast = false,
 }: {
   rows: NewPerson[];
   onChange: (rows: NewPerson[]) => void;
-  roles?: NewPerson["role"][];
+  /** The positions the person inviting may give. Leaving it is a Team member. */
+  roles?: UserRole[];
+  /** Offer a department per person. Without it, the screen's own department is used. */
+  departments?: { id: string; name: string }[];
+  /** "Not placed yet" is a choice (the CEO); a head or a manager places everyone. */
+  allowUnplaced?: boolean;
+  /** Where a newly added row starts. */
+  defaultDepartmentId?: string;
   addLabel?: string;
   /** A row added by a tap takes the cursor. */
   autoFocusLast?: boolean;
 }) {
   const edit = (i: number, patch: Partial<NewPerson>) => onChange(rows.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+  const offered = roles ?? [];
   return (
     <div className="space-y-3">
       {rows.map((p, i) => {
@@ -116,17 +141,30 @@ export function NewPeopleRows({
               + Another email for this person
             </button>
 
-            {roles && roles.length > 1 ? (
-              <Field label="Joins as">
+            {offered.length > 1 ? (
+              <Field label="Position" hint={p.role === "RESOURCE" ? "No position to give? Leave Team member — it can be changed later on People." : undefined}>
                 <select
-                  value={p.role}
-                  onChange={(e) => edit(i, { role: e.target.value as NewPerson["role"] })}
-                  aria-label={`How ${who} joins`}
+                  value={offered.includes(p.role) ? p.role : "RESOURCE"}
+                  onChange={(e) => edit(i, { role: e.target.value as UserRole })}
+                  aria-label={`Position for ${who}`}
                   className={cn(inputClass, "appearance-none")}
                 >
-                  {roles.map((r) => (
+                  {offered.map((r) => (
                     <option key={r} value={r}>
-                      {JOINS_AS[r]}
+                      {ROLE_LABEL[r]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : null}
+
+            {departments && departments.length ? (
+              <Field label="Department" hint={p.role === "HOD" ? "They become this department's head if it has none yet." : undefined}>
+                <select value={p.departmentId} onChange={(e) => edit(i, { departmentId: e.target.value })} aria-label={`Department for ${who}`} className={cn(inputClass, "appearance-none")}>
+                  <option value="">{allowUnplaced ? "Not placed yet" : "Pick a department…"}</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
                     </option>
                   ))}
                 </select>
@@ -136,7 +174,7 @@ export function NewPeopleRows({
         );
       })}
 
-      <button type="button" onClick={() => onChange([...rows, blankPerson()])} className="press min-h-[32px] text-sm font-medium text-primary-ink">
+      <button type="button" onClick={() => onChange([...rows, blankPerson(defaultDepartmentId)])} className="press min-h-[32px] text-sm font-medium text-primary-ink">
         {addLabel}
       </button>
     </div>

@@ -18,8 +18,9 @@ import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
 import type { ProjectPersonDTO, UserDTO } from "@/lib/types";
 
+/** Someone who can be on a project — invited people too, before they sign in (2026-09-11). */
 function isWorkAccount(u: UserDTO): boolean {
-  return u.status === "ACTIVE" && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON";
+  return (u.status === "ACTIVE" || u.status === "PENDING") && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON";
 }
 
 /**
@@ -101,8 +102,9 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
   // Making accounts is for those who may make them; anyone else running the
   // project adds people who are here already (the server says the same).
   const canInvite = canAdministerAccountsRole(me?.role);
-  const roles = rolesOfferedTo(me?.role).filter((r): r is NewPerson["role"] => r === "RESOURCE" || r === "TEAM_LEAD");
-  const invites = toInvites(newPeople);
+  // Any position this person may give; left, a Team member (2026-09-11).
+  const roles = rolesOfferedTo(me?.role);
+  const invites = toInvites(newPeople).map(({ name, emails, role }) => ({ name, emails, role }));
   const problem = invitesProblem(newPeople);
   const inviteReady = invites.length > 0 && !problem && !invitePeople.isPending;
   const sendInvites = () => {
@@ -180,6 +182,7 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
                     }
                   >
                     {u.name}
+                    {u.status === "PENDING" ? <span className="text-micro text-muted"> · invited</span> : null}
                   </Row>
                 </li>
               );
@@ -192,7 +195,7 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
             <div>
               <h3 className="text-sm font-semibold text-ink">Invite people who aren&apos;t on Orbit yet</h3>
               <p className="mt-0.5 text-micro text-muted">
-                As many as you like. Each gets an email and a link you can send on WhatsApp, and lands on this project; anyone already on Orbit is simply added.
+                As many as you like, each with a position or as a Team member. Each gets a link to set a password — send it on WhatsApp or copy it — and lands on this project. Anyone already on Orbit is simply added.
               </p>
             </div>
             <InviteLinks links={links} project={projectName} />

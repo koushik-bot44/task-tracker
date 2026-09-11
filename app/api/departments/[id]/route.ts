@@ -103,6 +103,16 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
       { status: 409 },
     );
   }
+  // People and teams hold it too (2026-09-11): deleting used to quietly unplace
+  // the people and delete the teams.
+  const [people, teams] = await Promise.all([
+    prisma.user.count({ where: { departmentId: params.id } }),
+    prisma.assignmentGroup.count({ where: { departmentId: params.id } }),
+  ]);
+  if (people || teams) {
+    const held = [people ? `${people} ${people === 1 ? "person" : "people"}` : null, teams ? `${teams} team${teams === 1 ? "" : "s"}` : null].filter(Boolean).join(" and ");
+    return NextResponse.json({ error: `This department still has ${held}. Move them to another department first.` }, { status: 409 });
+  }
 
   await prisma.department.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });

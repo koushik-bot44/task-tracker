@@ -49,7 +49,8 @@ export function DepartmentSheet({
   const heads = useMemo(
     () =>
       (users ?? [])
-        .filter((u) => u.role === "HOD" && u.status === "ACTIVE" && !u.disabledAt)
+        // Someone invited as a head can be picked before they sign in (2026-09-11).
+        .filter((u) => u.role === "HOD" && !u.disabledAt)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [users],
   );
@@ -70,7 +71,8 @@ export function DepartmentSheet({
     if (department) {
       const patch = descriptionOnly
         ? { description: description.trim() }
-        : { name: name.trim(), description: description.trim(), hodId: hodId || null };
+        : // The head goes only when it changed, so a rename never trips over the head (2026-09-11).
+          { name: name.trim(), description: description.trim(), ...(hodId !== (department.hodId ?? "") ? { hodId: hodId || null } : {}) };
       updateDepartment.mutate({ id: department.id, patch }, { onSuccess: done, onError: fail });
       return;
     }
@@ -88,7 +90,7 @@ export function DepartmentSheet({
 
   const remove = () => {
     if (!department) return;
-    if (!window.confirm(`Delete "${department.name}"? Only an empty department can go — its projects must be moved out first.`)) return;
+    if (!window.confirm(`Delete "${department.name}"? Only an empty department can go — its projects, people and teams must be moved out first.`)) return;
     deleteDepartment.mutate(department.id, {
       onSuccess: () => {
         onClose();
@@ -149,7 +151,7 @@ export function DepartmentSheet({
               {currentHeadMissing ? <option value={hodId}>{department?.hodName ?? "Current head"}</option> : null}
               {heads.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name}
+                  {u.status === "PENDING" ? `${u.name} (invited)` : u.name}
                 </option>
               ))}
             </select>

@@ -30,6 +30,9 @@ export function useUserMutations() {
     void qc.invalidateQueries({ queryKey: usersKey });
     // A renamed person reads the new name on every project too (2026-09-10).
     void qc.invalidateQueries({ queryKey: ["project-people"] });
+    // A head of department heads their department as soon as they are placed (2026-09-11).
+    void qc.invalidateQueries({ queryKey: ["departments"] });
+    void qc.invalidateQueries({ queryKey: ["org-setup"] });
   };
 
   const createUser = useMutation({
@@ -101,5 +104,21 @@ export function useUserMutations() {
     },
   });
 
-  return { createUser, updateUser, changeMyPassword, updateMe, resendInvite, cancelInvite, setPassword };
+  // Several people at once, each with a position or none (owner, 2026-09-11).
+  const invitePeople = useMutation({
+    mutationFn: (input: { people: { name?: string; emails: string[]; role?: UserRole | null; departmentId?: string | null }[] }) =>
+      apiPost<{ people: { id: string; name: string; email: string; role: UserRole; departmentId: string | null; url: string; emailSent: boolean }[] }>("/api/users/invite", input),
+    onSuccess: refresh,
+  });
+
+  // Your own sign-in address, proved with your password (2026-09-11).
+  const changeMyEmail = useMutation({
+    mutationFn: (input: { email: string; password: string }) => apiPost<{ ok: true; email: string }>("/api/users/me/email", input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: meKey });
+      void qc.invalidateQueries({ queryKey: usersKey });
+    },
+  });
+
+  return { createUser, invitePeople, updateUser, changeMyPassword, updateMe, changeMyEmail, resendInvite, cancelInvite, setPassword };
 }

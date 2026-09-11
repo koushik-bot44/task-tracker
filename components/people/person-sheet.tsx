@@ -439,9 +439,12 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
           </>
         ) : (
           <>
-            <Button full variant="secondary" onClick={reset} disabled={busy} loading={action === "reset"}>
-              Reset password
-            </Button>
+            {/* Your own password is changed from Account, never reset here (2026-09-11). */}
+            {isSelf ? null : (
+              <Button full variant="secondary" onClick={reset} disabled={busy} loading={action === "reset"}>
+                Reset password
+              </Button>
+            )}
             <Button
               full
               variant={disabled ? "secondary" : "danger"}

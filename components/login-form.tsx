@@ -70,7 +70,7 @@ export function LoginForm({ needsBootstrap }: { needsBootstrap: boolean }) {
             <Image src="/orbit-logo.png" alt="Orbit" width={256} height={256} priority className="h-16 w-16 rounded-2xl shadow-e2" />
           </div>
           <h1 className="text-display font-extrabold tracking-tight text-ink">
-            {needsBootstrap ? "Create first manager account" : "Orbit"}
+            {needsBootstrap ? "Set up the CEO account" : "Orbit"}
           </h1>
           {needsBootstrap ? (
             <p className="mt-1.5 text-sm text-muted">

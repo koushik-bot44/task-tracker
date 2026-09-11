@@ -210,7 +210,10 @@ async function main() {
   const sheet = page.getByRole("dialog", { name: "Schedule a meeting" });
   const sheetOpen = await opened(sheet, 10000);
   const titleBox = sheet.getByRole("textbox", { name: "What's it about" });
-  const ticked = await sheet.locator('[role="checkbox"][aria-checked="true"]').count();
+  // The sheet ticks the task's people just after it opens, so wait for them rather than counting at once.
+  const tickedBox = sheet.locator('[role="checkbox"][aria-checked="true"]');
+  await until(async () => (await tickedBox.count()) >= 2, 5000);
+  const ticked = await tickedBox.count();
   record(
     "the calendar symbol opens Schedule a meeting about the task, its people ticked",
     sheetOpen && (await titleBox.inputValue()) === task.title && ticked >= 2,
@@ -222,7 +225,8 @@ async function main() {
     await sheet.getByRole("button", { name: "Save" }).click();
     record("…and saving puts a second meeting on the task", await until(async () => (await prisma.calendarEvent.count({ where: { taskId: task.id, title: `${PREFIX}second sync`, startTime: "15:00" } })) === 1, 15000));
   }
-  await page.getByRole("button", { name: "Mark" }).click();
+  // "Mark" alone: the record also has other buttons whose names contain Mark.
+  await page.getByRole("button", { name: "Mark", exact: true }).click();
   const progressSheet = page.getByRole("dialog", { name: "How far along?" });
   if (await opened(progressSheet, 10000)) {
     await progressSheet.getByRole("spinbutton", { name: "Percent done" }).fill("70");

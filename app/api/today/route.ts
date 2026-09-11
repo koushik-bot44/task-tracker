@@ -29,7 +29,8 @@ export const GET = route(async () => {
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
   const quarter = new Date(today);
   quarter.setUTCDate(quarter.getUTCDate() + 90);
-  const projectFilter = visible ? { projectId: { in: [...visible] } } : {};
+  // A task with no project is still yours (2026-09-11): a new organisation's first tasks often have none.
+  const projectFilter = visible ? { OR: [{ projectId: null }, { projectId: { in: [...visible] } }] } : {};
 
   const [tasks, events, projects] = await Promise.all([
     prisma.task.findMany({

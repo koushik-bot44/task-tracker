@@ -79,6 +79,8 @@ export const createProjectSchema = z.object({
               one. A person invited with one email and a person invited with five
               are the same person-shaped thing. */
           emails: z.array(z.string().trim().min(3).max(320)).max(10).optional(),
+          /** Any position the person starting it may give; left out, a Team member (2026-09-11). */
+          role: z.enum(["CO_FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE"]).nullable().optional(),
         })
         .refine((i) => Boolean(i.email) || (i.emails?.length ?? 0) > 0, {
           message: "An invite needs at least one email",

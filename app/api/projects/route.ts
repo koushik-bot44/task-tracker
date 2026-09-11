@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
+import { invitePeopleToProject } from "@/lib/project-invites";
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
 import { ensureMember } from "@/lib/project-people";
-import { issueInvite } from "@/lib/invite";
 import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { PROJECT_LEAD_SELECT, serializeProject } from "@/lib/serialize";
 import { assertManager } from "@/lib/permissions";
 import { requireUser, route } from "@/lib/session";
-import { addOtherEmails, dedupeEmails, findUserIdByEmail, isEmailShaped } from "@/lib/user-emails";
+import { dedupeEmails, isEmailShaped } from "@/lib/user-emails";
 import { visibleProjectIds } from "@/lib/project-visibility";
 import { enrichProjects } from "@/lib/projects";
 import { badRequest, createProjectSchema, parseBody } from "@/lib/validation";
@@ -81,6 +81,22 @@ export const POST = route(async (req: Request) => {
     }
   }
 
+  // Every invite row is checked before the project is made (2026-09-11): a
+  // mistyped address, or a position this person may not give, used to be
+  // skipped without a word while the project went ahead.
+  const inviteRows = (invites ?? []).map((inv) => ({
+    name: inv.name ?? null,
+    emails: dedupeEmails([...(inv.email ? [inv.email] : []), ...(inv.emails ?? [])]),
+    role: inv.role ?? null,
+  }));
+  const invitedAddresses = inviteRows.flatMap((r) => r.emails);
+  for (const row of inviteRows) {
+    const bad = row.emails.find((e) => !isEmailShaped(e));
+    if (!row.emails.length || bad) return badRequest([{ path: ["invites"], message: bad ? `“${bad}” doesn't look like an email.` : "An invite needs at least one email" }]);
+    assertCanCreateUserWithRole(actor, row.role ?? "RESOURCE");
+  }
+  if (new Set(invitedAddresses).size !== invitedAddresses.length) return badRequest([{ path: ["invites"], message: "An address is written for two people." }]);
+
   const last = await prisma.project.findFirst({ orderBy: { orderKey: "desc" }, select: { orderKey: true } });
   const count = await prisma.project.count();
 
@@ -115,37 +131,18 @@ export const POST = route(async (req: Request) => {
     await ensureMember(project.id, userId);
     added++;
   }
-  for (const inv of invites ?? []) {
-    // One person, however many addresses they gave: the first is the main one
-    // (the invite goes there), the rest are the same human's other inboxes.
-    const addresses = dedupeEmails([...(inv.email ? [inv.email] : []), ...(inv.emails ?? [])]);
-    const [email, ...others] = addresses;
-    if (!email || addresses.some((e) => !isEmailShaped(e))) { skipped.push(...(addresses.length ? addresses : [])); continue; }
-
-    // ANY of those addresses finds someone already on Orbit, so inviting a
-    // person by their second address adds them rather than duplicating them.
-    const found = (await Promise.all(addresses.map(findUserIdByEmail))).find(Boolean);
-    if (found) {
-      const existing = await prisma.user.findUnique({ where: { id: found }, select: { id: true, role: true, disabledAt: true } });
-      if (!existing || existing.disabledAt || existing.role === "PERSON" || existing.role === "ADMIN") { skipped.push(email); continue; }
-      await ensureMember(project.id, existing.id);
-      // Addresses named here that they did not have yet are now theirs too.
-      await addOtherEmails(existing.id, addresses);
-      added++;
-      continue;
-    }
-
-    assertCanCreateUserWithRole(actor, "RESOURCE");
-    const u = await prisma.user.create({
-      data: { email, name: inv.name?.trim() || email.split("@")[0].replace(/[._-]+/g, " "), role: "RESOURCE", status: "PENDING", passwordHash: null, departmentId },
-    });
-    await addOtherEmails(u.id, others);
-    await ensureMember(project.id, u.id);
-    const { url } = await issueInvite({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
-    links.push({ name: u.name, email: u.email, url });
-    invited++;
+  let emailFailed: string[] = [];
+  if (inviteRows.length) {
+    // The same service as Add people: someone already on Orbit is added, everyone
+    // else gets an account in this department, their position and a link.
+    const outcome = await invitePeopleToProject(actor, { id: project.id, name: project.name, departmentId }, inviteRows);
+    added += outcome.added;
+    invited += outcome.invited;
+    links.push(...outcome.links);
+    emailFailed = outcome.emailFailed;
+    skipped.push(...outcome.skipped.map((s) => s.email));
   }
 
   const [rich] = await enrichProjects([project]);
-  return NextResponse.json({ ...serializeProject(rich, 0), added, invited, skipped, links }, { status: 201 });
+  return NextResponse.json({ ...serializeProject(rich, 0), added, invited, skipped, links, emailFailed }, { status: 201 });
 });

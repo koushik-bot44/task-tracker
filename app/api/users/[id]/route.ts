@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { serializeUser } from "@/lib/serialize";
 import type { UserRole } from "@/lib/types";
 import { HttpError, requireAccountAdmin, route } from "@/lib/session";
-import { assertCanAdministerTarget, assertCanGrantRole, isAdmin } from "@/lib/permissions";
+import { assertCanAdministerTarget, assertCanGrantRole, isAdmin, assertCanPlaceInDepartment } from "@/lib/permissions";
 import { adminAlreadyExists, otherActiveAuthorities, otherAdmins } from "@/lib/account-guards";
 import { isManagerRole } from "@/lib/roles";
 import { isEmailShaped, normalizeEmail, takenEmails } from "@/lib/user-emails";
+import { syncDepartmentHead } from "@/lib/department-heads";
 import { parseBody, phoneInput, roleSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -55,6 +56,9 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   }
 
   await assertCanAdministerTarget(actor, target);
+  // Your own password is changed from Account, proving the old one: a reset here
+  // signed you out before you ever saw the new one (2026-09-11).
+  if (reset && target.id === actor.id) throw new HttpError(403, "Change your own password from Account.");
   // A new sign-in address (owner, 2026-09-10): well-formed, and nobody else's, main or extra.
   const nextEmail = email === undefined ? undefined : normalizeEmail(email);
   if (nextEmail !== undefined) {
@@ -113,6 +117,8 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     const dept = await prisma.department.findUnique({ where: { id: departmentId }, select: { id: true } });
     if (!dept) return NextResponse.json({ error: "That department does not exist." }, { status: 400 });
   }
+  // A head or a manager moves people only into a department they run (2026-09-11).
+  if (departmentId !== undefined && departmentId !== target.departmentId) await assertCanPlaceInDepartment(actor, departmentId);
 
   const data: { name?: string; email?: string; role?: UserRole; disabledAt?: Date | null; passwordHash?: string; phone?: string | null; departmentId?: string | null } = {};
   if (name !== undefined) data.name = name;
@@ -136,6 +142,12 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     data: { ...data, ...(reset ? { sessionVersion: { increment: 1 } } : {}) },
     include: { department: { select: { name: true } } },
   });
+  // A head of department runs the department they sit in (2026-09-11): it gets
+  // them as its head when it has none, and loses them as head when they move out,
+  // stop being a head, or are disabled.
+  if (role !== undefined || departmentId !== undefined || disable !== undefined) {
+    await syncDepartmentHead(updated.id, { previousDepartmentId: target.departmentId });
+  }
   return NextResponse.json({
     user: serializeUser(updated),
     ...(tempPassword ? { tempPassword } : {}),

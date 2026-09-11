@@ -76,7 +76,7 @@ export function useProjectMutations() {
       memberIds?: string[];
       /** People who are not on Orbit yet. One entry per PERSON; a person may
           hold several addresses, and the first is where the invite is sent. */
-      invites?: { name?: string; emails: string[] }[];
+      invites?: { name?: string; emails: string[]; role?: import("@/lib/types").UserRole | null }[];
     }) => apiPost<ProjectDTO>("/api/projects", input),
     onSettled: refresh,
   });
@@ -151,7 +151,7 @@ export function useProjectMutations() {
 
   /** Several people at once — some on Orbit already, some new (owner, 2026-09-10). */
   const invitePeople = useMutation({
-    mutationFn: ({ projectId, invites }: { projectId: string; invites: { name?: string; emails: string[]; role?: "RESOURCE" | "TEAM_LEAD" }[] }) =>
+    mutationFn: ({ projectId, invites }: { projectId: string; invites: { name?: string; emails: string[]; role?: import("@/lib/types").UserRole | null }[] }) =>
       apiPost<{
         ok: true;
         added: number;

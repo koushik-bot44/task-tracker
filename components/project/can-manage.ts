@@ -18,7 +18,8 @@ export function useCanManage(project: ProjectDTO | null): boolean {
   const { data: people } = useProjectPeople(project?.id ?? null);
   if (!me || !project) return false;
   if (isExecutiveRole(me.role)) return true;
-  if (project.ownerId === me.id) return true;
+  // Its lead runs it too (2026-09-11).
+  if (project.ownerId === me.id || project.leadId === me.id) return true;
   if (me.role === "HOD") {
     const dept = (departments ?? []).find((d) => d.id === project.departmentId);
     if (dept?.hodId === me.id) return true;

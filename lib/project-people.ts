@@ -5,7 +5,7 @@ import type { ProjectPersonDTO } from "@/lib/types";
 
 /**
  * Who is ON a project, in one place: the lead, the owner, explicit members,
- * and everyone holding a live task in it — active accounts only, lead first.
+ * and everyone holding a live task in it — active and invited accounts, lead first.
  * The faces on the project header, the "Who?" row of Give a task, the meeting
  * candidate list and the assignment rule all read this.
  */
@@ -37,7 +37,7 @@ export async function projectPeople(projectId: string): Promise<ProjectPersonDTO
     u: { id: string; name: string; role: Role; disabledAt: Date | null; status: string; department?: { name: string } | null } | null | undefined,
     flags: Partial<Pick<ProjectPersonDTO, "isLead" | "isOwner" | "isMember" | "canManage">>,
   ) => {
-    if (!u || u.disabledAt || u.status !== "ACTIVE" || u.role === "PERSON" || u.role === "ADMIN") return;
+    if (!u || u.disabledAt || (u.status !== "ACTIVE" && u.status !== "PENDING") || u.role === "PERSON" || u.role === "ADMIN") return;
     const prev = out.get(u.id) ?? {
       id: u.id,
       name: u.name,
@@ -49,6 +49,8 @@ export async function projectPeople(projectId: string): Promise<ProjectPersonDTO
       isOwner: false,
       isMember: false,
       canManage: false,
+      // Invited and not signed in yet: on the project all the same (2026-09-11).
+      invited: u.status === "PENDING",
       taskCount: taskCount.get(u.id) ?? 0,
     };
     out.set(u.id, { ...prev, ...flags });
@@ -90,17 +92,17 @@ export async function ensureMember(projectId: string, userId: string): Promise<v
 
 /**
  * May this person RUN the project — add people, add/move milestones, edit its
- * dates? The CEO anywhere; the HOD of its department; the owner; a
- * member with canManage. A TEAM_LEAD or a plain member cannot.
+ * dates? The CEO anywhere; the HOD of its department; the owner; its lead
+ * (2026-09-11); a member with canManage. Anyone else on it cannot.
  */
 export async function canManageProject(user: { id: string; role: Role }, projectId: string): Promise<boolean> {
   if (isExecutiveRole(user.role)) return true;
   const p = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { ownerId: true, department: { select: { hodId: true } }, members: { where: { userId: user.id }, select: { canManage: true } } },
+    select: { ownerId: true, leadId: true, department: { select: { hodId: true } }, members: { where: { userId: user.id }, select: { canManage: true } } },
   });
   if (!p) return false;
-  if (p.ownerId === user.id) return true;
+  if (p.ownerId === user.id || p.leadId === user.id) return true;
   if (user.role === "HOD" && p.department?.hodId === user.id) return true;
   return p.members.some((m) => m.canManage);
 }

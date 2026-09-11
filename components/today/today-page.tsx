@@ -2,14 +2,15 @@
 
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { GiveTaskSheet } from "@/components/sheets/give-task-sheet";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
+import { NewWorkSheet } from "@/components/work/new-work-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/lib/hooks/use-today";
 import { useMe } from "@/lib/hooks/use-users";
 import { isAdminRole } from "@/lib/roles";
 import { MeetingCard } from "./meeting-card";
 import { Section } from "./section";
+import { SetupCard } from "./setup-card";
 import { SummaryLine } from "./summary-line";
 import { TaskRows } from "./task-rows";
 
@@ -29,6 +30,7 @@ export function TodayPage() {
   // Bottom padding keeps the last card clear of the floating + button.
   return (
     <div className="mx-auto w-full max-w-content px-4 pb-20 pt-4 md:pb-24">
+      {me?.role === "FOUNDER" ? <SetupCard /> : null}
       {admin ? (
         <EmptyState title="Nothing waiting on you." body="Accounts are looked after from People." />
       ) : isLoading || loadingMe ? (
@@ -53,7 +55,8 @@ export function TodayPage() {
           >
             <Plus className="h-7 w-7" strokeWidth={2.25} aria-hidden />
           </button>
-          <GiveTaskSheet open={giving} onClose={() => setGiving(false)} projectId={null} />
+          {/* The whole New task form, so a task needs no project (2026-09-11). */}
+          <NewWorkSheet open={giving} onClose={() => setGiving(false)} />
         </>
       ) : null}
     </div>

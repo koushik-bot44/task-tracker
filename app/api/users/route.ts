@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { issueInvite } from "@/lib/invite";
 import { prisma } from "@/lib/prisma";
+import { syncDepartmentHead } from "@/lib/department-heads";
 import { serializeUser } from "@/lib/serialize";
-import { assertCanCreateUserWithRole, assertCanListUsers } from "@/lib/permissions";
+import { assertCanCreateUserWithRole, assertCanListUsers, assertCanPlaceInDepartment } from "@/lib/permissions";
 import { adminAlreadyExists } from "@/lib/account-guards";
 import { canAdministerAccountsRole, isAdminRole, oversesCompanyRole } from "@/lib/roles";
 import { requireUser, route } from "@/lib/session";
@@ -113,6 +114,9 @@ export const POST = route(async (req: Request) => {
     if (!dept) return NextResponse.json({ error: "That department does not exist." }, { status: 400 });
   }
 
+  // A head or a manager places people in a department they run (2026-09-11).
+  await assertCanPlaceInDepartment(actor, parsed.data.departmentId);
+
   const user = await prisma.user.create({
     data: {
       email,
@@ -125,6 +129,8 @@ export const POST = route(async (req: Request) => {
     include: { department: { select: { name: true } } },
   });
   await addOtherEmails(user.id, others);
+  // A head of department runs the department they are placed in (2026-09-11).
+  await syncDepartmentHead(user.id);
 
   const { sent, url } = await issueInvite({
     user: { id: user.id, name: user.name, email: user.email, role: user.role },

@@ -1,24 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
+import { NewPeopleRows, blankPerson, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
 import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { Button } from "@/components/ui/button";
-import { Field, Sheet, inputClass } from "@/components/ui/sheet";
+import { Sheet } from "@/components/ui/sheet";
 import { useToast } from "@/components/toast";
-import { cn } from "@/lib/cn";
 import { useUserMutations } from "@/lib/hooks/use-users";
-import { ROLE_LABEL, type DepartmentDTO, type UserDTO, type UserRole } from "@/lib/types";
+import type { DepartmentDTO, UserDTO } from "@/lib/types";
 
 /**
- * Invite someone: name, email, role (only the roles this person may hand
- * out), and — optionally — where they sit. They get an email with a link to
- * set their own password, and the same link then shows here to send on
- * WhatsApp or copy, because an email can land in spam (owner, 2026-09-10). The
- * account stays "Invited" until they use it.
+ * Invite people (owner, 2026-09-11): as many as you like in one go, each with a
+ * name, their addresses, a position — or none, and they join as a Team member —
+ * and where they sit. Each gets a link to set their own password, shown here to
+ * send on WhatsApp or copy; an email goes too when email is set up. The accounts
+ * stay "Invited" until the links are used.
  *
- * A person may hold several addresses (2026-09-09). The first is the one the
- * invite is sent to; every one of them signs them in afterwards.
+ * The CEO, a co-founder and the admin place people anywhere, or not yet; a head
+ * or a manager places them in a department they run, as the server insists
+ * (assertCanPlaceInDepartment).
  */
 export function InviteSheet({
   open,
@@ -31,65 +32,62 @@ export function InviteSheet({
   me: UserDTO;
   departments: DepartmentDTO[];
 }) {
-  const { createUser } = useUserMutations();
+  const { invitePeople } = useUserMutations();
   const { show: toast } = useToast();
   const roles = rolesOfferedTo(me.role);
-  const defaultRole: UserRole | null = roles.includes("RESOURCE") ? "RESOURCE" : roles[roles.length - 1] ?? null;
+  const placesAnywhere = me.role === "FOUNDER" || me.role === "CO_FOUNDER" || me.role === "ADMIN";
+  const placeable = useMemo(
+    () => (placesAnywhere ? departments : departments.filter((d) => d.id === me.departmentId || d.hodId === me.id)),
+    [placesAnywhere, departments, me.departmentId, me.id],
+  );
+  const startIn = placesAnywhere ? "" : placeable[0]?.id ?? "";
 
-  const [name, setName] = useState("");
-  /** One row per address; the first is their main one. */
-  const [emails, setEmails] = useState<string[]>([""]);
-  const [role, setRole] = useState<UserRole | null>(defaultRole);
-  const [departmentId, setDepartmentId] = useState("");
-  /** The person just invited, with their link. */
-  const [made, setMade] = useState<{ link: InviteLink; emailed: boolean } | null>(null);
+  const [rows, setRows] = useState<NewPerson[]>(() => [blankPerson(startIn)]);
+  /** Everyone just invited, with their links. */
+  const [made, setMade] = useState<{ links: InviteLink[]; emailed: number } | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setName("");
-    setEmails([""]);
-    setRole(defaultRole);
-    setDepartmentId("");
+    setRows([blankPerson(startIn)]);
     setMade(null);
-  }, [open, defaultRole]);
+  }, [open, startIn]);
 
-  const filled = emails.map((e) => e.trim()).filter(Boolean);
-  const ready = name.trim().length > 0 && filled.length > 0 && role !== null;
+  const invites = toInvites(rows);
+  const problem = invitesProblem(rows, { needDepartment: !placesAnywhere && placeable.length > 0 });
+  const ready = invites.length > 0 && !problem;
 
   const submit = () => {
-    if (!ready || !role) return;
-    const [main, ...rest] = filled;
-    createUser.mutate(
-      { name: name.trim(), email: main, ...(rest.length ? { emails: rest } : {}), role, departmentId: departmentId || null },
+    if (!ready || invitePeople.isPending) return;
+    invitePeople.mutate(
+      { people: invites },
       {
-        onSuccess: ({ user, emailSent, inviteUrl }) => {
-          setMade({ link: { name: user.name, email: user.email, url: inviteUrl }, emailed: emailSent });
-          toast({ message: emailSent ? `Invite emailed to ${user.email}. You can send the link too.` : `${user.name} is added. The email didn't go, so send them the link.` });
+        onSuccess: ({ people }) => {
+          const emailed = people.filter((p) => p.emailSent).length;
+          setMade({ links: people.map((p) => ({ name: p.name, email: p.email, url: p.url })), emailed });
+          toast({ message: people.length === 1 ? `${people[0].name} is invited — send them their link.` : `${people.length} people invited — send each their link.` });
         },
         onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
       },
     );
   };
 
-  const another = () => {
-    setName("");
-    setEmails([""]);
-    setRole(defaultRole);
-    setDepartmentId("");
+  const again = () => {
+    setRows([blankPerson(startIn)]);
     setMade(null);
   };
 
   if (made) {
+    const all = made.links.length;
     return (
       <Sheet
         open={open}
         onClose={onClose}
-        title="Invite someone"
-        subtitle={made.emailed ? `Emailed to ${made.link.email} as well.` : "The email didn't go — send them this link."}
+        title={all === 1 ? "Invited" : `${all} people invited`}
+        subtitle={made.emailed ? (made.emailed === all ? "The invites went by email too." : `${made.emailed} of the invites went by email too.`) : "Send each person their link on WhatsApp, or copy it."}
         footer={
           <div className="flex gap-2">
-            <Button variant="secondary" full onClick={another}>
-              Invite someone else
+            <Button variant="secondary" full onClick={again}>
+              Invite more people
             </Button>
             <Button variant="primary" full onClick={onClose}>
               Done
@@ -97,7 +95,7 @@ export function InviteSheet({
           </div>
         }
       >
-        <InviteLinks links={[made.link]} className="mt-1" />
+        <InviteLinks links={made.links} className="mt-1" />
       </Sheet>
     );
   }
@@ -106,80 +104,29 @@ export function InviteSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Invite someone"
-      subtitle="They'll get an email, and a link you can send on WhatsApp."
+      title="Invite people"
+      subtitle="One or many. Give each a position, or leave them a Team member."
       footer={
-        <Button variant="primary" full onClick={submit} disabled={!ready} loading={createUser.isPending}>
-          Send invite
+        <Button variant="primary" full onClick={submit} disabled={!ready} loading={invitePeople.isPending}>
+          {invites.length > 1 ? `Send ${invites.length} invites` : "Send invite"}
         </Button>
       }
     >
-      <div className="space-y-4 pt-1">
-        <Field label="Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" placeholder="Their full name" className={inputClass} autoFocus />
-        </Field>
-        <Field label={emails.length > 1 ? "Emails" : "Email"} hint={emails.length > 1 ? "The invite goes to the first one; any of them signs them in." : undefined}>
-          <div className="space-y-2">
-            {emails.map((value, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="email"
-                  value={value}
-                  onChange={(e) => setEmails((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      submit();
-                    }
-                  }}
-                  autoComplete="off"
-                  inputMode="email"
-                  placeholder={i === 0 ? "name@company.com" : "their other address"}
-                  aria-label={i === 0 ? "Email" : `Another email (${i + 1})`}
-                  className={inputClass}
-                  autoFocus={i > 0}
-                />
-                {emails.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setEmails((prev) => prev.filter((_, j) => j !== i))}
-                    aria-label="Remove this email"
-                    className="press grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
-                  >
-                    ×
-                  </button>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setEmails((prev) => [...prev, ""])}
-            className="press mt-2 min-h-[32px] text-micro font-medium text-primary-ink"
-          >
-            + Another email for this person
-          </button>
-        </Field>
-        <Field label="Role">
-          <select value={role ?? ""} onChange={(e) => setRole(e.target.value as UserRole)} className={cn(inputClass, "appearance-none")}>
-            {roles.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABEL[r]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {departments.length > 0 ? (
-          <Field label="Department" hint="You can place them later.">
-            <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className={cn(inputClass, "appearance-none")}>
-              <option value="">Not placed yet</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+      <div className="space-y-3 pt-1">
+        <NewPeopleRows
+          rows={rows}
+          onChange={setRows}
+          roles={roles}
+          departments={placeable}
+          allowUnplaced={placesAnywhere}
+          defaultDepartmentId={startIn}
+          addLabel={rows.length ? "+ Another person" : "+ Someone to invite"}
+          autoFocusLast
+        />
+        {problem ? (
+          <p className="text-micro text-danger-ink" aria-live="polite">
+            {problem}
+          </p>
         ) : null}
       </div>
     </Sheet>

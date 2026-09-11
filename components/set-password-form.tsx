@@ -58,10 +58,10 @@ export function SetPasswordForm({ token }: { token: string }) {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        const body = (await res.json().catch(() => null)) as { error?: string; state?: "expired" | "consumed" | "unknown" } | null;
         setError(body?.error ?? "Could not set your password.");
         setPending(false);
-        if (res.status === 410) setInfo({ state: "consumed" });
+        if (res.status === 410) setInfo({ state: body?.state ?? "unknown" });
         return;
       }
       router.replace("/");
@@ -157,15 +157,15 @@ function DeadLink({ state }: { state: "expired" | "consumed" | "unknown" | "erro
   const copy = {
     expired: {
       title: "This invite has expired",
-      body: "Invite links last 72 hours. Ask your manager to send you a fresh one.",
+      body: "Invite links last 72 hours. Ask whoever invited you for a fresh one.",
     },
     consumed: {
       title: "This invite was already used",
-      body: "Your account is set up. Head to sign-in, or ask your manager to resend if you're stuck.",
+      body: "This link has done its job. Sign in with the password you set, or ask whoever invited you for a fresh link.",
     },
     unknown: {
       title: "This link isn't valid",
-      body: "Double-check the link from your email, or ask your manager to resend the invite.",
+      body: "A newer link may have replaced it. Ask whoever invited you to send it again.",
     },
     error: {
       title: "Something went wrong",

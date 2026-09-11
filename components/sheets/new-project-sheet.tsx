@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
-import { NewPeopleRows, blankPerson, toInvites, type NewPerson } from "@/components/people/new-people-rows";
+import { NewPeopleRows, blankPerson, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
+import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
@@ -95,7 +96,8 @@ export function NewProjectSheet({
   }, [departments, me]);
 
   const targetDepartment = departmentId ?? pickedDepartment;
-  const ready = name.trim().length > 0 && targetDepartment.length > 0 && !createProject.isPending;
+  // A mistyped address stops Save rather than being dropped (2026-09-11).
+  const ready = name.trim().length > 0 && targetDepartment.length > 0 && !createProject.isPending && !invitesProblem(newPeople);
 
   // People to put on it: the department's own first, everyone else under "More".
   const people = useMemo(() => {
@@ -109,7 +111,7 @@ export function NewProjectSheet({
 
   // A person counts once they have at least one address; the name is optional
   // (the server falls back to the address) but the form asks for it first.
-  const invites = toInvites(newPeople).map(({ name, emails }) => ({ name, emails }));
+  const invites = toInvites(newPeople).map(({ name, emails, role }) => ({ name, emails, role }));
 
   const submit = () => {
     if (!ready) return;
@@ -127,7 +129,7 @@ export function NewProjectSheet({
       {
         onSuccess: (project) => {
           const extra = project as typeof project & { added?: number; invited?: number; links?: InviteLink[] };
-          const bits = [extra.added ? `${extra.added} added` : null, extra.invited ? `${extra.invited} invited by email` : null].filter(Boolean);
+          const bits = [extra.added ? `${extra.added} added` : null, extra.invited ? `${extra.invited} invited` : null].filter(Boolean);
           toast({ message: bits.length ? `Project started · ${bits.join(" · ")}` : "Project started" });
           // The new people's links, to send on WhatsApp before moving on — an email can land in spam (2026-09-10).
           if (extra.links?.length) {
@@ -290,10 +292,11 @@ export function NewProjectSheet({
           <div>
             <span className="mb-1.5 block text-micro font-medium text-muted">Someone not on Orbit yet</span>
             <div className="space-y-3">
-              <NewPeopleRows rows={newPeople} onChange={setNewPeople} autoFocusLast />
+              <NewPeopleRows rows={newPeople} onChange={setNewPeople} roles={rolesOfferedTo(me?.role)} autoFocusLast />
+              {invitesProblem(newPeople) ? <p className="text-micro text-danger-ink">{invitesProblem(newPeople)}</p> : null}
               {newPeople.length ? (
                 <p className="text-micro text-muted">
-                  Each gets an email to set a password and lands on this project. Someone with two addresses is one person — either one signs them in.
+                  Each gets a link to set a password — send it on WhatsApp or copy it — and lands on this project. Someone with two addresses is one person — either one signs them in.
                 </p>
               ) : null}
             </div>

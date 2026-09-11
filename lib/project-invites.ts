@@ -1,6 +1,7 @@
 import { Prisma, type Role } from "@prisma/client";
 import { issueInvite } from "@/lib/invite";
 import { syncProjectReviews } from "@/lib/meetings";
+import { syncDepartmentHead } from "@/lib/department-heads";
 import { assertCanCreateUserWithRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ensureMember } from "@/lib/project-people";
@@ -15,7 +16,8 @@ import { addOtherEmails, dedupeEmails, findUserIdByEmail, isEmailShaped } from "
  * mistyped address never leaves half a batch behind.
  */
 
-export type InviteRow = { name?: string | null; emails: string[]; role?: "RESOURCE" | "TEAM_LEAD" | null };
+/** A position is optional: left out, a Team member (2026-09-11). */
+export type InviteRow = { name?: string | null; emails: string[]; role?: Role | null };
 
 export type InviteOutcome = {
   added: number;
@@ -43,7 +45,7 @@ export async function invitePeopleToProject(
       if (owner.has(e)) throw new HttpError(400, `${e} is written for two people.`);
       owner.set(e, i);
     }
-    return { name: row.name?.trim() ?? "", addresses, role: row.role === "TEAM_LEAD" ? ("TEAM_LEAD" as const) : ("RESOURCE" as const) };
+    return { name: row.name?.trim() ?? "", addresses, role: row.role ?? ("RESOURCE" as Role) };
   });
 
   // 2. Who is here already — read before anything is written, and the right to
@@ -93,6 +95,8 @@ export async function invitePeopleToProject(
     }
     await addOtherEmails(user.id, others);
     await ensureMember(project.id, user.id);
+    // A head of department invited here heads the project's department if it has none.
+    await syncDepartmentHead(user.id);
     const { sent, url } = await issueInvite({ user: { id: user.id, name: user.name, email: user.email, role: user.role }, inviterName: actor.name, createdById: actor.id, projectName: project.name });
     out.invited++;
     out.links.push({ name: user.name, email: user.email, url });

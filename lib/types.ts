@@ -305,6 +305,8 @@ export type TaskDTO = {
 };
 
 export type ProjectPersonDTO = {
+  /** Invited and hasn't set a password yet (2026-09-11). */
+  invited?: boolean;
   id: string;
   name: string;
   role: UserRole;

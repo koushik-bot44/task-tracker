@@ -30,7 +30,8 @@ export function serializeGroup(g: GroupRow): AssignmentGroupDTO {
     active: g.active,
     orderKey: g.orderKey,
     createdAt: g.createdAt.toISOString(),
-    members: g.members.filter((m) => !m.user.disabledAt && m.user.status === "ACTIVE").map((m) => ({ id: m.user.id, name: m.user.name, role: m.user.role })),
+    // Invited people are on their team before they sign in (2026-09-11).
+    members: g.members.filter((m) => !m.user.disabledAt && (m.user.status === "ACTIVE" || m.user.status === "PENDING")).map((m) => ({ id: m.user.id, name: m.user.name, role: m.user.role })),
     openTasks: g._count.tasks,
   };
 }

@@ -36,21 +36,25 @@ export function FormRow({ label, children, required = false }: { label: string; 
 }
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { value: T; label: string; count?: number }[]; value: T; onChange: (v: T) => void }) {
+  // The tabs scroll sideways on their own when they don't fit, so a phone never
+  // scrolls the whole page (2026-09-11: the Individual tab pushed Work to 442px).
   return (
-    <div role="tablist" className="flex items-end gap-1 border-b border-line px-2">
-      {tabs.map((t) => (
-        <button
-          key={t.value}
-          type="button"
-          role="tab"
-          aria-selected={value === t.value}
-          onClick={() => onChange(t.value)}
-          className={cn("press -mb-px h-9 px-3 text-[13px] font-medium", value === t.value ? "border-b-2 border-primary text-ink" : "text-muted hover:text-ink")}
-        >
-          {t.label}
-          {t.count !== undefined ? <span className="ml-1 text-muted">({t.count})</span> : null}
-        </button>
-      ))}
+    <div className="border-b border-line">
+      <div role="tablist" className="flex items-end gap-1 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {tabs.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            aria-selected={value === t.value}
+            onClick={() => onChange(t.value)}
+            className={cn("press h-9 shrink-0 whitespace-nowrap px-3 text-[13px] font-medium", value === t.value ? "border-b-2 border-primary text-ink" : "text-muted hover:text-ink")}
+          >
+            {t.label}
+            {t.count !== undefined ? <span className="ml-1 text-muted">({t.count})</span> : null}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

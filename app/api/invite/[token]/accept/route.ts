@@ -35,19 +35,20 @@ export const POST = route(async (req: Request, { params }: Params) => {
 
   const tokenHash = hashInviteToken(params.token);
   const invite = await prisma.invite.findUnique({ where: { tokenHash } });
-  if (!invite) throw new HttpError(410, "This invite link is not valid.");
-  if (invite.expiresAt.getTime() < Date.now()) {
-    throw new HttpError(410, "This invite link has expired. Ask your manager to resend it.");
-  }
+  // A dead link says which kind of dead, so the page never claims an account is
+  // set up when its link was only replaced (2026-09-11).
+  const gone = (state: "unknown" | "expired" | "consumed", error: string) => NextResponse.json({ error, state }, { status: 410 });
+  if (!invite) return gone("unknown", "This invite link is not valid. A newer link may have replaced it.");
+  if (invite.expiresAt.getTime() < Date.now()) return gone("expired", "This invite link has expired. Ask whoever invited you for a fresh one.");
+  const account = await prisma.user.findUnique({ where: { id: invite.userId }, select: { disabledAt: true } });
+  if (!account || account.disabledAt) return gone("unknown", "This account has been switched off. Ask whoever invited you.");
 
   // Claim the invite atomically so it can be used exactly once, even under a race.
   const claimed = await prisma.invite.updateMany({
     where: { id: invite.id, consumedAt: null },
     data: { consumedAt: new Date() },
   });
-  if (claimed.count !== 1) {
-    throw new HttpError(410, "This invite has already been used.");
-  }
+  if (claimed.count !== 1) return gone("consumed", "This invite has already been used.");
 
   const user = await prisma.user.update({
     where: { id: invite.userId },

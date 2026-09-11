@@ -36,7 +36,8 @@ const bodySchema = z.object({
       z.object({
         name: z.string().trim().max(80).optional(),
         emails: z.array(z.string().trim().min(3).max(320)).min(1).max(10),
-        role: z.enum(["RESOURCE", "TEAM_LEAD"]).optional(),
+        /** Any position the inviter may give; left out, a Team member (2026-09-11). */
+        role: z.enum(["CO_FOUNDER", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE"]).nullable().optional(),
       }),
     )
     .min(1)

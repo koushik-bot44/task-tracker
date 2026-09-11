@@ -49,7 +49,10 @@ export function AssignSheet({
   const people = useMemo(() => {
     if (group) return group.members;
     if (task.projectId) return (projectPeople ?? []).map((p) => ({ id: p.id, name: p.name }));
-    const list = (users ?? []).filter((u) => u.role !== "ADMIN" && u.role !== "PERSON" && u.status === "ACTIVE" && !u.disabledAt).map((u) => ({ id: u.id, name: u.name }));
+    // Invited people can be given work before they sign in (2026-09-11).
+    const list = (users ?? [])
+      .filter((u) => u.role !== "ADMIN" && u.role !== "PERSON" && (u.status === "ACTIVE" || u.status === "PENDING") && !u.disabledAt)
+      .map((u) => ({ id: u.id, name: u.status === "PENDING" ? `${u.name} (invited)` : u.name }));
     return list.length || !me ? list : [{ id: me.id, name: me.name }];
   }, [group, task.projectId, projectPeople, users, me]);
 
@@ -222,7 +225,7 @@ export function MorePeopleSheet({
     for (const m of group?.members ?? []) out.set(m.id, m.name);
     for (const p of projectPeople ?? []) out.set(p.id, p.name);
     for (const u of users ?? []) {
-      if (u.role !== "ADMIN" && u.role !== "PERSON" && u.status === "ACTIVE" && !u.disabledAt) out.set(u.id, u.name);
+      if (u.role !== "ADMIN" && u.role !== "PERSON" && (u.status === "ACTIVE" || u.status === "PENDING") && !u.disabledAt) out.set(u.id, u.status === "PENDING" ? `${u.name} (invited)` : u.name);
     }
     return [...out.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [group, projectPeople, users]);

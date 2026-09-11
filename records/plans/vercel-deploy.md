@@ -26,8 +26,13 @@ Variables → Production** before the first deploy.
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` (optional `SMTP_SECURE`, `EMAIL_REPLY_TO`) | from your mail provider | email; silent while unset |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`, `TWILIO_CONTENT_SID` | from Twilio | WhatsApp; silent while unset |
 
-Not needed: `APP_PASSCODE` (only the long-closed first-run bootstrap reads it —
-leave it unset), the `SHOT_*` logins (screenshot rig, dev only),
+`APP_PASSCODE`: only for a brand-new deployment whose database has no accounts
+yet. The first visit then shows "Set up the CEO account", asks for this
+passcode once, and makes the CEO and the default departments
+(lib/default-departments.ts). After that the set-up is closed for good and the
+variable can be removed.
+
+Not needed: the `SHOT_*` logins (screenshot rig, dev only),
 `NODE_ENV`/`VERCEL_URL` (Vercel sets them).
 
 ## Order

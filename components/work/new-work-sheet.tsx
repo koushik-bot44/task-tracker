@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PendingFileChips, usePendingFiles } from "@/components/notes/pending-files";
 import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
+import { NewPeopleRows, blankPerson, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
+import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
@@ -16,7 +18,6 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useGroups, useRaiseWork } from "@/lib/hooks/use-work";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
-import type { UserDTO } from "@/lib/types";
 import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL, titleCase, type WorkPriority, type WorkType } from "@/lib/types";
 
 /**
@@ -42,7 +43,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
   const [assignees, setAssignees] = useState<Set<string>>(new Set());
   /** People who are not on Orbit yet. One row per person; a person may hold
       several addresses, the first being the one the invite is sent to. */
-  const [invites, setInvites] = useState<{ name: string; emails: string[] }[]>([]);
+  const [invites, setInvites] = useState<NewPerson[]>([]);
   const [peopleQ, setPeopleQ] = useState("");
   const [inviting, setInviting] = useState(false);
   /** Files that go with the task: each uploads as soon as it is picked, side by
@@ -56,7 +57,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
   const { data: users } = useUsers(open && canSeeUserListRole(me?.role));
   const canInvite = canAdministerAccountsRole(me?.role);
 
-  const addInvitee = () => setInvites((prev) => [...prev, { name: "", emails: [""] }]);
+  const addInvitee = () => setInvites((prev) => [...prev, blankPerson(departmentId)]);
 
   const pickFiles = (picked: FileList | null) => {
     const leftOut = files.add(picked);
@@ -64,6 +65,12 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
   };
 
   const group = (groups ?? []).find((g) => g.id === groupId) ?? null;
+  const offeredRoles = rolesOfferedTo(me?.role);
+  // With a team chosen the task goes to its people only, so nobody new is invited into it.
+  const newPeople = group ? [] : toInvites(invites);
+  const inviteProblem = group ? null : invitesProblem(invites);
+  /** No department and nobody named: the task would reach no queue at all (2026-09-11). */
+  const noQueue = !departmentId && assignees.size === 0 && newPeople.length === 0;
   // Who may be named: the team's people, else the department's, else everyone you can see.
   const candidates: { id: string; name: string }[] = group
     ? group.members
@@ -101,26 +108,18 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       return;
     }
     const holders = new Set(assignees);
-    // People not on Orbit yet: their accounts are made now (pending); the invite
-    // mail goes first and each task waits in their bell.
-    const rows = invites
-      .map((i) => ({ name: i.name.trim(), emails: i.emails.map((e) => e.trim()).filter(Boolean) }))
-      .filter((i) => i.emails.length > 0);
+    // People not on Orbit yet: their accounts are made now (invited), all in one
+    // go — every row checked before any is made — and each task waits for them.
     const links: InviteLink[] = [];
-    if (rows.length) {
+    if (newPeople.length) {
       setInviting(true);
       try {
-        for (const i of rows) {
-          const [main, ...rest] = i.emails;
-          const res = await apiPost<{ user: UserDTO; inviteUrl?: string }>("/api/users", {
-            name: i.name || main.split("@")[0],
-            email: main,
-            ...(rest.length ? { emails: rest } : {}),
-            role: "RESOURCE",
-            departmentId: departmentId || group?.departmentId || null,
-          });
-          holders.add(res.user.id);
-          if (res.inviteUrl) links.push({ name: res.user.name, email: res.user.email, url: res.inviteUrl });
+        const res = await apiPost<{ people: { id: string; name: string; email: string; url: string }[] }>("/api/users/invite", {
+          people: newPeople.map((p) => ({ ...p, departmentId: departmentId || null })),
+        });
+        for (const p of res.people) {
+          holders.add(p.id);
+          links.push({ name: p.name, email: p.email, url: p.url });
         }
       } catch (e) {
         setInviting(false);
@@ -166,6 +165,8 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       router.push(go);
     } catch (e) {
       toast({ message: (e as Error).message, tone: "danger" });
+      // The people already invited keep their links, so none is lost (2026-09-11).
+      if (links.length) setShared({ links, go: "/work?mine=requested" });
     }
   };
 
@@ -202,7 +203,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
       onClose={onClose}
       title="New Task"
       footer={
-        <Button variant="primary" full loading={raise.isPending || inviting} disabled={!title.trim() || files.uploading} onClick={() => void submit()}>
+        <Button variant="primary" full loading={raise.isPending || inviting} disabled={!title.trim() || files.uploading || noQueue || Boolean(inviteProblem)} onClick={() => void submit()}>
           Submit
         </Button>
       }
@@ -270,7 +271,7 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
               <input value={peopleQ} onChange={(e) => setPeopleQ(e.target.value)} placeholder="Find a person" aria-label="Find a person" className="h-10 w-full border-b border-line bg-transparent px-3 text-sm text-ink outline-none placeholder:text-muted" />
             ) : null}
             <ul className="max-h-56 divide-y divide-line overflow-y-auto">
-              {[...(me && !candidates.some((c) => c.id === me.id) ? [{ id: me.id, name: `${me.name} (me)` }] : []), ...candidates]
+              {[...(me && !group && !candidates.some((c) => c.id === me.id) ? [{ id: me.id, name: `${me.name} (me)` }] : []), ...candidates]
                 .filter((c) => !peopleQ.trim() || c.name.toLowerCase().includes(peopleQ.trim().toLowerCase()))
                 .map((c) => {
                   const on = assignees.has(c.id);
@@ -306,87 +307,22 @@ export function NewWorkSheet({ open, onClose, presetProjectId = null, presetDepa
                 </li>
               ) : null}
             </ul>
-            {assignees.size === 0 && invites.length === 0 ? <p className="border-t border-line px-3 py-2 text-micro text-muted">Nobody ticked: the task opens unassigned and the team picks it up.</p> : null}
+            {assignees.size === 0 && newPeople.length === 0 ? (
+              <p className="border-t border-line px-3 py-2 text-micro text-muted">
+                {departmentId ? "Nobody ticked: the task waits in the department's queue for someone to pick it up." : "Pick a department or tick a person — a task with neither reaches nobody."}
+              </p>
+            ) : null}
           </div>
         </Field>
-        {canInvite ? (
+        {canInvite && !group ? (
           <div className="space-y-3">
             {/* One card per PERSON — stacked, so it holds up on a phone — and a
                 person may hold several addresses, the first being the one written to. */}
-            {invites.map((inv, i) => {
-              const who = inv.name.trim() || `new person ${i + 1}`;
-              return (
-                <div key={i} className="space-y-2 rounded-input bg-hover p-3">
-                  <div className="flex items-end gap-2">
-                    <div className="min-w-0 flex-1">
-                      <Field label="Name">
-                        <input
-                          value={inv.name}
-                          onChange={(e) => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                          placeholder="Kiran"
-                          aria-label={`Name of ${who}`}
-                          autoFocus
-                          className={inputClass}
-                        />
-                      </Field>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setInvites((prev) => prev.filter((_, j) => j !== i))}
-                      aria-label={`Remove ${who}`}
-                      className="press mb-0.5 grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
-                    >
-                      ×
-                    </button>
-                  </div>
-
-                  <Field label={inv.emails.length > 1 ? "Emails" : "Email"} hint={inv.emails.length > 1 ? "The invite goes to the first one." : undefined}>
-                    <div className="space-y-2">
-                      {inv.emails.map((email, k) => (
-                        <div key={k} className="flex items-center gap-2">
-                          <input
-                            type="email"
-                            inputMode="email"
-                            autoComplete="off"
-                            value={email}
-                            onChange={(e) =>
-                              setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, emails: x.emails.map((y, m) => (m === k ? e.target.value : y)) } : x)))
-                            }
-                            placeholder={k === 0 ? "kiran@company.com" : "their other address"}
-                            aria-label={k === 0 ? `Email for ${who}` : `Another email for ${who}`}
-                            className={inputClass}
-                          />
-                          {inv.emails.length > 1 ? (
-                            <button
-                              type="button"
-                              onClick={() => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, emails: x.emails.filter((_, m) => m !== k) } : x)))}
-                              aria-label={`Remove this email for ${who}`}
-                              className="press grid h-12 w-10 shrink-0 place-items-center rounded-full text-lg text-muted hover:text-danger-ink"
-                            >
-                              ×
-                            </button>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </Field>
-
-                  <button
-                    type="button"
-                    onClick={() => setInvites((prev) => prev.map((x, j) => (j === i ? { ...x, emails: [...x.emails, ""] } : x)))}
-                    className="press min-h-[32px] text-micro font-medium text-primary-ink"
-                  >
-                    + Another email for this person
-                  </button>
-                </div>
-              );
-            })}
-            <button type="button" onClick={addInvitee} className="press min-h-[32px] text-sm font-medium text-primary-ink">
-              + Someone not on Orbit yet
-            </button>
+            <NewPeopleRows rows={invites} onChange={setInvites} roles={offeredRoles} addLabel={invites.length ? "+ Another person" : "+ Someone not on Orbit yet"} autoFocusLast />
+            {inviteProblem ? <p className="text-micro text-danger-ink">{inviteProblem}</p> : null}
             {invites.length ? (
               <p className="text-micro text-muted">
-                Each gets an email to set a password; their task waits for them. Someone with two addresses is one person — either one signs them in.
+                Each gets a link to set a password — send it on WhatsApp or copy it — and their task waits for them. Someone with two addresses is one person — either one signs them in.
               </p>
             ) : null}
           </div>

@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 const BASE = process.env.SCREEN_BASE ?? "http://localhost:3000";
 const PREFIX = "permtest-";
 
-type Actor = { label: string; email: string; cookie: string; id: string };
+type Actor = { label: string; email: string; cookie: string; id: string; password?: string };
 type Reply = { status: number; json: any };
 
 let pass = 0;
@@ -120,7 +120,7 @@ async function main() {
       update: { passwordHash: await hashPassword(password), role: spec.role, disabledAt: null, status: "ACTIVE" },
       create: { email, name: `Perm ${spec.label}`, role: spec.role, passwordHash: await hashPassword(password) },
     });
-    actors[spec.label] = { label: spec.label, email, id: user.id, cookie: await signIn(email, password) };
+    actors[spec.label] = { label: spec.label, email, id: user.id, cookie: await signIn(email, password), password };
   }
   // Every account this run made, for the cleanup — the PERSON is added later.
   const userIds = Object.values(actors).map((a) => a.id);
@@ -187,7 +187,8 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("dev (not on it yet) reads the project -> 404", (await call(dev, "GET", `/api/projects/${projectId}`)).status, 404);
 
   console.log("\n── add people ────────────────────────────────────────────────");
-  record("lead adds a member -> 403", (await call(lead, "POST", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 403);
+  // The project's lead runs it (2026-09-11): projectBody names `lead` as every project's lead.
+  record("lead (the project's lead) adds a member -> 200", (await call(lead, "POST", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 200);
   record("manager (owner) adds dev -> 200", (await call(manager, "POST", `/api/projects/${projectId}/members`, { userId: dev.id })).status, 200);
   record("manager (owner) adds dev2 -> 200", (await call(manager, "POST", `/api/projects/${projectId}/members`, { userId: dev2.id })).status, 200);
   record(
@@ -197,6 +198,7 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   );
   record("another manager adds a member -> 404", (await call(manager2, "POST", `/api/projects/${projectId}/members`, { userId: dev3.id })).status, 404);
   record("added dev now reads the project -> 200", (await call(dev, "GET", `/api/projects/${projectId}`)).status, 200);
+  record("dev (on it, but not its lead) adds someone -> 403", (await call(dev, "POST", `/api/projects/${projectId}/members`, { userId: dev3.id })).status, 403);
 
   // Several at once, after the project exists (owner, 2026-09-10).
   const batch = await call(manager, "POST", `/api/projects/${projectId}/members`, {
@@ -342,11 +344,11 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
 
   console.log("\n── milestones ────────────────────────────────────────────────");
   const reviewDay = workingDay(today, 7);
-  record(
-    "lead adds a milestone -> 403",
-    (await call(lead, "POST", "/api/milestones", { projectId, name: "PT milestone", reviewDate: reviewDay })).status,
-    403,
-  );
+  // The project's lead runs it (2026-09-11), milestones included. Its own name and a
+  // review date well clear of the days the meeting cases use, removed straight away.
+  const leadMilestone = await call(lead, "POST", "/api/milestones", { projectId, name: "PT lead milestone", reviewDate: workingDay(today, 30) });
+  record("lead (the project's lead) adds a milestone -> 201", leadMilestone.status, 201);
+  if (leadMilestone.json?.id) record("…and removes it again -> 200", (await call(lead, "DELETE", `/api/milestones/${leadMilestone.json.id}`)).status, 200);
   const ms = await call(manager, "POST", "/api/milestones", { projectId, name: "PT milestone", reviewDate: reviewDay });
   record("manager adds a milestone -> 201", ms.status, 201);
   if (ms.status !== 201) throw new Error(`milestone not created: ${ms.status} ${JSON.stringify(ms.json)}`);
@@ -470,15 +472,110 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("lead creates a team member -> 403", (await mint(lead, "leadmade", "RESOURCE")).status, 403);
   record("manager creates a team lead -> 201", (await mint(manager, "mgrlead", "TEAM_LEAD")).status, 201);
   record("manager creates a manager -> 403", (await mint(manager, "mgrmgr", "MANAGER")).status, 403);
-  record("hod creates a manager -> 201", (await mint(hod, "hodmgr", "MANAGER")).status, 201);
+  // A head places people in the department they head (2026-09-11).
+  record("hod creates a manager in their department -> 201", (await call(hod, "POST", "/api/users", { name: "PT hodmgr", email: `${PREFIX}hodmgr@orbit.local`, role: "MANAGER", departmentId: deptId })).status, 201);
   record("the CEO creates a head of department -> 201", (await mint(director, "dirhod", "HOD")).status, 201);
   record("admin creates a head of department -> 403", (await mint(admin, "admhod", "HOD")).status, 403);
   record("admin creates a manager -> 201", (await mint(admin, "admmgr", "MANAGER")).status, 201);
-  record("manager places dev in a department -> 200", (await call(manager, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 200);
+  // A manager places people only in a department they run; this one runs none (2026-09-11).
+  record("a manager with no department places dev in one -> 403", (await call(manager, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 403);
   record("lead places dev in a department -> 403", (await call(lead, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 403);
   record("dev reads the people list -> 403", (await call(dev, "GET", "/api/users")).status, 403);
   record("lead reads the people list -> 200", (await call(lead, "GET", "/api/users")).status, 200);
   record("admin reads the people list -> 200", (await call(admin, "GET", "/api/users")).status, 200);
+
+  console.log("\n── organisation set-up (2026-09-11) ─────────────────────────");
+  const unsigned = async (method: string, path: string, body: unknown) =>
+    (await fetch(BASE + path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).status;
+  // A head or a manager places people only in a department they run.
+  record("hod creates someone and leaves them unplaced -> 400", (await mint(hod, "hodloose", "RESOURCE")).status, 400);
+  const elsewhere = await prisma.department.findFirst({ where: { id: { not: deptId }, name: { not: { startsWith: "PT " } } }, select: { id: true } });
+  if (elsewhere) {
+    record(
+      "hod creates someone in another department -> 403",
+      (await call(hod, "POST", "/api/users", { name: "PT hodelse", email: `${PREFIX}hodelse@orbit.local`, role: "RESOURCE", departmentId: elsewhere.id })).status,
+      403,
+    );
+  }
+  const placedPassword = generateTempPassword(16);
+  const placedUser = await prisma.user.create({
+    data: { email: `${PREFIX}placedmgr@orbit.local`, name: "Perm placed manager", role: "MANAGER", departmentId: deptId, passwordHash: await hashPassword(placedPassword) },
+  });
+  userIds.push(placedUser.id);
+  const placedMgr: Actor = { label: "placedmgr", email: placedUser.email, id: placedUser.id, cookie: await signIn(placedUser.email, placedPassword), password: placedPassword };
+  record("a manager places dev in their own department -> 200", (await call(placedMgr, "PATCH", `/api/users/${dev.id}`, { departmentId: deptId })).status, 200);
+  if (elsewhere) record("…but not in another -> 403", (await call(placedMgr, "PATCH", `/api/users/${dev2.id}`, { departmentId: elsewhere.id })).status, 403);
+
+  // Several people at once, each with a position or none.
+  const invitePeople = (actor: Actor, people: unknown[]) => call(actor, "POST", "/api/users/invite", { people });
+  const pair = await invitePeople(placedMgr, [
+    { name: "PT pm one", emails: [`${PREFIX}pm1@orbit.local`], departmentId: deptId },
+    { name: "PT pm two", emails: [`${PREFIX}pm2@orbit.local`], role: "TEAM_LEAD", departmentId: deptId },
+  ]);
+  record("a manager invites two at once into their own department -> 201", pair.status, 201);
+  check(
+    "…one left a Team member, one a team lead, each with a link",
+    pair.json?.people?.[0]?.role === "RESOURCE" && pair.json?.people?.[1]?.role === "TEAM_LEAD" && (pair.json?.people ?? []).every((p: any) => /\/invite\//.test(p.url)),
+    JSON.stringify((pair.json?.people ?? []).map((p: any) => p.role)),
+  );
+  record("…leaving them unplaced -> 400", (await invitePeople(placedMgr, [{ emails: [`${PREFIX}pm3@orbit.local`] }])).status, 400);
+  const mixed = await invitePeople(placedMgr, [
+    { emails: [`${PREFIX}pm4@orbit.local`], departmentId: deptId },
+    { emails: [`${PREFIX}pm5@orbit.local`], role: "HOD", departmentId: deptId },
+  ]);
+  record("…a batch holding a position they may not give is refused whole -> 403", mixed.status, 403);
+  check("…and nobody in it is made", (await prisma.user.count({ where: { email: { in: [`${PREFIX}pm4@orbit.local`, `${PREFIX}pm5@orbit.local`] } } })) === 0);
+  record(
+    "the CEO invites a head and a co-founder at once -> 201",
+    (await invitePeople(director, [{ emails: [`${PREFIX}ceohod@orbit.local`], role: "HOD" }, { emails: [`${PREFIX}ceoco@orbit.local`], role: "CO_FOUNDER" }])).status,
+    201,
+  );
+  record("an invite as CEO is refused -> 400", (await invitePeople(director, [{ emails: [`${PREFIX}ceo2@orbit.local`], role: "FOUNDER" }])).status, 400);
+  record("the admin invites a head -> 403", (await invitePeople(admin, [{ emails: [`${PREFIX}adminhod@orbit.local`], role: "HOD" }])).status, 403);
+  record("lead invites anyone -> 403", (await invitePeople(lead, [{ emails: [`${PREFIX}leadinv@orbit.local`] }])).status, 403);
+  record("dev invites anyone -> 403", (await invitePeople(dev, [{ emails: [`${PREFIX}devinv@orbit.local`] }])).status, 403);
+  record("signed out, inviting -> 401", await unsigned("POST", "/api/users/invite", { people: [{ emails: [`${PREFIX}anon@orbit.local`] }] }), 401);
+
+  // A head of department heads the department they are placed in, and stops when they are no longer a head.
+  const headless = await call(director, "POST", "/api/departments", { name: "PT headless department", color: "#0d9488" });
+  const headlessId: string = headless.json?.id ?? "";
+  const newHead = await call(director, "POST", "/api/users", { name: "PT new head", email: `${PREFIX}newhead@orbit.local`, role: "HOD", departmentId: headlessId });
+  record("the CEO invites a head into a department with none -> 201", newHead.status, 201);
+  const headOfHeadless = async () => (await prisma.department.findUnique({ where: { id: headlessId }, select: { hodId: true } }))?.hodId ?? null;
+  check("…who heads it at once", (await headOfHeadless()) === newHead.json?.user?.id);
+  record("…the CEO makes them a manager -> 200", (await call(director, "PATCH", `/api/users/${newHead.json?.user?.id}`, { role: "MANAGER" })).status, 200);
+  check("…and the department has no head again", (await headOfHeadless()) === null);
+
+  // A department with people in it isn't deleted.
+  record("the CEO deletes a department that still has a person -> 409", (await call(director, "DELETE", `/api/departments/${headlessId}`)).status, 409);
+  await call(director, "PATCH", `/api/users/${newHead.json?.user?.id}`, { departmentId: null });
+  record("…and once they are moved out -> 200", (await call(director, "DELETE", `/api/departments/${headlessId}`)).status, 200);
+
+  // Nobody resets their own password from People; your own sign-in email changes with your password.
+  record("the admin resets their own password from People -> 403", (await call(admin, "PATCH", `/api/users/${admin.id}`, { reset: true })).status, 403);
+  record("…and is still signed in -> 200", (await call(admin, "GET", "/api/users/me")).status, 200);
+  const myEmail = (body: unknown) => call(dev, "POST", "/api/users/me/email", body);
+  record("dev changes their sign-in email with the wrong password -> 403", (await myEmail({ email: `${PREFIX}dev-new@orbit.local`, password: "not-it-at-all" })).status, 403);
+  record("…to someone else's address -> 409", (await myEmail({ email: lead.email, password: dev.password })).status, 409);
+  record("…to something that isn't an address -> 400", (await myEmail({ email: "no-at-sign", password: dev.password })).status, 400);
+  record("…to a new one, with their password -> 200", (await myEmail({ email: `${PREFIX}dev-new@orbit.local`, password: dev.password })).status, 200);
+  record("…and back -> 200", (await myEmail({ email: dev.email, password: dev.password })).status, 200);
+  record("signed out, changing an email -> 401", await unsigned("POST", "/api/users/me/email", { email: `${PREFIX}anon2@orbit.local`, password: "x" }), 401);
+
+  // The set-up counts are the CEO's.
+  record("the CEO reads the set-up counts -> 200", (await call(director, "GET", "/api/org/setup")).status, 200);
+  record("hod reads the set-up counts -> 403", (await call(hod, "GET", "/api/org/setup")).status, 403);
+  record("the admin reads the set-up counts -> 403", (await call(admin, "GET", "/api/org/setup")).status, 403);
+
+  // A project's lead runs it.
+  const extra = await prisma.user.create({
+    data: { email: `${PREFIX}extra@orbit.local`, name: "Perm extra", role: "RESOURCE", passwordHash: await hashPassword(generateTempPassword(16)) },
+  });
+  userIds.push(extra.id);
+  const ledProject = await call(director, "POST", "/api/projects", { name: "PT lead-run project", departmentId: deptId, leadId: lead.id });
+  record("the CEO starts a project led by the team lead -> 201", ledProject.status, 201);
+  record("the project's lead adds someone to it -> 200", (await call(lead, "POST", `/api/projects/${ledProject.json?.id}/members`, { userId: extra.id })).status, [200, 201]);
+  record("another manager adds someone to it -> 404", (await call(manager2, "POST", `/api/projects/${ledProject.json?.id}/members`, { userId: extra.id })).status, 404);
 
   console.log("\n── walls: admin ──────────────────────────────────────────────");
   record("admin lists projects -> 403", (await call(admin, "GET", "/api/projects")).status, 403);

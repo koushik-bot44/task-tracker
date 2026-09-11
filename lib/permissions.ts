@@ -184,3 +184,23 @@ export async function assertCanAdministerTarget(
     }
   }
 }
+
+/**
+ * Where may this actor place someone (2026-09-11)? The CEO, a co-founder and the
+ * admin anywhere, or not yet. A head or a manager only in their own department
+ * or one they head — and not "not placed", because an unplaced person drops out
+ * of their People list, so they could no longer reshare the link or change them.
+ */
+export async function assertCanPlaceInDepartment(
+  actor: { id: string; role: Role; departmentId?: string | null },
+  departmentId: string | null | undefined,
+): Promise<void> {
+  if (actor.role !== "HOD" && actor.role !== "MANAGER") return;
+  const headed = actor.role === "HOD" ? await prisma.department.findMany({ where: { hodId: actor.id }, select: { id: true } }) : [];
+  const mine = new Set<string>([...(actor.departmentId ? [actor.departmentId] : []), ...headed.map((d) => d.id)]);
+  if (!departmentId) {
+    if (mine.size) throw new HttpError(400, "Pick their department — one you run.");
+    return;
+  }
+  if (!mine.has(departmentId)) throw new HttpError(403, "You can only place people in a department you run.");
+}

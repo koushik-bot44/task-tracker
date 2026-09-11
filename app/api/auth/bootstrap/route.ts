@@ -1,6 +1,8 @@
+import { generateKeyBetween } from "fractional-indexing";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSessionToken, passcodeMatches, sessionCookie } from "@/lib/auth";
+import { DEFAULT_DEPARTMENTS } from "@/lib/default-departments";
 import {
   clearFailures,
   clientIp,
@@ -23,9 +25,12 @@ const bodySchema = z.object({
 });
 
 /**
- * Creates the very first manager, and only ever that. Once a user exists this
- * endpoint is permanently closed — which is why APP_PASSCODE guarding it is
- * enough: the window it protects shuts after one successful use.
+ * Creates the very first account — the organisation's CEO — and only ever
+ * that. Once a user exists this endpoint is permanently closed — which is why
+ * APP_PASSCODE guarding it is enough: the window it protects shuts after one
+ * successful use. The CEO is the top of the chain (2026-09-11): from there the
+ * organisation invites its people, names heads of department, makes teams and
+ * projects. It used to make a Manager, which could never become the CEO.
  */
 export async function POST(req: Request) {
   const ipHash = hashIp(clientIp(req));
@@ -63,18 +68,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That email does not look right." }, { status: 400 });
   }
 
+  const passwordHash = await hashPassword(parsed.data.password);
   let user;
   try {
-    user = await prisma.user.create({
-      data: {
-        email,
-        name: parsed.data.name,
-        passwordHash: await hashPassword(parsed.data.password),
-        role: "MANAGER",
+    // Serializable: two first visits at once make ONE CEO, and the other is refused.
+    user = await prisma.$transaction(
+      async (tx) => {
+        if ((await tx.user.count()) > 0) throw new Error("Setup has already been completed.");
+        const made = await tx.user.create({
+          data: { email, name: parsed.data.name, passwordHash, role: "FOUNDER" },
+        });
+        // A new organisation starts from the default departments, which its CEO
+        // then renames, adds to or removes (owner, 2026-09-11).
+        if ((await tx.department.count()) === 0) {
+          let key: string | null = null;
+          for (const d of DEFAULT_DEPARTMENTS) {
+            key = generateKeyBetween(key, null);
+            await tx.department.create({
+              data: { name: d.name, color: d.color, description: d.description, orderKey: key, createdById: made.id },
+            });
+          }
+        }
+        return made;
       },
-    });
+      { isolationLevel: "Serializable" },
+    );
   } catch {
-    // Someone else won the race between the count and the insert.
+    // Someone else set up first, or won the race between the count and the insert.
     return NextResponse.json(
       { error: "Setup has already been completed." },
       { status: 410 },

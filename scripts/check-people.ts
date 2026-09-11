@@ -163,7 +163,7 @@ async function main() {
     (await sheet.getByText(/doesn't look like an email/).isVisible()) && (await sheet.getByRole("button", { name: "Send 2 invites" }).isDisabled()),
   );
   await sheet.getByLabel("Email for PPL Screen Two", { exact: true }).fill(at("screen2"));
-  await sheet.getByLabel("How PPL Screen Two joins", { exact: true }).selectOption("TEAM_LEAD");
+  await sheet.getByLabel("Position for PPL Screen Two", { exact: true }).selectOption("TEAM_LEAD");
   await sheet.getByRole("button", { name: "Send 2 invites" }).click();
   record("Add people sends several invites together", await until(async () => (await prisma.user.count({ where: { email: { in: [at("screen1"), at("screen2")] }, status: "PENDING" } })) === 2));
   const one = await prisma.user.findUnique({ where: { email: at("screen1") }, select: { id: true, role: true } });
@@ -213,14 +213,16 @@ async function main() {
   try {
     await page.goto(`${BASE}/people`);
     await page.getByRole("button", { name: /^Invite/ }).first().click({ timeout: 60000 });
-    const inviteSheet = page.getByRole("dialog", { name: "Invite someone" });
-    await inviteSheet.getByPlaceholder("Their full name").fill("PPL Solo");
-    await inviteSheet.getByLabel("Email", { exact: true }).fill(at("solo"));
+    // People → Invite takes several people now, each with a position or none (2026-09-11); one is enough here.
+    const inviteSheet = page.getByRole("dialog", { name: "Invite people" });
+    await inviteSheet.getByLabel("Email for new person 1", { exact: true }).fill(at("solo"));
+    await inviteSheet.getByLabel("Name of new person 1", { exact: true }).fill("PPL Solo");
     await inviteSheet.getByRole("button", { name: "Send invite" }).click();
-    const soloBox = inviteSheet.getByRole("textbox", { name: "Invite link for PPL Solo" });
+    const invitedSheet = page.getByRole("dialog", { name: "Invited" });
+    const soloBox = invitedSheet.getByRole("textbox", { name: "Invite link for PPL Solo" });
     const firstUrl = (await until(async () => soloBox.isVisible())) ? await soloBox.inputValue() : "";
     record("People → Invite shows the new person's link, to send on WhatsApp", /\/invite\/[A-Za-z0-9_-]{20,}$/.test(firstUrl), firstUrl ? "link shown" : "no link");
-    await inviteSheet.getByRole("button", { name: "Done" }).click();
+    await invitedSheet.getByRole("button", { name: "Done" }).click();
     await page.getByText("PPL Solo", { exact: true }).first().click({ timeout: 30000 });
     const soloSheet = page.getByRole("dialog").filter({ has: page.getByRole("button", { name: "Share invite link" }) });
     await soloSheet.getByRole("button", { name: "Share invite link" }).click();

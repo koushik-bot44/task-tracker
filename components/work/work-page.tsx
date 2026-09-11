@@ -128,7 +128,7 @@ export function WorkPage() {
   /** Who the Individual tab can narrow to (owner, 2026-09-11). */
   const { data: users } = useUsers(Boolean(me) && canSeeUserListRole(me?.role) && scope === "individual");
   const people = useMemo(
-    () => (users ?? []).filter((u) => u.status === "ACTIVE" && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON").sort((a, b) => a.name.localeCompare(b.name)),
+    () => (users ?? []).filter((u) => (u.status === "ACTIVE" || u.status === "PENDING") && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON").sort((a, b) => a.name.localeCompare(b.name)),
     [users],
   );
 
