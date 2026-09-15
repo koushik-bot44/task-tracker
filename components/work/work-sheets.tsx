@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
+import { NewPeopleRows, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
+import { rolesOfferedTo } from "@/components/people/person-sheet";
+import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Face } from "@/components/ui/face";
 import { Field, Sheet, inputClass } from "@/components/ui/sheet";
+import { apiPost } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useGroups } from "@/lib/hooks/use-work";
 import { useProjectPeople } from "@/lib/hooks/use-projects";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
-import { canSeeUserListRole } from "@/lib/roles";
+import { canAdministerAccountsRole, canSeeUserListRole } from "@/lib/roles";
 import {
   RESOLUTION_CODES,
   RESOLUTION_CODE_LABEL,
@@ -202,10 +207,41 @@ export function MorePeopleSheet({
   const { data: projectPeople } = useProjectPeople(task.projectId, open && Boolean(task.projectId));
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
+  /** People who are not on Orbit yet: invited here, then given the task like anyone else. */
+  const [invites, setInvites] = useState<NewPerson[]>([]);
+  const [inviting, setInviting] = useState(false);
+  /** Shown after inviting: the link each new person opens. Mail may not be set up,
+   *  so this is how they are reached — the sheet stays open until they are copied. */
+  const [links, setLinks] = useState<InviteLink[]>([]);
+  const { show: toast } = useToast();
 
   useEffect(() => {
-    if (open) { setPicked(new Set()); setQ(""); }
+    if (open) { setPicked(new Set()); setQ(""); setInvites([]); setLinks([]); }
   }, [open]);
+
+  const newPeople = toInvites(invites);
+  const inviteProblem = invitesProblem(invites);
+  const total = picked.size + newPeople.length;
+
+  const submit = async () => {
+    const ids = [...picked];
+    if (!newPeople.length) {
+      onAdd(ids);
+      onClose();
+      return;
+    }
+    setInviting(true);
+    try {
+      const res = await apiPost<{ people: { id: string; name: string; email: string; url: string }[] }>("/api/users/invite", { people: newPeople });
+      for (const p of res.people) ids.push(p.id);
+      onAdd(ids);
+      setLinks(res.people.map((p) => ({ name: p.name, email: p.email, url: p.url })));
+    } catch (e) {
+      toast({ message: (e as Error).message, tone: "danger" });
+    } finally {
+      setInviting(false);
+    }
+  };
 
   const on = new Set(already.map((p) => p.id));
   const group = (groups ?? []).find((g) => g.id === task.assignmentGroupId) ?? null;
@@ -228,11 +264,20 @@ export function MorePeopleSheet({
       title="Give this to more people"
       subtitle="Each person gets their own copy, so each can finish their own."
       footer={
-        <Button variant="primary" full loading={busy} disabled={picked.size === 0} onClick={() => onAdd([...picked])}>
-          {picked.size ? `Give it to ${picked.size} more` : "Pick who else"}
-        </Button>
+        links.length ? (
+          <Button variant="primary" full onClick={onClose}>
+            Done
+          </Button>
+        ) : (
+          <Button variant="primary" full loading={busy || inviting} disabled={total === 0 || Boolean(inviteProblem)} onClick={() => void submit()}>
+            {total ? `Give it to ${total} more` : "Pick who else"}
+          </Button>
+        )
       }
     >
+      {links.length ? (
+        <InviteLinks links={links} />
+      ) : (
       <div className="space-y-3">
         {people.length > 6 ? (
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person" aria-label="Find a person" className={inputClass} />
@@ -266,7 +311,17 @@ export function MorePeopleSheet({
           })}
           {shown.length === 0 ? <li className="px-3 py-3 text-sm text-muted">Nobody to pick from.</li> : null}
         </ul>
+        {/* Somebody who is not on Orbit yet can still be given the task: they are
+            invited from here, exactly as on the new-task form, and hold it from
+            the moment they set a password (owner, 2026-09-15). */}
+        {canAdministerAccountsRole(me?.role) ? (
+          <div className="space-y-1.5">
+            <NewPeopleRows rows={invites} onChange={setInvites} roles={rolesOfferedTo(me?.role)} addLabel={invites.length ? "+ Another person" : "+ Someone not on Orbit yet"} autoFocusLast />
+            {inviteProblem ? <p className="text-micro text-danger-ink">{inviteProblem}</p> : null}
+          </div>
+        ) : null}
       </div>
+      )}
     </Sheet>
   );
 }

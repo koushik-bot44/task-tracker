@@ -147,7 +147,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
     setSharing(true);
     try {
       await apiPost(`/api/tasks/${task.id}/people`, { assigneeIds });
-      setMorePeopleOpen(false);
+      // The sheet closes itself — it stays open when it has invite links to show.
       toast({ message: `Given to ${assigneeIds.length} more` });
       refresh();
     } catch (e) {
