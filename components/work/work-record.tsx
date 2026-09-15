@@ -14,6 +14,8 @@ import { useDepartments } from "@/lib/hooks/use-departments";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useActivity, useWorkItem, useWorkMutations } from "@/lib/hooks/use-work";
 import {
+  REPEATS_LABEL,
+  type Repeats,
   WAITING_REASON_LABEL,
   WORK_PRIORITIES,
   WORK_PRIORITY_LABEL,
@@ -363,6 +365,22 @@ function RecordBody({ task }: { task: TaskDTO }) {
                   </button>
                 ) : null}
               </div>
+            </FormRow>
+            <FormRow label="Repeats">
+              <select
+                disabled={ro || !task.dueDate}
+                value={task.repeats ?? ""}
+                onChange={(e) => update.mutate({ repeats: e.target.value ? (e.target.value as Repeats) : null }, { onError: fail })}
+                className={snInput}
+                aria-label="Repeats"
+              >
+                <option value="">{task.dueDate ? "Doesn't repeat" : "Pick a due date first"}</option>
+                {(["DAY", "WEEK", "MONTH"] as const).map((r) => (
+                  <option key={r} value={r}>
+                    {REPEATS_LABEL[r]}
+                  </option>
+                ))}
+              </select>
             </FormRow>
             <FormRow label="Due date">
               <input type="date" disabled={ro} value={task.dueDate ? dayInputValue(new Date(task.dueDate)) : ""} onChange={(e) => update.mutate({ dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : null }, { onError: fail })} className={snInput} aria-label="Due date" />

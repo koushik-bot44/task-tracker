@@ -63,6 +63,7 @@ export function serializeTask(task: TaskRow): TaskDTO {
     status: task.status,
     dueDate: task.dueDate ? task.dueDate.toISOString() : null,
     dueProvisional: task.dueProvisional,
+    repeats: task.repeats ?? null,
     orderKey: task.orderKey,
     important: task.important,
     archived: task.archived,

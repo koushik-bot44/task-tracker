@@ -125,6 +125,16 @@ enum WaitingReason {
   OTHER
 }
 
+/// How often a task comes round again (owner, 2026-09-15: "recursion option task
+/// for every month"). The next one is raised on the day it falls due, by the
+/// daily job — not when the last one is ticked off, so a month you fell behind
+/// on is not silently skipped.
+enum Repeats {
+  DAY
+  WEEK
+  MONTH
+}
+
 /// RESOLVED always says how.
 enum ResolutionCode {
   FIXED
@@ -424,6 +434,12 @@ model Task {
   /// True when the server guessed this date rather than a person choosing it.
   /// Cleared the first time anyone edits the date.
   dueProvisional Boolean    @default(false)
+  /// Set when this task comes round again. The daily job raises the next one on
+  /// the day it is due; cancelling a task stops its repeat (owner, 2026-09-15).
+  repeats        Repeats?
+  /// The task this one was raised from, so a repeat is never raised twice for
+  /// the same day and the chain can be followed back.
+  repeatedFromId String?
   orderKey       String
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt

@@ -236,6 +236,8 @@ export type CreateWorkInput = {
   /** Drawn from the number sequence before the form was submitted, so the number
    *  the raiser was shown is the number the record keeps (owner, 2026-09-15). */
   number?: number;
+  /** Set when this task comes round again; the daily job raises the next one. */
+  repeats?: "DAY" | "WEEK" | "MONTH" | null;
   /** The old screens' four words; translated into moves after the row exists. */
   status?: TaskStatus;
 };
@@ -340,6 +342,7 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
         // The number the form was shown when it opened. Without one the table's
         // own sequence fills it in, exactly as before.
         ...(input.number ? { number: input.number } : {}),
+        repeats: input.repeats ?? null,
         projectId,
         parentId: parent?.id ?? null,
         milestoneId,
@@ -411,6 +414,8 @@ export type UpdateWorkInput = Partial<{
   assignmentGroupId: string | null;
   assigneeId: string | null;
   dueDate: string | null;
+  /** How often it comes round again; null stops it repeating. */
+  repeats: "DAY" | "WEEK" | "MONTH" | null;
   milestoneId: string | null;
   parentId: string | null;
   orderKey: string;
@@ -443,7 +448,9 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
   }
   if (existing.deletedAt) throw new HttpError(409, "Task is deleted");
 
-  const editing = ["title", "descriptionMd", "type", "priority", "categoryId", "requesterId", "departmentId", "dueDate", "milestoneId", "parentId", "orderKey", "important", "archived", "deliverableUrl", "progress"].some((k) => k in patch);
+  // A field missing from this list saves silently and changes nothing, so
+  // anything new on the record page has to be named here too.
+  const editing = ["title", "descriptionMd", "type", "priority", "categoryId", "requesterId", "departmentId", "dueDate", "repeats", "milestoneId", "parentId", "orderKey", "important", "archived", "deliverableUrl", "progress"].some((k) => k in patch);
   const assigning = "assigneeId" in patch || "assignmentGroupId" in patch;
   const [mayEdit, mayAssign] = await Promise.all([editing ? canEditTask(actor, root, scope) : true, assigning ? canAssignTask(actor, root, scope) : true]);
   if (!mayEdit) throw new HttpError(403, "You can't change this task.");
@@ -464,6 +471,7 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
     data.dueProvisional = false;
     data.dueDate = parseDate(patch.dueDate);
   }
+  if (patch.repeats !== undefined) data.repeats = patch.repeats;
   // The star and the priority are one axis seen two ways.
   if (patch.priority !== undefined) {
     data.priority = patch.priority;

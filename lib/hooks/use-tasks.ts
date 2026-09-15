@@ -186,6 +186,7 @@ export function useTaskMutations(scope: MutationScope) {
         requesterId: null,
         requesterName: null,
         siblingKey: null,
+        repeats: null,
         assignedAt: null,
         assignedByName: null,
         alsoWith: [],

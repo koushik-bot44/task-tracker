@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/snooze-wake",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/repeats",
+      "schedule": "0 1 * * *"
     }
   ]
 }

@@ -148,6 +148,19 @@ export const WAITING_REASON_LABEL: Record<WaitingReason, string> = {
   OTHER: "Other",
 };
 
+/**
+ * How often a task comes round again (owner, 2026-09-15). Kept here, not in
+ * lib/work/repeats.ts, because the screens need the words and that file reaches
+ * for the database — a client component must not drag it into the browser.
+ */
+export const REPEATS = ["DAY", "WEEK", "MONTH"] as const;
+export type Repeats = (typeof REPEATS)[number];
+export const REPEATS_LABEL: Record<Repeats, string> = {
+  DAY: "Every day",
+  WEEK: "Every week",
+  MONTH: "Every month",
+};
+
 export const RESOLUTION_CODES = ["FIXED", "COMPLETED", "WORKAROUND", "CANNOT_REPRODUCE", "DUPLICATE", "NOT_NEEDED"] as const;
 export type ResolutionCode = (typeof RESOLUTION_CODES)[number];
 export const RESOLUTION_CODE_LABEL: Record<ResolutionCode, string> = {
@@ -247,6 +260,8 @@ export type TaskDTO = {
   status: TaskStatus;
   dueDate: string | null;
   dueProvisional: boolean;
+  /** Set when the task comes round again (owner, 2026-09-15). */
+  repeats: Repeats | null;
   orderKey: string;
   important: boolean;
   archived: boolean;

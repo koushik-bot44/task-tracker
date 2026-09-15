@@ -232,6 +232,8 @@ export const createTaskSchema = z.object({
   /** Drawn from the number sequence when the form opened, so the number the
    *  raiser was shown is the number the record keeps (owner, 2026-09-15). */
   number: z.number().int().positive().optional(),
+  /** Set when the task comes round again (owner, 2026-09-15). */
+  repeats: z.enum(["DAY", "WEEK", "MONTH"]).nullable().optional(),
 });
 
 /** Personal (private) department/project create/edit (phase 33). */
@@ -353,6 +355,8 @@ export const updateTaskSchema = z
     departmentId: z.string().min(1).nullable(),
     assignmentGroupId: z.string().min(1).nullable(),
     dueDate: z.string().nullable(),
+    /** How often it comes round again; null stops it repeating. */
+    repeats: z.enum(["DAY", "WEEK", "MONTH"]).nullable(),
     parentId: z.string().min(1).nullable(),
     milestoneId: z.string().min(1).nullable(),
     orderKey: orderKeySchema,
