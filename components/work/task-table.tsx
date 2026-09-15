@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { dateWord, formatDMY } from "@/lib/dates";
 import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
+import { ColumnMenu, type FilterKind, type Named, type Patch } from "./column-menu";
 import { WorkCards, meetingWhen } from "./work-cards";
 import { snLink } from "./sn";
 
@@ -14,7 +15,20 @@ export type SortDir = "asc" | "desc";
 export function columnDefaultDir(sort: string): SortDir {
   return sort === "updated" || sort === "created" || sort === "number" ? "desc" : "asc";
 }
-type SortProps = { sort?: string; dir?: SortDir; onSort?: (key: string) => void };
+type SortProps = {
+  sort?: string;
+  dir?: SortDir;
+  onSort?: (key: string) => void;
+  /** Sort a column a named way round, from its own menu (owner, 2026-09-15). */
+  onSortDir?: (key: string, dir: SortDir) => void;
+  /** What the list is narrowed by now, so each menu can tick its own. */
+  filter?: Record<string, string | null | undefined>;
+  onFilter?: (patch: Patch) => void;
+  /** What the "pick one" columns offer. */
+  departments?: Named[];
+  projects?: Named[];
+  people?: Named[];
+};
 
 /**
  * The task list, in one place.
@@ -49,6 +63,12 @@ export function TaskTable({
   sort,
   dir,
   onSort,
+  onSortDir,
+  filter,
+  onFilter,
+  departments,
+  projects,
+  people,
 }: {
   items: TaskDTO[];
   /** Everyone holding the same task, keyed by task id. */
@@ -58,7 +78,7 @@ export function TaskTable({
   hideProject?: boolean;
 } & SortProps) {
   const rows = collapseSiblings(items);
-  const s: SortProps = { sort, dir, onSort };
+  const s: SortProps = { sort, dir, onSort, onSortDir, filter, onFilter, departments, projects, people };
   return (
     <>
       <div className="md:hidden">
@@ -69,18 +89,20 @@ export function TaskTable({
         <table className="w-full min-w-[960px] border-collapse text-[13px]">
           <thead>
             <tr className="bg-hover text-left text-muted">
-              <Th sortKey="number" {...s}>Number</Th>
-              {/* Short description does not sort: sorting words A→Z tells nobody anything (owner, 2026-09-15). */}
-              <Th className="w-[26%]" {...s}>Short description</Th>
-              <Th sortKey="department" {...s}>Department</Th>
-              {hideProject ? null : <Th sortKey="project" {...s}>Project</Th>}
-              <Th sortKey="status" {...s}>Status</Th>
-              <Th sortKey="priority" {...s}>Priority</Th>
-              <Th sortKey="assignedBy" {...s}>Assigned by</Th>
-              <Th sortKey="assignedTo" {...s}>Assigned to</Th>
-              <Th sortKey="assigned" {...s}>Assigned</Th>
-              <Th sortKey="due" {...s}>Due</Th>
-              <Th sortKey="updated" {...s}>Last updated</Th>
+              {/* Each column offers what suits what it holds (owner, 2026-09-15). */}
+              <Th sortKey="number" kind="search" filterKeys={["q"]} {...s}>Number</Th>
+              {/* Short description does not sort — sorting words A→Z tells nobody
+                  anything (owner, 2026-09-15) — but it is the one worth searching. */}
+              <Th className="w-[26%]" kind="search" filterKeys={["q"]} {...s}>Short description</Th>
+              <Th sortKey="department" kind="pick" filterKeys={["departmentId"]} {...s}>Department</Th>
+              {hideProject ? null : <Th sortKey="project" kind="pick" filterKeys={["projectId"]} {...s}>Project</Th>}
+              <Th sortKey="status" kind="status" filterKeys={["state"]} {...s}>Status</Th>
+              <Th sortKey="priority" kind="priority" filterKeys={["priority"]} {...s}>Priority</Th>
+              <Th sortKey="assignedBy" kind="pick" filterKeys={["givenById"]} {...s}>Assigned by</Th>
+              <Th sortKey="assignedTo" kind="pick" filterKeys={["assigneeId"]} {...s}>Assigned to</Th>
+              <Th sortKey="assigned" kind="dates" filterKeys={["assignedFrom", "assignedTo"]} {...s}>Assigned</Th>
+              <Th sortKey="due" kind="due" filterKeys={["dueToday", "overdue", "dueFrom", "dueTo"]} {...s}>Due</Th>
+              <Th sortKey="updated" kind="dates" filterKeys={["updatedFrom", "updatedTo"]} {...s}>Last updated</Th>
             </tr>
           </thead>
           <tbody>
@@ -101,25 +123,67 @@ export function TaskTable({
   );
 }
 
-function Th({ children, className, sortKey, sort, dir, onSort }: { children: React.ReactNode; className?: string; sortKey?: string } & SortProps) {
-  // A column sorts only when a handler and a key are both given (owner, 2026-09-15: only where it applies).
-  if (!onSort || !sortKey) return <th className={cn("border-b border-line px-3 py-2 font-semibold", className)}>{children}</th>;
-  const active = sort === sortKey;
+function Th({
+  children,
+  className,
+  sortKey,
+  kind = "none",
+  filterKeys,
+  sort,
+  dir,
+  onSort,
+  onSortDir,
+  filter,
+  onFilter,
+  departments,
+  projects,
+  people,
+}: { children: React.ReactNode; className?: string; sortKey?: string; kind?: FilterKind; filterKeys?: string[] } & SortProps) {
+  const label = typeof children === "string" ? children : (sortKey ?? "Column");
+  const sortable = Boolean(onSort && sortKey);
+  const menu = Boolean((onSortDir && sortKey) || (onFilter && kind !== "none"));
+  // Nothing to offer: a plain heading (owner, 2026-09-15 — only where it applies).
+  if (!sortable && !menu) return <th scope="col" className={cn("border-b border-line px-3 py-2 font-semibold", className)}>{children}</th>;
+
+  const active = Boolean(sortKey) && sort === sortKey;
+  const values = kind === "pick" ? (filterKeys?.[0] === "departmentId" ? departments : filterKeys?.[0] === "projectId" ? projects : people) ?? [] : [];
   return (
-    <th aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"} className={cn("border-b border-line px-3 py-2 font-semibold", className)}>
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        aria-label={`Sort by ${typeof children === "string" ? children : sortKey}${active ? (dir === "asc" ? ", ascending — click for descending" : ", descending — click for ascending") : ""}`}
-        className="group -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:text-ink"
-      >
-        <span>{children}</span>
-        {active ? (
-          dir === "asc" ? <ChevronUp className="h-3.5 w-3.5 text-primary-ink" strokeWidth={2.5} aria-hidden /> : <ChevronDown className="h-3.5 w-3.5 text-primary-ink" strokeWidth={2.5} aria-hidden />
+    <th aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"} scope="col" className={cn("border-b border-line px-3 py-2 font-semibold", className)}>
+      <span className="group flex min-w-0 items-center gap-0.5">
+        {sortable && sortKey && onSort ? (
+          <button
+            type="button"
+            onClick={() => onSort(sortKey)}
+            aria-label={`Sort by ${label}${active ? (dir === "asc" ? ", ascending — click for descending" : ", descending — click for ascending") : ""}`}
+            className="-mx-1 inline-flex min-w-0 items-center gap-1 rounded px-1 py-0.5 hover:text-ink"
+          >
+            <span className="truncate">{children}</span>
+            {active ? (
+              dir === "asc" ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-primary-ink" strokeWidth={2.5} aria-hidden /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-primary-ink" strokeWidth={2.5} aria-hidden />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-40" strokeWidth={2} aria-hidden />
+            )}
+          </button>
         ) : (
-          <ChevronDown className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-40" strokeWidth={2} aria-hidden />
+          <span className="min-w-0 truncate">{children}</span>
         )}
-      </button>
+        {/* The lines symbol on every column: the two ways round, and the narrowing
+            that suits what this column holds (owner, 2026-09-15). */}
+        {menu ? (
+          <ColumnMenu
+            label={label}
+            sortKey={onSortDir ? sortKey : undefined}
+            sort={sort}
+            dir={dir}
+            onSort={onSortDir}
+            kind={onFilter ? kind : "none"}
+            filterKeys={filterKeys ?? []}
+            filter={filter ?? {}}
+            onFilter={onFilter}
+            values={values}
+          />
+        ) : null}
+      </span>
     </th>
   );
 }

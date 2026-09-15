@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight, ListFilter, Plus, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { useDepartments } from "@/lib/hooks/use-departments";
+import { useProjects } from "@/lib/hooks/use-projects";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
 import { OWN_WORK_TYPES as OWN_WORK_TYPE_LIST, REQUEST_WORK_TYPES, WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
@@ -101,20 +102,18 @@ const NARROWINGS = [
 ] as const;
 
 /** Every narrowing that is not the tab or Show — together with a search, what Clear filters clears. */
-const EXTRA_KEYS = ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "sort", "dir", "important", "hasFiles", "mentionsMe"] as const;
-
-/**
- * The quick filters, behind the lines symbol a mail app uses (owner, 2026-09-15).
- * Only what nothing else already offers: New, Overdue, Due today and Awaiting
- * meeting are Show's job, and "given to me" is the Your work tab — repeating them
- * here would be two controls doing one job. These combine, so a task can be both
- * important and one you were named on.
- */
-const QUICK_FILTERS = [
-  { key: "important", label: "Important" },
-  { key: "hasFiles", label: "Has files" },
-  { key: "mentionsMe", label: "Mentions me" },
+const EXTRA_KEYS = [
+  "departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "sort", "dir",
+  "important", "hasFiles", "mentionsMe",
+  "givenById", "assignedFrom", "assignedTo", "updatedFrom", "updatedTo", "overdue", "dueFrom", "dueTo",
 ] as const;
+
+/** What the column menus can narrow by — read out of the address so each menu ticks its own. */
+const COLUMN_FILTER_KEYS = [
+  "q", "departmentId", "projectId", "state", "priority", "givenById", "assigneeId",
+  "assignedFrom", "assignedTo", "updatedFrom", "updatedTo", "dueToday", "overdue", "dueFrom", "dueTo",
+] as const;
+
 
 /**
  * The list, the way a service desk shows it: a title bar with New, the
@@ -131,6 +130,8 @@ export function WorkPage() {
   const admin = isAdminRole(me?.role);
   const { data: dash } = useDashboardToday(Boolean(me) && !admin);
   const { data: departments } = useDepartments();
+  // The Project column's menu offers these; without them it has nothing to show.
+  const { data: projects } = useProjects();
   const { data: groups } = useGroups(Boolean(me) && !admin);
 
   const current = params.toString();
@@ -152,7 +153,9 @@ export function WorkPage() {
   /** The extra axes stay folded away; most days "Show" and a search is the whole job. */
   const [moreFilters, setMoreFilters] = useState(false);
   /** Who the Individual tab can narrow to (owner, 2026-09-11). */
-  const { data: users } = useUsers(Boolean(me) && canSeeUserListRole(me?.role) && scope === "individual");
+  // Not just on the Individual tab any more: the Assigned by and Assigned to
+  // columns offer these people on every tab (owner, 2026-09-15).
+  const { data: users } = useUsers(Boolean(me) && canSeeUserListRole(me?.role));
   const people = useMemo(
     () => (users ?? []).filter((u) => (u.status === "ACTIVE" || u.status === "PENDING") && !u.disabledAt && u.role !== "ADMIN" && u.role !== "PERSON").sort((a, b) => a.name.localeCompare(b.name)),
     [users],
@@ -245,7 +248,11 @@ export function WorkPage() {
     };
     // Every narrowing in the address has to be copied here too, or it sits in the
     // address doing nothing — the quick filters did exactly that (2026-09-15).
-    for (const k of ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "dir", "important", "hasFiles", "mentionsMe"]) {
+    for (const k of [
+      "departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "dir",
+      "important", "hasFiles", "mentionsMe",
+      "givenById", "assignedFrom", "assignedTo", "updatedFrom", "updatedTo", "overdue", "dueFrom", "dueTo",
+    ]) {
       const v = params.get(k);
       if (v) base[k] = v;
     }
@@ -413,49 +420,6 @@ export function WorkPage() {
             <input value={draftQ} onChange={(e) => setDraftQ(e.target.value)} placeholder="Search number, short description, person" aria-label="Search tasks" className={cn(snInput, "pl-7")} />
           </form>
 
-          {/* The lines symbol, as a mail app draws it: tap it, tick what you want. */}
-          <details className="relative">
-            <summary className={cn(snButton, "list-none select-none [&::-webkit-details-marker]:hidden")} aria-label="Filter">
-              <ListFilter className="h-4 w-4" strokeWidth={2} aria-hidden />
-              {QUICK_FILTERS.some((f) => params.get(f.key)) ? <span className="ml-1 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden /> : null}
-            </summary>
-            <div
-              role="menu"
-              className="absolute right-0 z-drawer mt-1 min-w-[13rem] rounded-[3px] border border-line bg-surface py-1 shadow-e2"
-              onClick={(e) => {
-                const d = e.currentTarget.closest("details");
-                if (d) d.open = false;
-              }}
-            >
-              <button
-                type="button"
-                role="menuitemradio"
-                aria-checked={!QUICK_FILTERS.some((f) => params.get(f.key))}
-                onClick={() => set({ ...Object.fromEntries(QUICK_FILTERS.map((f) => [f.key, null])), page: null })}
-                className="flex min-h-[36px] w-full items-center gap-2 px-3 text-left text-[13px] text-ink hover:bg-hover"
-              >
-                <Check className={cn("h-3.5 w-3.5 shrink-0", QUICK_FILTERS.some((f) => params.get(f.key)) ? "opacity-0" : "text-primary-ink")} aria-hidden />
-                All
-              </button>
-              {QUICK_FILTERS.map((f) => {
-                const on = Boolean(params.get(f.key));
-                return (
-                  <button
-                    key={f.key}
-                    type="button"
-                    role="menuitemcheckbox"
-                    aria-checked={on}
-                    onClick={() => set({ [f.key]: on ? null : "1", page: null })}
-                    className="flex min-h-[36px] w-full items-center gap-2 px-3 text-left text-[13px] text-ink hover:bg-hover"
-                  >
-                    <Check className={cn("h-3.5 w-3.5 shrink-0", on ? "text-primary-ink" : "opacity-0")} aria-hidden />
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-          </details>
-
           <button type="button" onClick={() => setMoreFilters((v) => !v)} aria-expanded={moreFilters} className={snButton}>
             {moreFilters ? "Fewer filters" : "More filters"}
           </button>
@@ -544,7 +508,25 @@ export function WorkPage() {
           <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
         ) : (
           <>
-            <TaskTable items={data.items} sharedWith={sharedWith} sort={activeSort} dir={activeDir} onSort={sortBy} empty={q ? "No records match your search." : "No records to display."} />
+            <TaskTable
+              items={data.items}
+              sharedWith={sharedWith}
+              sort={activeSort}
+              dir={activeDir}
+              onSort={sortBy}
+              // From a column's own menu the way round is named, so it is set, not flipped.
+              onSortDir={(key, d) => set({ sort: key, dir: d, page: null })}
+              filter={Object.fromEntries(COLUMN_FILTER_KEYS.map((k) => [k, params.get(k)]))}
+              onFilter={(patch) => {
+                // A narrowing always starts again at page one.
+                setDraftQ(typeof patch.q === "string" ? patch.q : patch.q === null ? "" : draftQ);
+                set({ ...patch, page: null });
+              }}
+              departments={departmentChoices}
+              projects={(projects ?? []).filter((p) => p.status !== "DONE")}
+              people={people}
+              empty={q ? "No records match your search." : "No records to display."}
+            />
             <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
               <span>{total === 0 ? "0 tasks" : `${from} to ${to} of ${total}`}</span>
               <span className="flex items-center gap-1">

@@ -57,6 +57,13 @@ export type WorkFilter = {
   dueTo?: string;
   createdFrom?: string;
   createdTo?: string;
+  /** When it was handed over, and when it last moved — each column filters its own dates. */
+  assignedFrom?: string;
+  assignedTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
+  /** Who handed it over. The Assigned by column shows this, so it must filter by it. */
+  givenById?: string;
   /** Shortcuts for the four tabs. */
   mine?: "assigned" | "requested" | "team" | "department" | "individual";
   /** Default true: open work only. `false` = everything, `finished` = the other half. */
@@ -108,6 +115,9 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   }
   if (f.dueFrom || f.dueTo) and.push({ dueDate: { ...(f.dueFrom ? { gte: new Date(f.dueFrom) } : {}), ...(f.dueTo ? { lte: new Date(f.dueTo) } : {}) } });
   if (f.createdFrom || f.createdTo) and.push({ createdAt: { ...(f.createdFrom ? { gte: new Date(f.createdFrom) } : {}), ...(f.createdTo ? { lte: new Date(f.createdTo) } : {}) } });
+  if (f.assignedFrom || f.assignedTo) and.push({ assignedAt: { ...(f.assignedFrom ? { gte: new Date(f.assignedFrom) } : {}), ...(f.assignedTo ? { lte: new Date(f.assignedTo) } : {}) } });
+  if (f.updatedFrom || f.updatedTo) and.push({ updatedAt: { ...(f.updatedFrom ? { gte: new Date(f.updatedFrom) } : {}), ...(f.updatedTo ? { lte: new Date(f.updatedTo) } : {}) } });
+  if (f.givenById) and.push({ givenById: f.givenById });
   switch (f.mine) {
     case "assigned":
       and.push({ assigneeId: actor.id });
@@ -456,6 +466,11 @@ export function parseFilter(params: URLSearchParams): WorkFilter {
     dueTo: str("dueTo"),
     createdFrom: str("createdFrom"),
     createdTo: str("createdTo"),
+    assignedFrom: str("assignedFrom"),
+    assignedTo: str("assignedTo"),
+    updatedFrom: str("updatedFrom"),
+    updatedTo: str("updatedTo"),
+    givenById: str("givenById"),
     mine: mine === "assigned" || mine === "requested" || mine === "team" || mine === "department" || mine === "individual" ? mine : undefined,
     // A search or an explicit state looks at everything; a plain list is open
     // work. The Work screen always says which it means, so its search keeps Show.

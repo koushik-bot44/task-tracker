@@ -109,6 +109,12 @@ export function WorkTable({
     setSortKey(key);
     setSortDir(nextDir);
   };
+  /** From a column's own menu: the way round is named, not toggled. */
+  const sortWay = (key: string, dir: "asc" | "desc") => {
+    setPages([]);
+    setSortKey(key);
+    setSortDir(dir);
+  };
   const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: activeSort, dir: activeDir, limit: PAGE, cursor };
   const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me));
   const from = pages.length * PAGE + 1;
@@ -176,6 +182,7 @@ export function WorkTable({
             sort={activeSort}
             dir={activeDir}
             onSort={sortBy}
+            onSortDir={sortWay}
             empty={q ? "No records match your search." : "No records to display."}
           />
           <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
