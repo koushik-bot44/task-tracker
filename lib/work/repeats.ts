@@ -24,10 +24,14 @@ export const REPEATS_LABEL: Record<Repeats, string> = {
 /**
  * The day it comes round next.
  *
- * A month that is too short lands on its LAST day — there is no 31st of
- * September, so the 31st of August becomes the 30th — and the chain carries on
- * from there. Snapping back to the 31st afterwards would need an anchor kept
- * somewhere, and this rule is the one people can predict.
+ * THE END OF THE MONTH MEANS THE END OF THE MONTH (owner, 2026-09-15: "how it
+ * could repeat if i take a date of month end"). A task due on the last day of
+ * its month falls due on the last day of the next one — 31 Jan, 28 Feb, 31 Mar,
+ * 30 Apr — rather than sticking on the 28th for ever after one short month,
+ * which is what simply clamping the number would do.
+ *
+ * Any other day keeps its number, and a month too short to hold it lands on its
+ * last day: there is no 31st of September, so the 31st becomes the 30th.
  */
 export function nextDue(due: Date, every: Repeats): Date {
   const d = new Date(due);
@@ -39,10 +43,11 @@ export function nextDue(due: Date, every: Repeats): Date {
     d.setDate(d.getDate() + 7);
     return d;
   }
-  const wanted = d.getDate();
+  const lastOfThisMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const atMonthEnd = d.getDate() === lastOfThisMonth;
   const target = new Date(d.getFullYear(), d.getMonth() + 1, 1, d.getHours(), d.getMinutes(), 0, 0);
   const lastOfThatMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
-  target.setDate(Math.min(wanted, lastOfThatMonth));
+  target.setDate(atMonthEnd ? lastOfThatMonth : Math.min(d.getDate(), lastOfThatMonth));
   return target;
 }
 

@@ -130,10 +130,12 @@ export function TaskMeetings({ task }: { task: TaskDTO }) {
               )}
             >
               {Number(key.slice(8))}
+              {/* A blue dot is a meeting, a red one is the day it is due
+                  (owner, 2026-09-15). Both can sit under the same day. */}
               {count || key === dueKey ? (
                 <span aria-hidden className="absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
-                  {count ? <span className={cn("h-1 w-1 rounded-full", on ? "bg-on-primary" : "bg-primary")} /> : null}
-                  {key === dueKey ? <span className={cn("h-1.5 w-1.5 rounded-full border", on ? "border-on-primary" : "border-primary")} /> : null}
+                  {count ? <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-on-primary" : "bg-primary")} /> : null}
+                  {key === dueKey ? <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-on-primary" : "bg-danger")} /> : null}
                 </span>
               ) : null}
             </button>
