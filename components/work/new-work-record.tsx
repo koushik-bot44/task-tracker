@@ -21,8 +21,6 @@ import { canAdministerAccountsRole, canSeeUserListRole, isExecutiveRole, isHodRo
 import {
   PROJECT_PRIORITY_CHOICES,
   PROJECT_PRIORITY_LABEL,
-  REPEATS_LABEL,
-  type Repeats,
   WORK_PRIORITIES,
   WORK_PRIORITY_LABEL,
   WORK_STATE_LABEL,
@@ -95,7 +93,6 @@ export function NewWorkRecord() {
   const [describe, setDescribe] = useState("");
   const [priority, setPriority] = useState<WorkPriority>("MEDIUM");
   const [due, setDue] = useState("");
-  const [repeats, setRepeats] = useState<"" | Repeats>("");
   const [assignees, setAssignees] = useState<Set<string>>(new Set());
   const [peopleQ, setPeopleQ] = useState("");
   /** People who are not on Orbit yet; the first address of each is where the invite goes. */
@@ -214,8 +211,6 @@ export function NewWorkRecord() {
       departmentId: departmentId || undefined,
       descriptionMd: describe.trim(),
       dueDate: due ? dayToIso(due) : null,
-      // A repeat counts from the due date, so without one it repeats nothing.
-      repeats: due && repeats ? repeats : null,
       priority,
     };
     /* ONE task, everybody on it, one chat between them (owner, 2026-09-15). It
@@ -506,19 +501,6 @@ export function NewWorkRecord() {
                 </FormRow>
                 <FormRow label="Due date">
                   <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={snInput} aria-label="Due date" />
-                </FormRow>
-                {/* Something that comes round again (owner, 2026-09-15). The next
-                    one is raised on the day it falls due, so a month nobody got
-                    to is not skipped. It needs a date to count from. */}
-                <FormRow label="Repeats">
-                  <select value={repeats} onChange={(e) => setRepeats(e.target.value as "" | Repeats)} disabled={!due} className={snInput} aria-label="Repeats">
-                    <option value="">{due ? "Doesn't repeat" : "Pick a due date first"}</option>
-                    {(["DAY", "WEEK", "MONTH"] as const).map((r) => (
-                      <option key={r} value={r}>
-                        {REPEATS_LABEL[r]}
-                      </option>
-                    ))}
-                  </select>
                 </FormRow>
                 <FormRow label="Opened">
                   <input aria-label="Opened" value={now} readOnly className={snInput} />
