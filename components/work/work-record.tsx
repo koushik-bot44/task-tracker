@@ -118,6 +118,22 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const allowed = (list: WorkState[]) => list.filter((s) => access.transitions.includes(s)).filter((s) => !(s === "ASSIGNED" && !task.assigneeId));
   const moves = allowed(PRIMARY);
   const more = allowed(SECONDARY);
+  /* An approval is approved or declined, and both sit on top (owner, 2026-09-15).
+     Declining CANCELS it rather than resolving it, so the list can tell a refused
+     approval from an approved one at a glance: Resolved against Canceled. */
+  const approval = task.type === "APPROVAL";
+  const canApprove = access.transitions.includes("RESOLVED") || access.transitions.includes("IN_PROGRESS");
+  const canDecline = access.transitions.includes("CANCELLED");
+  const approve = async () => {
+    try {
+      // Approving straight from New: it is started and finished in one press,
+      // because nobody wants to "Start Work" on somebody else's request first.
+      if (!access.transitions.includes("RESOLVED")) await transition.mutateAsync({ to: "IN_PROGRESS" });
+      await transition.mutateAsync({ to: "RESOLVED", resolutionCode: "COMPLETED" });
+    } catch (e) {
+      fail(e);
+    }
+  };
   const press = (to: WorkState) => {
     if (to === "WAITING") setWaitOpen(true);
     else if (to === "CANCELLED" || to === "REOPENED") setConfirm(to);
@@ -198,11 +214,26 @@ function RecordBody({ task }: { task: TaskDTO }) {
                 <Paperclip className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                 {attachments.length}
               </button>
-              {moves.map((to, i) => (
-                <button key={to} type="button" disabled={busy} onClick={() => press(to)} className={i === 0 ? snPrimary : snButton}>
-                  {TRANSITION_LABEL[to]}
-                </button>
-              ))}
+              {approval ? (
+                <>
+                  {canApprove ? (
+                    <button type="button" disabled={busy} onClick={() => void approve()} className={snPrimary}>
+                      Approve
+                    </button>
+                  ) : null}
+                  {canDecline ? (
+                    <button type="button" disabled={busy} onClick={() => setConfirm("CANCELLED")} className={snButton}>
+                      Decline
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                moves.map((to, i) => (
+                  <button key={to} type="button" disabled={busy} onClick={() => press(to)} className={i === 0 ? snPrimary : snButton}>
+                    {TRANSITION_LABEL[to]}
+                  </button>
+                ))
+              )}
               {more.length || access.canDelete ? (
                 <span className="relative">
                   <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-haspopup="menu" aria-expanded={moreOpen} className={snButton}>
@@ -417,7 +448,15 @@ function RecordBody({ task }: { task: TaskDTO }) {
       <MorePeopleSheet open={morePeopleOpen} onClose={() => setMorePeopleOpen(false)} task={task} already={everyone} busy={sharing} onAdd={(ids) => void giveToMore(ids)} />
       <AssignSheet open={assignOpen} onClose={() => setAssignOpen(false)} task={task} busy={assign.isPending} onAssign={(input) => assign.mutate(input, { onError: fail })} />
       <WaitSheet open={waitOpen} onClose={() => setWaitOpen(false)} busy={busy} onWait={(reason, note) => move("WAITING", { waitingReason: reason, waitingNote: note || null })} />
-      <ConfirmSheet open={confirm === "CANCELLED"} onClose={() => setConfirm(null)} title="Cancel this task?" body="It stays on record as Canceled; nobody works on it any more." action="Cancel the task" tone="danger" onConfirm={() => move("CANCELLED")} />
+      <ConfirmSheet
+        open={confirm === "CANCELLED"}
+        onClose={() => setConfirm(null)}
+        title={approval ? "Decline this approval?" : "Cancel this task?"}
+        body={approval ? "Whoever asked is told. It stays on record as declined." : "It stays on record as Canceled; nobody works on it any more."}
+        action={approval ? "Decline it" : "Cancel the task"}
+        tone="danger"
+        onConfirm={() => move("CANCELLED")}
+      />
       <ConfirmSheet open={confirm === "REOPENED"} onClose={() => setConfirm(null)} title="Reopen this task?" body="It goes back to whoever held it, and they are told." action="Reopen" onConfirm={() => move("REOPENED")} />
       <ConfirmSheet open={confirm === "delete"} onClose={() => setConfirm(null)} title="Delete this record?" body="It disappears from every list. The history is kept." action="Delete" tone="danger" onConfirm={() => remove.mutate(undefined, { onSuccess: () => router.push("/work"), onError: fail })} />
       <AttachmentViewer files={viewing?.files ?? []} index={viewing?.index ?? null} onIndex={(index) => setViewing((v) => (v ? { ...v, index } : v))} onClose={() => setViewing(null)} />
