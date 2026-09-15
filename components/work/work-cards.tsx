@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { dateWord } from "@/lib/dates";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
+import { approvalTone } from "./task-table";
 
 /** "Tomorrow 10:30" — when a task's next meeting is (owner, 2026-09-11). */
 export function meetingWhen(m: NonNullable<TaskDTO["nextMeeting"]>): string {
@@ -39,7 +40,7 @@ export function WorkCards({
             <Link href={`/work/${t.number}`} className="press flex min-h-[64px] flex-col justify-center gap-1 px-3 py-2.5 active:bg-hover">
               <span className="flex items-baseline gap-2">
                 <span className="shrink-0 text-micro font-medium text-primary-ink">{t.ref}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{t.title.trim() || "(empty)"}</span>
+                <span className={cn("min-w-0 flex-1 truncate text-sm font-medium", approvalTone(t) ?? "text-ink")}>{t.title.trim() || "(empty)"}</span>
               </span>
 
               <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-micro text-muted">

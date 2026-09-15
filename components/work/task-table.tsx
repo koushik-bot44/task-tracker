@@ -45,6 +45,19 @@ type SortProps = {
  * The records that share a key collapse into the first of them; the row names
  * everybody on it.
  */
+/**
+ * An answered approval, said in colour: green once granted, red once refused
+ * (owner, 2026-09-15). Only approvals — tinting every finished task would drown
+ * the one thing this is for — and the Status column still says it in words, so
+ * nothing depends on telling the colours apart.
+ */
+export function approvalTone(t: TaskDTO): string | null {
+  if (t.type !== "APPROVAL") return null;
+  if (t.state === "RESOLVED" || t.state === "CLOSED") return "text-ok-ink";
+  if (t.state === "CANCELLED") return "text-danger-ink";
+  return null;
+}
+
 export function collapseSiblings(items: TaskDTO[]): TaskDTO[] {
   const seen = new Set<string>();
   return items.filter((t) => {
@@ -211,7 +224,7 @@ function RowLine({ t, sharedWith, hideProject = false }: { t: TaskDTO; sharedWit
           {t.ref}
         </Link>
       </td>
-      <td className="max-w-0 truncate px-3 py-2 text-ink">
+      <td className={cn("max-w-0 truncate px-3 py-2", approvalTone(t) ?? "text-ink")}>
         <Link href={`/work/${t.number}`} className="hover:underline">
           {t.title.trim() || "(empty)"}
         </Link>

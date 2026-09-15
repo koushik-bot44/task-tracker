@@ -216,13 +216,17 @@ function RecordBody({ task }: { task: TaskDTO }) {
               </button>
               {approval ? (
                 <>
+                  {/* Green for yes, red for no (owner, 2026-09-15). The words are
+                      still the words, so the meaning survives without the colour. */}
                   {canApprove ? (
-                    <button type="button" disabled={busy} onClick={() => void approve()} className={snPrimary}>
+                    <button type="button" disabled={busy} onClick={() => void approve()} className={cn(snPrimary, "!bg-ok !text-white")}>
                       Approve
                     </button>
                   ) : null}
+                  {/* cn() only joins — it does not merge — so snButton's own
+                      text-ink would otherwise win without the ! here. */}
                   {canDecline ? (
-                    <button type="button" disabled={busy} onClick={() => setConfirm("CANCELLED")} className={snButton}>
+                    <button type="button" disabled={busy} onClick={() => setConfirm("CANCELLED")} className={cn(snButton, "!border-danger !text-danger-ink hover:!bg-danger-soft")}>
                       Decline
                     </button>
                   ) : null}
