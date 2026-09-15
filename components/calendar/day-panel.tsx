@@ -296,6 +296,21 @@ function RescheduleSheet({ open, event, onClose }: { open: boolean; event: Calen
   return (
     <Sheet open={open} onClose={onClose} title="Move this meeting" subtitle={`${event.title} · ${dateWord(event.date)}`}>
       <p className="pt-1 text-sm text-muted">Pick a new day. Everyone on it gets a new message and can reply again.</p>
+      {/* Three days is a shortcut, not the whole choice: any day can be picked
+          from the calendar on the right (owner, 2026-09-15). */}
+      <label className="mt-3 flex h-11 w-full items-center justify-between gap-2 rounded-input bg-hover px-4 text-sm font-semibold text-ink">
+        <span>Another day</span>
+        <input
+          type="date"
+          min={new Date().toISOString().slice(0, 10)}
+          disabled={reschedule.isPending}
+          onChange={(e) => {
+            if (e.target.value) move(`${e.target.value}T00:00:00`);
+          }}
+          aria-label="Pick another day"
+          className="h-8 rounded-[3px] border border-line bg-surface px-2 text-sm font-normal text-ink outline-none"
+        />
+      </label>
       <div className="mt-4 space-y-2">
         {isLoading ? (
           <div className="space-y-2" aria-hidden>
