@@ -52,15 +52,18 @@ export function EventChip({ event, compact = false }: { event: CalendarEventDTO;
   );
 }
 
-/** A task that falls due: outlined, so it never reads as something to attend. */
+/**
+ * A task falling due: its deadline, in red (owner, 2026-09-15). Outlined rather
+ * than filled, so it still reads as a date to keep and not something to attend,
+ * but the colour says plainly that it is the day the work is wanted.
+ */
 export function TaskDateMark({ task, compact = false }: { task: CalendarTaskDateDTO; compact?: boolean }) {
   return (
     <span
-      className={cn(BASE, size(compact), "border border-line bg-surface text-muted")}
-      title={`Due · ${task.ref} ${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}
+      className={cn(BASE, size(compact), "border border-danger bg-danger-soft text-danger-ink")}
+      title={`Deadline · ${task.ref} ${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}
     >
-      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full border border-current" />
-      <span className="min-w-0 truncate">{compact ? task.title : `${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}</span>
+      <span className="min-w-0 truncate">Deadline · {task.title}</span>
     </span>
   );
 }

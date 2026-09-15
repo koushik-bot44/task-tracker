@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DeadlineMark, EventChip, isReview } from "@/components/calendar/chips";
+import { DeadlineMark, EventChip, TaskDateMark, isReview } from "@/components/calendar/chips";
 import { DayPanel, type DayItems } from "@/components/calendar/day-panel";
 import { ProjectFilter } from "@/components/calendar/project-filter";
 import { ScheduleMeetingSheet } from "@/components/calendar/schedule-meeting-sheet";
@@ -180,6 +180,9 @@ export function CalendarView() {
             const marks = [
               ...items.deadlines.map((x) => ({ key: `d-${x.projectId}`, node: <DeadlineMark deadline={x} compact /> })),
               ...items.events.map((x) => ({ key: `e-${x.id}`, node: <EventChip event={x} compact /> })),
+              // A task's own deadline, in red (owner, 2026-09-15). Last, so on a
+              // full day it is a deadline that folds into "+2 more", not a meeting.
+              ...items.taskDates.map((x) => ({ key: `t-${x.id}`, node: <TaskDateMark task={x} compact /> })),
             ];
             const shown = marks.slice(0, 3);
             const more = marks.length - shown.length;
@@ -272,6 +275,9 @@ export function CalendarView() {
                     ))}
                     {items.events.map((x) => (
                       <EventChip key={x.id} event={x} />
+                    ))}
+                    {items.taskDates.map((x) => (
+                      <TaskDateMark key={x.id} task={x} />
                     ))}
                   </div>
                 </button>

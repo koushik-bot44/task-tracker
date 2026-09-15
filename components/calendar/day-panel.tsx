@@ -72,6 +72,23 @@ export function DayPanel({
             </section>
           ) : null}
 
+          {items.taskDates.length > 0 ? (
+            <section>
+              <SectionLabel>Deadlines</SectionLabel>
+              <div className="space-y-2">
+                {items.taskDates.map((t) => (
+                  <Link key={t.id} href={`/work/${t.number}`} className="press flex min-h-[56px] items-center gap-3 rounded-card bg-bg px-4">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-row text-ink">{t.title}</span>
+                      <span className="block text-micro text-muted">{t.ref}{t.projectName ? ` · ${t.projectName}` : ""}</span>
+                    </span>
+                    <span className="shrink-0 rounded-chip border border-danger bg-danger-soft px-2 py-0.5 text-micro font-medium text-danger-ink">Due</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {items.deadlines.length > 0 ? (
             <section>
               <SectionLabel>Deadlines</SectionLabel>
