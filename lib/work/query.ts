@@ -42,6 +42,13 @@ export type WorkFilter = {
   projectId?: string;
   milestoneId?: string;
   unassigned?: boolean;
+  /* The quick filters, in the shape a mail app offers them (owner, 2026-09-15). */
+  /** Marked important — the "flagged" of this product. */
+  important?: boolean;
+  /** Something has been attached to it: a file on a note, or a note that is only files. */
+  hasFiles?: boolean;
+  /** Somebody wrote @you on it. */
+  mentionsMe?: boolean;
   /** Tasks with a meeting ahead, today included (owner, 2026-09-11). */
   meeting?: boolean;
   overdue?: boolean;
@@ -87,6 +94,11 @@ export function filterWhere(actor: Actor, scope: Scope, f: WorkFilter, now = new
   if (f.projectId) and.push({ projectId: f.projectId === "none" ? null : f.projectId });
   if (f.milestoneId) and.push({ milestoneId: f.milestoneId });
   if (f.unassigned) and.push({ assigneeId: null });
+  if (f.important) and.push({ important: true });
+  // A file lives on a note: either the first one on the row itself, or any of the rest.
+  if (f.hasFiles) and.push({ activities: { some: { OR: [{ attachmentUrl: { not: null } }, { attachments: { some: {} } }] } } });
+  // The same shape the activity stream matches a mention with (lib/work/activity.ts).
+  if (f.mentionsMe) and.push({ activities: { some: { metadata: { path: ["mentions"], array_contains: actor.id } } } });
   // Meetings are stored as the UTC midnight of their day, so "today" is that too.
   if (f.meeting) and.push({ meetings: { some: { isMeeting: true, date: { gte: new Date(`${istDayKey(now)}T00:00:00.000Z`) } } } });
   if (f.overdue) and.push({ dueDate: { lt: istDayRange(istDayKey(now)).start }, state: { in: [...OPEN_STATES] } });
@@ -434,6 +446,9 @@ export function parseFilter(params: URLSearchParams): WorkFilter {
     projectId: str("projectId"),
     milestoneId: str("milestoneId"),
     unassigned: bool("unassigned"),
+    important: bool("important"),
+    hasFiles: bool("hasFiles"),
+    mentionsMe: bool("mentionsMe"),
     meeting: bool("meeting"),
     overdue: bool("overdue"),
     dueToday: bool("dueToday"),

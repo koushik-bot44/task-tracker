@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ListFilter, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -101,7 +101,20 @@ const NARROWINGS = [
 ] as const;
 
 /** Every narrowing that is not the tab or Show — together with a search, what Clear filters clears. */
-const EXTRA_KEYS = ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "sort", "dir"] as const;
+const EXTRA_KEYS = ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "sort", "dir", "important", "hasFiles", "mentionsMe"] as const;
+
+/**
+ * The quick filters, behind the lines symbol a mail app uses (owner, 2026-09-15).
+ * Only what nothing else already offers: New, Overdue, Due today and Awaiting
+ * meeting are Show's job, and "given to me" is the Your work tab — repeating them
+ * here would be two controls doing one job. These combine, so a task can be both
+ * important and one you were named on.
+ */
+const QUICK_FILTERS = [
+  { key: "important", label: "Important" },
+  { key: "hasFiles", label: "Has files" },
+  { key: "mentionsMe", label: "Mentions me" },
+] as const;
 
 /**
  * The list, the way a service desk shows it: a title bar with New, the
@@ -230,7 +243,9 @@ export function WorkPage() {
       limit: PAGE,
       page: page > 1 ? page : undefined,
     };
-    for (const k of ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "dir"]) {
+    // Every narrowing in the address has to be copied here too, or it sits in the
+    // address doing nothing — the quick filters did exactly that (2026-09-15).
+    for (const k of ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "dir", "important", "hasFiles", "mentionsMe"]) {
       const v = params.get(k);
       if (v) base[k] = v;
     }
@@ -397,6 +412,49 @@ export function WorkPage() {
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden />
             <input value={draftQ} onChange={(e) => setDraftQ(e.target.value)} placeholder="Search number, short description, person" aria-label="Search tasks" className={cn(snInput, "pl-7")} />
           </form>
+
+          {/* The lines symbol, as a mail app draws it: tap it, tick what you want. */}
+          <details className="relative">
+            <summary className={cn(snButton, "list-none select-none [&::-webkit-details-marker]:hidden")} aria-label="Filter">
+              <ListFilter className="h-4 w-4" strokeWidth={2} aria-hidden />
+              {QUICK_FILTERS.some((f) => params.get(f.key)) ? <span className="ml-1 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden /> : null}
+            </summary>
+            <div
+              role="menu"
+              className="absolute right-0 z-drawer mt-1 min-w-[13rem] rounded-[3px] border border-line bg-surface py-1 shadow-e2"
+              onClick={(e) => {
+                const d = e.currentTarget.closest("details");
+                if (d) d.open = false;
+              }}
+            >
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={!QUICK_FILTERS.some((f) => params.get(f.key))}
+                onClick={() => set({ ...Object.fromEntries(QUICK_FILTERS.map((f) => [f.key, null])), page: null })}
+                className="flex min-h-[36px] w-full items-center gap-2 px-3 text-left text-[13px] text-ink hover:bg-hover"
+              >
+                <Check className={cn("h-3.5 w-3.5 shrink-0", QUICK_FILTERS.some((f) => params.get(f.key)) ? "opacity-0" : "text-primary-ink")} aria-hidden />
+                All
+              </button>
+              {QUICK_FILTERS.map((f) => {
+                const on = Boolean(params.get(f.key));
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={on}
+                    onClick={() => set({ [f.key]: on ? null : "1", page: null })}
+                    className="flex min-h-[36px] w-full items-center gap-2 px-3 text-left text-[13px] text-ink hover:bg-hover"
+                  >
+                    <Check className={cn("h-3.5 w-3.5 shrink-0", on ? "text-primary-ink" : "opacity-0")} aria-hidden />
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          </details>
 
           <button type="button" onClick={() => setMoreFilters((v) => !v)} aria-expanded={moreFilters} className={snButton}>
             {moreFilters ? "Fewer filters" : "More filters"}
