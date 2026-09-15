@@ -80,7 +80,7 @@ export function TaskTable({
               <Th sortKey="assignedTo" {...s}>Assigned to</Th>
               <Th sortKey="assigned" {...s}>Assigned</Th>
               <Th sortKey="due" {...s}>Due</Th>
-              <Th sortKey="updated" {...s}>Updated</Th>
+              <Th sortKey="updated" {...s}>Last updated</Th>
             </tr>
           </thead>
           <tbody>

@@ -183,25 +183,39 @@ export type NoteInput = {
   mentions?: string[];
 };
 
-/** A note, a team note, or (words empty, files present) files — any number of them. */
+/**
+ * A note, a team note, or (words empty, files present) files — any number of them.
+ *
+ * Saying something on a task IS work on the task, so the task's own "Last updated"
+ * moves with it (owner, 2026-09-15). Every way of writing on a task comes through
+ * here — the public note, the team note, a dropped file, and the note carried by a
+ * status move — so this is the one place that has to remember. Both writes go in
+ * one transaction: a message the list swears never happened is worse than neither.
+ */
 export async function addNote(taskId: string, actorId: string, input: NoteInput): Promise<ActivityRow> {
   const files = noteFilesFrom(input);
   const type: ActivityType = input.body.trim().length === 0 && files.length > 0 ? "ATTACHMENT" : input.internal ? "WORK_NOTE" : "COMMENT";
   const mentions = [...new Set(input.mentions ?? [])];
-  return prisma.taskActivity.create({
-    data: {
-      taskId,
-      authorId: actorId,
-      type,
-      visibility: input.internal ? "INTERNAL" : "PUBLIC",
-      body: input.body,
-      metadata: (mentions.length ? { mentions } : {}) as Prisma.InputJsonObject,
-      // The first file stays on the row itself, so everything that reads one file keeps working.
-      ...firstFileColumns(files),
-      attachments: { create: attachmentRows(files) },
-    },
-    include: ACTIVITY_INCLUDE,
-  });
+  const [row] = await prisma.$transaction([
+    prisma.taskActivity.create({
+      data: {
+        taskId,
+        authorId: actorId,
+        type,
+        visibility: input.internal ? "INTERNAL" : "PUBLIC",
+        body: input.body,
+        metadata: (mentions.length ? { mentions } : {}) as Prisma.InputJsonObject,
+        // The first file stays on the row itself, so everything that reads one file keeps working.
+        ...firstFileColumns(files),
+        attachments: { create: attachmentRows(files) },
+      },
+      include: ACTIVITY_INCLUDE,
+    }),
+    // Set by hand rather than leaning on @updatedAt: an update carrying no fields
+    // is a no-op, and a fix that quietly does nothing is worse than none.
+    prisma.task.update({ where: { id: taskId }, data: { updatedAt: new Date() }, select: { id: true } }),
+  ]);
+  return row;
 }
 
 export type ActivityQuery = {
