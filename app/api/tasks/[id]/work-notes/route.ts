@@ -25,7 +25,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
     : [];
   const files = noteFilesFrom(parsed.data);
   const row = await addNote(params.id, user.id, { ...parsed.data, internal: true, attachments: files, mentions });
-  const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (task) await emit({ type: "WORK_NOTE_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(parsed.data.body, files), mentions } });
+  const task = await prisma.task.findUnique({ where: { id: params.id }, include: { people: { select: { userId: true } } } });
+  // A team note reaches everybody working the task, not only whoever holds it.
+  if (task) await emit({ type: "WORK_NOTE_ADDED", task: { ...task, personIds: task.people.map((p) => p.userId) }, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(parsed.data.body, files), mentions } });
   return NextResponse.json(serializeActivity(row), { status: 201 });
 });

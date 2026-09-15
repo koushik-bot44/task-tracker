@@ -324,7 +324,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
 
                 {access.canAssign ? (
                   <button type="button" onClick={() => setMorePeopleOpen(true)} className="press min-h-[32px] text-micro font-medium text-primary-ink">
-                    + Give this to more people
+                    + Add people
                   </button>
                 ) : null}
               </div>

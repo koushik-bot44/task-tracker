@@ -35,8 +35,16 @@ export const TASK_ACCESS_SELECT = {
   type: true,
   state: true,
   deletedAt: true,
+  people: { select: { userId: true } },
 } as const;
-export type TaskAccessRow = Pick<Task, keyof typeof TASK_ACCESS_SELECT>;
+/**
+ * Everybody on the task comes with the row (owner, 2026-09-15). Before, several
+ * people meant several COPIES and each was the assignee of their own, so
+ * `assigneeId === you` happened to be true for all of them. One task with
+ * several people breaks that, and without this every check below would answer
+ * "no" for everyone but the holder.
+ */
+export type TaskAccessRow = Pick<Task, Exclude<keyof typeof TASK_ACCESS_SELECT, "people">> & { people: { userId: string }[] };
 
 export type Scope = {
   all: boolean;
@@ -84,8 +92,14 @@ export async function loadAccessRow(taskId: string): Promise<{ task: TaskAccessR
   return { task, root: root ?? task };
 }
 
+/** On the task: holding it, on it with others, having asked for it, or having given it. */
 function onIt(actor: Actor, t: TaskAccessRow): boolean {
-  return t.assigneeId === actor.id || t.requesterId === actor.id || t.givenById === actor.id;
+  return t.assigneeId === actor.id || isOnTask(actor, t) || t.requesterId === actor.id || t.givenById === actor.id;
+}
+
+/** One of the people the task carries. */
+export function isOnTask(actor: Actor, t: TaskAccessRow): boolean {
+  return (t.people ?? []).some((p) => p.userId === actor.id);
 }
 
 function headsIt(scope: Scope, t: TaskAccessRow): boolean {
@@ -147,7 +161,8 @@ export async function canEditTask(actor: Actor, t: TaskAccessRow, scope: Scope):
 export async function canAssignTask(actor: Actor, t: TaskAccessRow, scope: Scope): Promise<boolean> {
   if (t.isPrivate) return false;
   if (scope.all || headsIt(scope, t) || leadsTeam(scope, t) || teamed(scope, t)) return true;
-  if (t.assigneeId === actor.id || t.givenById === actor.id) return true;
+  // Anyone ON the task may put more people on it (owner, 2026-09-15).
+  if (t.assigneeId === actor.id || isOnTask(actor, t) || t.givenById === actor.id) return true;
   if (t.projectId) {
     if (isLeadOrAboveRole(actor.role) && (await canSeeProject(actor, t.projectId))) return true;
     return isOnProject(actor.id, t.projectId);

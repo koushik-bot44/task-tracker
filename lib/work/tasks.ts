@@ -95,6 +95,9 @@ function toEventTask(t: Task): EventTask {
     priority: t.priority,
     dueDate: t.dueDate,
     assigneeId: t.assigneeId,
+    // Filled by the caller when it has them; a task with nobody else on it
+    // tells the same people it always did.
+    personIds: [],
     requesterId: t.requesterId,
     givenById: t.givenById,
     assignmentGroupId: t.assignmentGroupId,
@@ -312,7 +315,8 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
   const check = await assertAssigneeAllowed(prisma, actor, scope, { projectId, departmentId: routed.departmentId }, routed.assignmentGroupId, assigneeId, { sharing: input.sharing === true });
   if (assigneeId) {
     // Naming a holder is assigning: the same door as a later reassignment.
-    const draft: TaskAccessRow = { id: "", isPrivate: false, ownerId: null, projectId, departmentId: routed.departmentId, assignmentGroupId: routed.assignmentGroupId, assigneeId: null, requesterId, givenById: actor.id, parentId: null, type, state: "NEW", deletedAt: null };
+    // Nobody is on a task that does not exist yet, so the people list is empty.
+    const draft: TaskAccessRow = { id: "", isPrivate: false, ownerId: null, projectId, departmentId: routed.departmentId, assignmentGroupId: routed.assignmentGroupId, assigneeId: null, requesterId, givenById: actor.id, parentId: null, type, state: "NEW", deletedAt: null, people: [] };
     if (!(await canAssignTask(actor, draft, scope)) && assigneeId !== actor.id) throw new HttpError(403, "You can't give this to someone else.");
   }
 
@@ -370,6 +374,10 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
       const [row] = await recordChanges(tx, t.id, { assigneeId: null }, { assigneeId }, actor.id);
       handover = row ?? null;
     }
+    // Whoever holds it is ON it. One task carries its people now, instead of the
+    // task being copied once each (owner, 2026-09-15), and the holder having a row
+    // here means "who is on this task" is one query with nobody to add back.
+    if (assigneeId) await tx.taskPerson.create({ data: { taskId: t.id, userId: assigneeId, addedById: actor.id } });
     if (check.addToProject && projectId && assigneeId) await tx.projectMember.upsert({ where: { projectId_userId: { projectId, userId: assigneeId } }, update: {}, create: { projectId, userId: assigneeId } });
     return { t, handover };
   });

@@ -209,6 +209,8 @@ model User {
   privateTasks       Task[]                 @relation("PrivateTaskOwner")
   /// Work model: tasks this person asked for / resolved / closed; teams; activity.
   requestedTasks     Task[]                 @relation("TaskRequester")
+  onTasks            TaskPerson[]           @relation("TaskPeople")
+  addedToTasks       TaskPerson[]           @relation("TaskPeopleAddedBy")
   resolvedTasks      Task[]                 @relation("TaskResolvedBy")
   closedTasks        Task[]                 @relation("TaskClosedBy")
   groupMemberships   AssignmentGroupMember[]
@@ -503,6 +505,11 @@ model Task {
   progress          Int?
   activities        TaskActivity[]
   notifications     Notification[]
+  /// Everybody on this task (owner, 2026-09-15: "multiple people to the same
+  /// task as group chat"). It replaces copying the record once per person: one
+  /// task, one chat, several people. The holder in `assigneeId` has a row here
+  /// too, so "who is on it" is one query with nobody to remember to add back.
+  people            TaskPerson[]
   /// Meetings scheduled from the task's record.
   meetings          CalendarEvent[]  @relation("TaskMeetings")
 
@@ -933,6 +940,23 @@ model AssignmentGroup {
 
   @@unique([departmentId, name])
   @@index([leadId])
+}
+
+/// Somebody on a task. One task holds several people and one chat, instead of
+/// the task being copied once per person (owner, 2026-09-15).
+model TaskPerson {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("TaskPeople", fields: [userId], references: [id], onDelete: Cascade)
+  /// Who put them on it; kept when that person's account goes.
+  addedById String?
+  addedBy   User?    @relation("TaskPeopleAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }
 
 model AssignmentGroupMember {

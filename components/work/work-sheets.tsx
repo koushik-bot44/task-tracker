@@ -261,8 +261,8 @@ export function MorePeopleSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Give this to more people"
-      subtitle="Each person gets their own copy, so each can finish their own."
+      title="Add people"
+      subtitle="Everybody on it shares the same task and the same chat."
       footer={
         links.length ? (
           <Button variant="primary" full onClick={onClose}>
@@ -270,7 +270,7 @@ export function MorePeopleSheet({
           </Button>
         ) : (
           <Button variant="primary" full loading={busy || inviting} disabled={total === 0 || Boolean(inviteProblem)} onClick={() => void submit()}>
-            {total ? `Give it to ${total} more` : "Pick who else"}
+            {total ? `Add ${total} to this task` : "Pick who to add"}
           </Button>
         )
       }

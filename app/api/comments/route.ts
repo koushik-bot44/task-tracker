@@ -67,9 +67,10 @@ export const POST = route(async (req: Request) => {
   if (targetType === "TASK") {
     await requireSee(user, targetId);
     const row = await addNote(targetId, user.id, { body, internal: false, attachments: files });
-    const task = await prisma.task.findUnique({ where: { id: targetId } });
+    const task = await prisma.task.findUnique({ where: { id: targetId }, include: { people: { select: { userId: true } } } });
     // A note that is only files still says what arrived, rather than an empty message.
-    if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(body, files) } });
+    // Everybody on the task is told, not only whoever holds it (owner, 2026-09-15).
+    if (task) await emit({ type: "COMMENT_ADDED", task: { ...task, personIds: task.people.map((p) => p.userId) }, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(body, files) } });
     return NextResponse.json(activityAsComment(row), { status: 201 });
   }
   await assertCanSeeTarget(user, targetType, targetId);

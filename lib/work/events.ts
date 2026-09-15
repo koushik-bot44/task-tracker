@@ -40,6 +40,8 @@ export type EventTask = {
   priority: WorkPriority;
   dueDate: Date | null;
   assigneeId: string | null;
+  /** Everybody on the task. One task, one chat — so everybody on it is told. */
+  personIds: string[];
   requesterId: string | null;
   givenById: string | null;
   assignmentGroupId: string | null;
@@ -138,7 +140,7 @@ async function route(ev: WorkEvent): Promise<void> {
     }
     case "COMMENT_ADDED": {
       const mentions = ev.payload?.mentions ?? [];
-      const ids = without([t.requesterId, t.assigneeId], actorId, ...mentions);
+      const ids = without([t.requesterId, t.assigneeId, ...t.personIds], actorId, ...mentions);
       const body = ev.payload?.body ?? "";
       if (ids.length) {
         await sendMessage(ids, taskNoteMessage({ taskId: t.id, taskRef: ref, taskNumber: t.number, taskTitle: t.title, authorName: who, body, activityId: ev.activityId }));
@@ -149,7 +151,7 @@ async function route(ev: WorkEvent): Promise<void> {
     case "WORK_NOTE_ADDED": {
       const a = await audience(t);
       const mentions = ev.payload?.mentions ?? [];
-      const ids = without([t.assigneeId, a.groupLead], actorId, ...mentions);
+      const ids = without([t.assigneeId, ...t.personIds, a.groupLead], actorId, ...mentions);
       const snippet = (ev.payload?.body ?? "").slice(0, 120);
       await bellUsers(ids, { ...base, type: "work.team-note", title: `${who} left a team note on ${ref}`, body: snippet || t.title, dedupeKey: key("team-note") });
       await mentioned(ev, ref, url, mentions, snippet);

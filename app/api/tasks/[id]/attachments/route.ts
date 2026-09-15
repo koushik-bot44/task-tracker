@@ -21,7 +21,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
   if (!files.length) throw new HttpError(400, "Attach a file.");
   await requireSee(user, params.id);
   const row = await addNote(params.id, user.id, { ...parsed.data, internal: false, mentions: [], attachments: files });
-  const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (task) await emit({ type: "COMMENT_ADDED", task, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(parsed.data.body, files) } });
+  const task = await prisma.task.findUnique({ where: { id: params.id }, include: { people: { select: { userId: true } } } });
+  // Everybody on the task is told, not only whoever holds it (owner, 2026-09-15).
+  if (task) await emit({ type: "COMMENT_ADDED", task: { ...task, personIds: task.people.map((p) => p.userId) }, actor: { id: user.id, name: user.name }, activityId: row.id, payload: { body: noteSaid(parsed.data.body, files) } });
   return NextResponse.json(serializeActivity(row), { status: 201 });
 });

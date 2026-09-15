@@ -104,7 +104,6 @@ export function NewWorkRecord() {
      one record each, saved one at a time; if the third fails, pressing Submit again
      must finish the job rather than raise the first two a second time. */
   const madeRef = useRef(new Map<string | null, Awaited<ReturnType<typeof raise.mutateAsync>>>());
-  const siblingRef = useRef<string | null>(null);
   const [projectName, setProjectName] = useState("");
   const [projectPriority, setProjectPriority] = useState<ProjectPriority>("MEDIUM");
   const [leadId, setLeadId] = useState("");
@@ -214,32 +213,30 @@ export function NewWorkRecord() {
       dueDate: due ? dayToIso(due) : null,
       priority,
     };
-    // One record per person, so each can finish their own, tied together by one key.
-    const list = holders.size ? [...holders] : [null];
-    if (!siblingRef.current) siblingRef.current = globalThis.crypto?.randomUUID?.() ?? `sib-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const siblingKey = list.length > 1 ? siblingRef.current : undefined;
+    /* ONE task, everybody on it, one chat between them (owner, 2026-09-15). It
+       used to raise a copy per person, so each had a private chat on their own
+       copy. The first person ticked is who it waits on; the rest are put on it. */
+    const list = [...holders];
+    const holder = list[0] ?? null;
+    const others = list.slice(1);
     try {
-      const made: Awaited<ReturnType<typeof raise.mutateAsync>>[] = [];
-      // The number drawn when the form opened belongs to one record; the others
-      // raised alongside it take the next ones from the sequence themselves.
-      for (const assigneeId of list) {
-        const already = madeRef.current.get(assigneeId);
-        if (already) {
-          made.push(already);
-          continue;
-        }
-        const row = await raise.mutateAsync({ ...base, assigneeId, ...(siblingKey ? { siblingKey } : {}), ...(made.length === 0 && number ? { number } : {}) });
-        madeRef.current.set(assigneeId, row);
-        made.push(row);
+      // Kept across a retry, so pressing Submit again finishes the job rather
+      // than raising the task a second time.
+      let task = madeRef.current.get(holder);
+      if (!task) {
+        task = await raise.mutateAsync({ ...base, assigneeId: holder, ...(number ? { number } : {}) });
+        madeRef.current.set(holder, task);
       }
+      if (others.length) await apiPost(`/api/tasks/${task.id}/people`, { assigneeIds: others });
+      const made = [task];
       const attached = files.ready;
       try {
         if (attached.length) for (const t of made) await apiPost(`/api/tasks/${t.id}/attachments`, { body: "", attachments: attached });
       } catch (e) {
         toast({ message: `The task is saved, but a file couldn't be added: ${(e as Error).message}`, tone: "danger" });
       }
-      const go = made.length === 1 ? `/work/${made[0].number}` : "/work?mine=requested";
-      if (made.length > 1) toast({ message: `${made.length} tasks opened, one per person` });
+      const go = `/work/${task.number}`;
+      if (others.length) toast({ message: `Opened with ${others.length + 1} people on it` });
       if (links.length) {
         setDone({ links, go, label: made.length === 1 ? "Open the task" : "Open the tasks" });
         return;

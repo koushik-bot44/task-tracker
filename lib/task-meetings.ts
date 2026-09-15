@@ -7,16 +7,17 @@ import { prisma } from "@/lib/prisma";
  * else named is left out, however they were named.
  */
 
-/** Whoever holds the task (every record of it, when it went to several people), asked for it, or gave it. */
+/** Everybody on the task, whoever asked for it, and whoever gave it. */
 export async function taskPeopleIds(taskId: string): Promise<Set<string>> {
   const ids = new Set<string>();
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { assigneeId: true, requesterId: true, givenById: true, siblingKey: true } });
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    // One task carries its people now, instead of a record each (owner, 2026-09-15).
+    select: { assigneeId: true, requesterId: true, givenById: true, people: { select: { userId: true } } },
+  });
   if (!task) return ids;
   for (const id of [task.assigneeId, task.requesterId, task.givenById]) if (id) ids.add(id);
-  if (task.siblingKey) {
-    const records = await prisma.task.findMany({ where: { siblingKey: task.siblingKey, deletedAt: null }, select: { assigneeId: true } });
-    for (const r of records) if (r.assigneeId) ids.add(r.assigneeId);
-  }
+  for (const p of task.people) ids.add(p.userId);
   return ids;
 }
 

@@ -21,6 +21,8 @@ export function visibilityWhere(actor: Actor, scope: Scope): Prisma.TaskWhereInp
     { requesterId: actor.id },
     { assigneeId: actor.id },
     { givenById: actor.id },
+    // Mirrors canSeeTask's people test: one task can carry several people.
+    { people: { some: { userId: actor.id } } },
   ];
   if (scope.departmentIds.size) or.push({ departmentId: { in: [...scope.departmentIds] } });
   if (scope.groupIds.size) or.push({ assignmentGroupId: { in: [...scope.groupIds] } });
@@ -234,30 +236,24 @@ export async function nextMeetings(taskIds: string[], now = new Date()): Promise
 async function present(page: ListedRow[]): Promise<TaskDTO[]> {
   const [counts, upcoming] = await Promise.all([noteCounts(page.map((r) => r.id), true), nextMeetings(page.map((r) => r.id))]);
 
-  // The same task given to several people is one record each. Who ELSE holds it
-  // is answered here, in one query for the whole page, so a row can say so
-  // without the screen guessing from titles and without the others having to
-  // land on the same page of results.
-  const keys = [...new Set(page.map((r) => r.siblingKey).filter((k): k is string => Boolean(k)))];
+  // Who ELSE is on a task, answered in one query for the whole page, so a row can
+  // say so without the screen guessing from titles. One task carries its people
+  // now (owner, 2026-09-15); it used to be a record each, tied by a shared key.
   const crew = new Map<string, { id: string; name: string }[]>();
-  if (keys.length) {
-    const siblings = await prisma.task.findMany({
-      where: { siblingKey: { in: keys }, deletedAt: null, assigneeId: { not: null } },
-      select: { siblingKey: true, assignee: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "asc" },
-    });
-    for (const s of siblings) {
-      if (!s.siblingKey || !s.assignee) continue;
-      const list = crew.get(s.siblingKey) ?? [];
-      // One entry per person, however many records they hold.
-      if (!list.some((p) => p.id === s.assignee!.id)) list.push(s.assignee);
-      crew.set(s.siblingKey, list);
-    }
+  const onThem = await prisma.taskPerson.findMany({
+    where: { taskId: { in: page.map((r) => r.id) } },
+    select: { taskId: true, user: { select: { id: true, name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  for (const p of onThem) {
+    const list = crew.get(p.taskId) ?? [];
+    list.push(p.user);
+    crew.set(p.taskId, list);
   }
 
   return withCounts(page, counts).map((row) => {
     const dto = serializeTask(row);
-    const all = row.siblingKey ? crew.get(row.siblingKey) ?? [] : [];
+    const all = crew.get(row.id) ?? [];
     return { ...dto, alsoWith: all.filter((p) => p.id !== row.assigneeId), nextMeeting: upcoming.get(row.id) ?? null };
   });
 }
