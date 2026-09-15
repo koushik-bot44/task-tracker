@@ -77,7 +77,11 @@ type Tab = "notes" | "attachments";
 function RecordBody({ task }: { task: TaskDTO }) {
   const router = useRouter();
   const access = task.access ?? { canEdit: false, canAssign: false, canDelete: false, staff: false, transitions: [] };
-  const { transition, assign, update, remove } = useWorkMutations(task.id);
+  // `refresh` is the invalidation every mutation here already runs when it settles.
+  // The people handlers below write without a mutation, so they must run it too:
+  // router.refresh() cannot help them, because this record is React Query data and
+  // the server page above it fetches nothing to re-render.
+  const { transition, assign, update, remove, refresh } = useWorkMutations(task.id);
   const { data: projects } = useProjects();
   const { data: departments } = useDepartments();
   const { data: files, refetch: refetchFiles } = useActivity(task.id, { type: "ATTACHMENT,COMMENT,WORK_NOTE" });
@@ -131,7 +135,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
     try {
       await apiDelete(`/api/tasks/${task.id}/people`, { assigneeId });
       toast({ message: `${name} is off this task` });
-      router.refresh();
+      refresh();
     } catch (e) {
       fail(e);
     } finally {
@@ -145,7 +149,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
       await apiPost(`/api/tasks/${task.id}/people`, { assigneeIds });
       setMorePeopleOpen(false);
       toast({ message: `Given to ${assigneeIds.length} more` });
-      router.refresh();
+      refresh();
     } catch (e) {
       fail(e);
     } finally {
