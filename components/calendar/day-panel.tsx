@@ -169,28 +169,53 @@ function MeetingCard({ event, isManager, onEdit }: { event: CalendarEventDTO; is
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {event.attendees.length > 0 ? (
-          <span className="flex items-center gap-1.5">
-            {event.attendees.map((a) => {
-              const word = REPLY_WORD[a.response ?? "none"];
-              return (
-                <span key={a.userId} className="relative" title={`${a.name} · ${word}`}>
-                  <Face name={a.name} title={`${a.name} · ${word}`} />
-                  <span
-                    className={cn(
-                      "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-bg",
-                      a.response === "YES" ? "bg-ok" : a.response === "NO" ? "bg-danger" : "bg-guide",
-                    )}
-                    aria-hidden
-                  />
-                </span>
-              );
-            })}
-          </span>
-        ) : null}
-        <span className="text-micro text-muted">{summary}</span>
+      {/* What it is about, and anything written with it. Both were in the payload
+          all along and shown nowhere (owner, 2026-09-15: "make it detailed if
+          opened the people and related stuff too"). */}
+      {event.taskNumber ? (
+        <Link href={`/work/${event.taskNumber}`} className="press flex min-h-[44px] items-center gap-2 rounded-card bg-surface px-3">
+          <span className="shrink-0 text-micro font-semibold text-muted">{event.taskRef}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-ink">{event.taskTitle}</span>
+        </Link>
+      ) : null}
+      {event.description.trim() ? <p className="whitespace-pre-wrap text-sm text-ink">{event.description}</p> : null}
+
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {event.attendees.length > 0 ? (
+            <span className="flex items-center gap-1.5">
+              {event.attendees.map((a) => {
+                const word = REPLY_WORD[a.response ?? "none"];
+                return (
+                  <span key={a.userId} className="relative" title={`${a.name} · ${word}`}>
+                    <Face name={a.name} title={`${a.name} · ${word}`} />
+                    <span
+                      className={cn(
+                        "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-bg",
+                        a.response === "YES" ? "bg-ok" : a.response === "NO" ? "bg-danger" : "bg-guide",
+                      )}
+                      aria-hidden
+                    />
+                  </span>
+                );
+              })}
+            </span>
+          ) : null}
+          <span className="text-micro text-muted">{summary}</span>
+        </div>
+        {/* Two initials and "2 no reply yet" does not say WHO. */}
+        {(["YES", "NO", "none"] as const).map((r) => {
+          const names = event.attendees.filter((a) => (a.response ?? "none") === r).map((a) => a.name);
+          if (names.length === 0) return null;
+          return (
+            <p key={r} className="text-micro text-muted">
+              <span className="font-medium text-ink">{r === "YES" ? "Coming" : r === "NO" ? "Can't make it" : "No reply yet"}:</span> {names.join(", ")}
+            </p>
+          );
+        })}
       </div>
+
+      <p className="text-micro text-muted">Scheduled by {event.createdByName}</p>
 
       {showButtons ? (
         <div className="flex gap-2">
