@@ -19,7 +19,7 @@ import {
   WAITING_REASON_LABEL,
   WORK_PRIORITIES,
   WORK_PRIORITY_LABEL,
-  WORK_STATE_LABEL,
+  workStatusLabel,
   WORK_TYPE_LABEL,
   titleCase,
   type TaskDTO,
@@ -128,10 +128,12 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const canDecline = access.transitions.includes("CANCELLED");
   const approve = async () => {
     try {
-      // Approving straight from New: it is started and finished in one press,
-      // because nobody wants to "Start Work" on somebody else's request first.
+      // Approving straight from New: started, granted and CLOSED in one press.
+      // Nobody wants to "Start Work" on somebody else's request first, and an
+      // approval that has been granted is finished (owner, 2026-09-16).
       if (!access.transitions.includes("RESOLVED")) await transition.mutateAsync({ to: "IN_PROGRESS" });
       await transition.mutateAsync({ to: "RESOLVED", resolutionCode: "COMPLETED" });
+      await transition.mutateAsync({ to: "CLOSED" });
     } catch (e) {
       fail(e);
     }
@@ -314,7 +316,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
           </div>
           <div>
             <FormRow label="Status">
-              <input aria-label="Status" value={`${WORK_STATE_LABEL[task.state]}${task.state === "WAITING" && task.waitingReason ? ` · ${WAITING_REASON_LABEL[task.waitingReason]}` : ""}`} readOnly className={snInput} />
+              <input aria-label="Status" value={`${workStatusLabel(task.type, task.state)}${task.state === "WAITING" && task.waitingReason ? ` · ${WAITING_REASON_LABEL[task.waitingReason]}` : ""}`} readOnly className={snInput} />
             </FormRow>
             <FormRow label="Progress">
               <TaskProgress task={task} canEdit={access.canEdit} />

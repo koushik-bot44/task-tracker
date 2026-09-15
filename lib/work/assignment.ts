@@ -98,7 +98,7 @@ export async function assertAssigneeAllowed(
   groupId: string | null,
   assigneeId: string | null,
   /** Someone already on the task giving it to more people (owner, 2026-09-15): anyone may be added. */
-  opts: { sharing?: boolean } = {},
+  opts: { sharing?: boolean; asking?: boolean } = {},
 ): Promise<AssigneeCheck> {
   if (!assigneeId) return { addToProject: false };
   const target = await tx.user.findUnique({
@@ -128,6 +128,10 @@ export async function assertAssigneeAllowed(
     }
     throw new HttpError(400, "Pick someone on this project, or ask a manager to add them.");
   }
+  // Asking is not giving: anybody may send a request or an approval to the
+  // person who has to answer it (owner, 2026-09-16). Without this a team member
+  // could not ask their own manager for anything, which is most of the point.
+  if (opts.asking) return { addToProject: false };
   // Standalone, no team: a lead or above may name anyone; a team member only themselves.
   if (assigneeId === actor.id || scope.all || isLeadOrAboveRole(actor.role) || opts.sharing) return { addToProject: false };
   throw new HttpError(400, "Only a team lead or above can give this to someone else.");

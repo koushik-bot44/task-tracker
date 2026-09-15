@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { dateWord } from "@/lib/dates";
-import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
+import { WORK_PRIORITY_LABEL, workStatusLabel, type TaskDTO } from "@/lib/types";
 import { approvalTone } from "./task-table";
 
 /** "Tomorrow 10:30" — when a task's next meeting is (owner, 2026-09-11). */
@@ -44,7 +44,7 @@ export function WorkCards({
               </span>
 
               <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-micro text-muted">
-                <span>{WORK_STATE_LABEL[t.state]}</span>
+                <span>{workStatusLabel(t.type, t.state)}</span>
                 <span aria-hidden>·</span>
                 <span className={cn(t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : undefined)}>
                   {WORK_PRIORITY_LABEL[t.priority]}

@@ -153,6 +153,19 @@ export const WAITING_REASON_LABEL: Record<WaitingReason, string> = {
  * lib/work/repeats.ts, because the screens need the words and that file reaches
  * for the database — a client component must not drag it into the browser.
  */
+/**
+ * What a state is CALLED, given what kind of thing it is (owner, 2026-09-16:
+ * "if it approevd it shouls show approved"). An approval that was granted does
+ * not read as "Resolved", and one that was refused does not read as "Canceled".
+ */
+export function workStatusLabel(type: WorkType, state: WorkState): string {
+  if (type === "APPROVAL") {
+    if (state === "RESOLVED" || state === "CLOSED") return "Approved";
+    if (state === "CANCELLED") return "Declined";
+  }
+  return WORK_STATE_LABEL[state];
+}
+
 export const REPEATS = ["DAY", "WEEK", "MONTH"] as const;
 export type Repeats = (typeof REPEATS)[number];
 export const REPEATS_LABEL: Record<Repeats, string> = {

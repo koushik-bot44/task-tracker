@@ -314,7 +314,9 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
   // On a project, a task given with no one named lands on the giver (the old
   // contract, kept); a task on its own stays unheld and goes to its team.
   const assigneeId = parent ? null : (routed.assigneeId ?? (input.assigneeId === undefined && projectId ? actor.id : null));
-  const check = await assertAssigneeAllowed(prisma, actor, scope, { projectId, departmentId: routed.departmentId }, routed.assignmentGroupId, assigneeId, { sharing: input.sharing === true });
+  // A request or an approval is ASKED of somebody, not handed to them.
+  const asking = type === "REQUEST" || type === "APPROVAL";
+  const check = await assertAssigneeAllowed(prisma, actor, scope, { projectId, departmentId: routed.departmentId }, routed.assignmentGroupId, assigneeId, { sharing: input.sharing === true, asking });
   if (assigneeId) {
     // Naming a holder is assigning: the same door as a later reassignment.
     // Nobody is on a task that does not exist yet, so the people list is empty.

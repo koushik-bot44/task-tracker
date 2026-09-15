@@ -5,7 +5,7 @@ import { Tooltip } from "@/components/tooltip";
 import { cn } from "@/lib/cn";
 import { dateWord, formatDMY } from "@/lib/dates";
 import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
-import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
+import { WORK_PRIORITY_LABEL, workStatusLabel, type TaskDTO } from "@/lib/types";
 import { ColumnMenu, type FilterKind, type Named, type Patch } from "./column-menu";
 import { WorkCards, meetingWhen } from "./work-cards";
 import { snLink } from "./sn";
@@ -248,7 +248,8 @@ function RowLine({ t, sharedWith, hideProject = false }: { t: TaskDTO; sharedWit
         )}
       </td>
       )}
-      <td className="whitespace-nowrap px-3 py-2 text-ink">{WORK_STATE_LABEL[t.state]}</td>
+      {/* An approval that was granted says Approved, not Resolved (owner, 2026-09-16). */}
+      <td className="whitespace-nowrap px-3 py-2 text-ink">{workStatusLabel(t.type, t.state)}</td>
       <td className={cn("whitespace-nowrap px-3 py-2", t.priority === "CRITICAL" ? "font-semibold text-danger-ink" : t.priority === "HIGH" ? "text-warn-ink" : "text-ink")}>{WORK_PRIORITY_LABEL[t.priority]}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">{t.assignedByName ?? ""}</td>
       <td className="whitespace-nowrap px-3 py-2 text-ink">

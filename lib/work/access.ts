@@ -192,6 +192,18 @@ export async function canDeleteTask(actor: Actor, t: TaskAccessRow, scope: Scope
 export async function canTransitionTask(actor: Actor, t: TaskAccessRow, to: WorkState, scope: Scope): Promise<boolean> {
   if (t.isPrivate) return t.ownerId === actor.id;
   if (!canTransition(t.state, to)) return false;
+  /*
+   * An approval is answered by the person it was SENT TO — never by whoever
+   * asked for it, however senior they are (owner, 2026-09-16: "request person
+   * should only ... status"). This is checked BEFORE the company-wide and
+   * head-of-department short-circuits below, because those are exactly what let
+   * a manager approve a request they raised themselves: any lead or above could
+   * resolve anything in their own department.
+   */
+  const approval = t.type === "APPROVAL";
+  const answering = to === "RESOLVED" || to === "CANCELLED" || to === "CLOSED";
+  const onThisTask = t.assigneeId === actor.id || isOnTask(actor, t);
+  if (approval && answering && !onThisTask && (t.requesterId === actor.id || t.givenById === actor.id)) return false;
   if (scope.all || headsIt(scope, t)) return true;
   const holder = t.assigneeId === actor.id;
   const team = teamed(scope, t);
@@ -211,7 +223,8 @@ export async function canTransitionTask(actor: Actor, t: TaskAccessRow, to: Work
       if (t.type === "PROJECT_TASK") return projectLead || deptLead || leadsTeam(scope, t);
       return holder || team || projectLead || deptLead;
     case "CLOSED":
-      return t.requesterId === actor.id || leadsTeam(scope, t) || projectLead || deptLead;
+      // Approving finishes an approval outright, so whoever answers it closes it.
+      return (approval && onThisTask) || t.requesterId === actor.id || leadsTeam(scope, t) || projectLead || deptLead;
     case "REOPENED":
       return t.requesterId === actor.id || holder || projectLead || deptLead || leadsTeam(scope, t);
     case "CANCELLED":
