@@ -13,7 +13,7 @@ const PASSWORD = process.env.SEED_PASSWORD ?? "orbit123";
 const ORDER = ["FOUNDER", "CO_FOUNDER", "ADMIN", "HOD", "MANAGER", "TEAM_LEAD", "RESOURCE", "PERSON"];
 const LABEL: Record<string, string> = {
   FOUNDER: "CEO",
-  CO_FOUNDER: "Assignee",
+  CO_FOUNDER: "Associate",
   ADMIN: "Admin",
   HOD: "Head of dept",
   MANAGER: "Manager",

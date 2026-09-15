@@ -209,6 +209,8 @@ export type TransitionExtra = {
 /* ---------------------------------------------------------------- create */
 
 export type CreateWorkInput = {
+  /** Given to more people by someone already on the task: anyone may be added (owner, 2026-09-15). Never from a request body. */
+  sharing?: boolean;
   id?: string;
   title?: string;
   descriptionMd?: string;
@@ -228,6 +230,9 @@ export type CreateWorkInput = {
   orderKey?: string;
   /** Shared by the records raised together when one task goes to several people. */
   siblingKey?: string;
+  /** Drawn from the number sequence before the form was submitted, so the number
+   *  the raiser was shown is the number the record keeps (owner, 2026-09-15). */
+  number?: number;
   /** The old screens' four words; translated into moves after the row exists. */
   status?: TaskStatus;
 };
@@ -294,12 +299,17 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
         assignmentGroupId: input.assignmentGroupId ?? null,
         assigneeId: input.assigneeId ?? null,
       });
-  if (!routed.departmentId) routed.departmentId = me?.departmentId ?? null;
+  // A task handed straight to a person, with no department chosen, is that person's
+  // own: it belongs in no department (owner, 2026-09-15), which is what the Individual
+  // tab lists. Only work nobody holds falls back to the raiser's department, so that
+  // it has a queue to wait in rather than belonging to nobody at all.
+  const heldBySomeone = (routed.assigneeId ?? input.assigneeId ?? null) !== null;
+  if (!routed.departmentId && !heldBySomeone) routed.departmentId = me?.departmentId ?? null;
 
   // On a project, a task given with no one named lands on the giver (the old
   // contract, kept); a task on its own stays unheld and goes to its team.
   const assigneeId = parent ? null : (routed.assigneeId ?? (input.assigneeId === undefined && projectId ? actor.id : null));
-  const check = await assertAssigneeAllowed(prisma, actor, scope, { projectId, departmentId: routed.departmentId }, routed.assignmentGroupId, assigneeId);
+  const check = await assertAssigneeAllowed(prisma, actor, scope, { projectId, departmentId: routed.departmentId }, routed.assignmentGroupId, assigneeId, { sharing: input.sharing === true });
   if (assigneeId) {
     // Naming a holder is assigning: the same door as a later reassignment.
     const draft: TaskAccessRow = { id: "", isPrivate: false, ownerId: null, projectId, departmentId: routed.departmentId, assignmentGroupId: routed.assignmentGroupId, assigneeId: null, requesterId, givenById: actor.id, parentId: null, type, state: "NEW", deletedAt: null };
@@ -317,12 +327,15 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
   }
 
   const now = new Date();
-  // Given to someone = work in progress straight away (owner, 2026-09-11).
-  const state: WorkState = assigneeId ? "IN_PROGRESS" : "NEW";
+  // Given to someone, it waits at New until they press Start Work (owner, 2026-09-15).
+  const state: WorkState = assigneeId ? "ASSIGNED" : "NEW";
   const created = await prisma.$transaction(async (tx) => {
     const t = await tx.task.create({
       data: {
         ...(input.id ? { id: input.id } : {}),
+        // The number the form was shown when it opened. Without one the table's
+        // own sequence fills it in, exactly as before.
+        ...(input.number ? { number: input.number } : {}),
         projectId,
         parentId: parent?.id ?? null,
         milestoneId,

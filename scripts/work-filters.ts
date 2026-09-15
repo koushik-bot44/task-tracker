@@ -27,7 +27,7 @@ const STATES: WorkState[] = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "RESOL
 const PRIORITIES: WorkPriority[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 const TYPES: WorkType[] = ["GENERAL", "ISSUE", "REQUEST", "PROJECT_TASK", "APPROVAL", "SUPPORT"];
 // Show: Unassigned is gone and Awaiting meeting is new (owner, 2026-09-11).
-const SLICES = ["open", "meeting", "overdue", "high", "waiting", "resolved", "finished", "everything"] as const;
+const SLICES = ["open", "new", "doing", "meeting", "overdue", "high", "waiting", "resolved", "finished", "everything"] as const;
 type Slice = (typeof SLICES)[number];
 type ScopeKey = "all" | "department" | "individual" | "team" | "requested" | "assigned";
 const TAB_LABEL: Record<string, ScopeKey> = { All: "all", Departments: "department", Individual: "individual", "Your team's work": "team", "Assigned by you": "requested", "Your work": "assigned" };
@@ -93,6 +93,8 @@ function sliceMatch(s: Slice, r: Row): boolean {
     // Not a filter since 7e7a3e3: every open task, highest priority first
     // (owner, 2026-09-10 — "it only shows high priority").
     case "high": return open;
+    case "new": return r.state === "NEW" || r.state === "ASSIGNED";
+    case "doing": return r.state === "IN_PROGRESS";
     case "waiting": return r.state === "WAITING";
     case "resolved": return r.state === "RESOLVED";
     case "finished": return r.state === "CLOSED" || r.state === "CANCELLED";
@@ -110,6 +112,16 @@ function mineMatch(scope: ScopeKey, r: Row, who: Who): boolean {
     // Given straight to a person, in no department (owner, 2026-09-11).
     case "individual": return r.departmentId === null && r.assigneeId !== null;
   }
+}
+/**
+ * What the SCREEN shows, which is not always what the API answers: the Your work
+ * tab leaves requests and approvals to the Requests tab (owner, 2026-09-15), and
+ * does it by sending a type of its own. Ask the API for mine=assigned with no type
+ * and it rightly answers with all of them, so only the screen checks may use this.
+ */
+function onScreenMatch(scope: ScopeKey, r: Row, who: Who): boolean {
+  if (!mineMatch(scope, r, who)) return false;
+  return scope !== "assigned" || (r.type !== "REQUEST" && r.type !== "APPROVAL");
 }
 function searchMatch(q: string, r: Row): boolean {
   const n = q.toLowerCase();
@@ -332,6 +344,8 @@ async function partA() {
       case "meeting": params.open = "true"; params.meeting = "1"; break;
       case "overdue": params.open = "true"; params.overdue = "1"; break;
       case "high": params.open = "true"; params.sort = "priority"; break;
+      case "new": params.state = "NEW,ASSIGNED"; break;
+      case "doing": params.state = "IN_PROGRESS"; break;
       case "waiting": params.state = "WAITING"; break;
       case "resolved": params.state = "RESOLVED"; break;
       case "finished": params.state = "CLOSED,CANCELLED"; break;
@@ -477,14 +491,14 @@ async function partB(browser: Browser, visible: Map<string, Set<string>>, whos: 
       await settle(page);
       const countMatch = /\((\d+)\)\s*$/.exec(raw);
       if (countMatch) {
-        const openInTab = rows.filter((r) => visible.get(email)!.has(r.id) && mineMatch(scope, r, who) && sliceMatch("open", r));
+        const openInTab = rows.filter((r) => visible.get(email)!.has(r.id) && onScreenMatch(scope, r, who) && sliceMatch("open", r));
         check(Number(countMatch[1]) === distinct(openInTab), `${email.split("@")[0]} tab "${name}": its count says ${countMatch[1]}, open tasks in it are ${distinct(openInTab)}`);
       }
       if (scope === "department") continue; // the tree has its own section
       for (const slice of SLICES) {
         await choose(page, "Which tasks", slice);
         await settle(page);
-        const keep = (r: Row) => visible.get(email)!.has(r.id) && mineMatch(scope, r, who) && sliceMatch(slice, r);
+        const keep = (r: Row) => visible.get(email)!.has(r.id) && onScreenMatch(scope, r, who) && sliceMatch(slice, r);
         const s = await readScreen(page);
         check(s.tab === name, `${email.split("@")[0]} tab "${name}" Show=${slice}: the highlighted tab became "${s.tab}"`);
         screenBreaks(s, keep, `${email.split("@")[0]} tab "${name}" Show=${slice}`, distinct(rows.filter(keep)));

@@ -229,6 +229,9 @@ export const createTaskSchema = z.object({
   dueProvisional: z.boolean().optional(),
   /** Shared by the records raised together when one task goes to several people. */
   siblingKey: z.string().min(1).max(64).optional(),
+  /** Drawn from the number sequence when the form opened, so the number the
+   *  raiser was shown is the number the record keeps (owner, 2026-09-15). */
+  number: z.number().int().positive().optional(),
 });
 
 /** Personal (private) department/project create/edit (phase 33). */

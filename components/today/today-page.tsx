@@ -1,16 +1,14 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
-import { NewWorkSheet } from "@/components/work/new-work-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToday } from "@/lib/hooks/use-today";
 import { useMe } from "@/lib/hooks/use-users";
 import { isAdminRole } from "@/lib/roles";
 import { MeetingCard } from "./meeting-card";
 import { Section } from "./section";
-import { SetupCard } from "./setup-card";
 import { SummaryLine } from "./summary-line";
 import { TaskRows } from "./task-rows";
 
@@ -24,13 +22,11 @@ export function TodayPage() {
   const admin = isAdminRole(me?.role);
   // The ADMIN looks after accounts only: no tasks, no meetings, no Today to fetch.
   const { data, isLoading, isError, error, refetch } = useToday(Boolean(me) && !admin);
-  const [giving, setGiving] = useState(false);
   const canGive = Boolean(me) && !admin;
 
   // Bottom padding keeps the last card clear of the floating + button.
   return (
     <div className="mx-auto w-full max-w-content px-4 pb-20 pt-4 md:pb-24">
-      {me?.role === "FOUNDER" ? <SetupCard /> : null}
       {admin ? (
         <EmptyState title="Nothing waiting on you." body="Accounts are looked after from People." />
       ) : isLoading || loadingMe ? (
@@ -45,19 +41,15 @@ export function TodayPage() {
       )}
 
       {canGive ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setGiving(true)}
-            aria-label="Add a task"
-            title="Add a task"
-            className="press fixed bottom-[calc(80px+env(safe-area-inset-bottom))] right-4 z-sticky grid h-14 w-14 place-items-center rounded-full bg-primary text-on-primary shadow-e2 md:bottom-6 md:right-6"
-          >
-            <Plus className="h-7 w-7" strokeWidth={2.25} aria-hidden />
-          </button>
-          {/* The whole New task form, so a task needs no project (2026-09-11). */}
-          <NewWorkSheet open={giving} onClose={() => setGiving(false)} />
-        </>
+        /* New opens the record form as a page of its own (owner, 2026-09-15). */
+        <Link
+          href="/work/new"
+          aria-label="Add a task"
+          title="Add a task"
+          className="press fixed bottom-[calc(80px+env(safe-area-inset-bottom))] right-4 z-sticky grid h-14 w-14 place-items-center rounded-full bg-primary text-on-primary shadow-e2 md:bottom-6 md:right-6"
+        >
+          <Plus className="h-7 w-7" strokeWidth={2.25} aria-hidden />
+        </Link>
       ) : null}
     </div>
   );

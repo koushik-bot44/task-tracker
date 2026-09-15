@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
@@ -10,19 +11,22 @@ import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
 import { canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
-import { WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
+import { OWN_WORK_TYPES as OWN_WORK_TYPE_LIST, REQUEST_WORK_TYPES, WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
 import { DepartmentTree } from "./department-tree";
-import { TaskTable } from "./task-table";
-import { NewWorkSheet } from "./new-work-sheet";
+import { TaskTable, columnDefaultDir } from "./task-table";
 import { Panel, PanelHeader, Tabs, snButton, snInput, snPrimary } from "./sn";
 
-type Scope = "assigned" | "requested" | "team" | "department" | "individual" | "all";
-type Slice = "open" | "meeting" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
+type Scope = "assigned" | "requested" | "requests" | "team" | "department" | "individual" | "all";
+type Slice = "open" | "new" | "doing" | "meeting" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
 
-/* Open reads Work in progress, Unassigned is gone, and Awaiting meeting lists
-   the tasks with a meeting ahead (owner, 2026-09-11). */
+/* Open is every live task and stays the one people land on; Work in progress
+   means only the tasks somebody has actually started, and New the ones given but
+   not started yet (owner, 2026-09-15: "if i click on work in progress i should
+   only see the work in progress stuff"). */
 const SLICES: { key: Slice; label: string }[] = [
-  { key: "open", label: "Work in progress" },
+  { key: "open", label: "Open" },
+  { key: "new", label: "New" },
+  { key: "doing", label: "Work in progress" },
   { key: "meeting", label: "Awaiting meeting" },
   { key: "overdue", label: "Overdue" },
   { key: "high", label: "Highest priority first" },
@@ -47,6 +51,11 @@ function sliceQuery(s: Slice): WorkQuery {
     // (owner, 2026-09-10 — "it only shows high priority").
     case "high":
       return { open: "true" };
+    // Given to somebody but not started; a task nobody holds waits at New too.
+    case "new":
+      return { open: "false", state: "NEW,ASSIGNED" };
+    case "doing":
+      return { open: "false", state: "IN_PROGRESS" };
     case "waiting":
       return { open: "false", state: "WAITING" };
     case "resolved":
@@ -74,6 +83,11 @@ function defaultSort(s: Slice): string {
   return s === "high" ? "priority" : s === "overdue" ? "due" : s === "meeting" ? "meeting" : "updated";
 }
 
+/** Somebody asking you for something: it waits under Requests, never among your own work (owner, 2026-09-15). */
+const REQUEST_TYPES = REQUEST_WORK_TYPES.join(",");
+/** Your own work is every other kind — the same split the tab's count uses, so the number and the rows agree. */
+const OWN_WORK_TYPES = OWN_WORK_TYPE_LIST.join(",");
+
 const PAGE = 50;
 
 /** What a link can narrow the list to, each shown as a chip that can be taken off. */
@@ -87,7 +101,7 @@ const NARROWINGS = [
 ] as const;
 
 /** Every narrowing that is not the tab or Show — together with a search, what Clear filters clears. */
-const EXTRA_KEYS = ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "sort"] as const;
+const EXTRA_KEYS = ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "sort", "dir"] as const;
 
 /**
  * The list, the way a service desk shows it: a title bar with New, the
@@ -119,7 +133,6 @@ export function WorkPage() {
   const slice: Slice = SLICES.some((s) => s.key === wantedSlice) ? (wantedSlice as Slice) : "open";
   const q = params.get("q") ?? "";
   const page = Math.max(1, Math.floor(Number(params.get("page")) || 1));
-  const [raising, setRaising] = useState(false);
   const [draftQ, setDraftQ] = useState(q);
   // The box follows the address — after Clear filters, Back, or a link.
   useEffect(() => setDraftQ(q), [q]);
@@ -172,6 +185,8 @@ export function WorkPage() {
     if (dash?.teams.length) out.push({ value: "team", label: "Your team's work", count: dash.teamWorkTotal });
     // The tasks this person handed out — they raised them, so they own the answer.
     out.push({ value: "requested", label: "Assigned by you" });
+    // What people have asked you for, waiting on your answer.
+    out.push({ value: "requests", label: "Requests" });
     out.push({ value: "assigned", label: "Your work", count: dash?.myWorkTotal });
     return out;
   }, [dash, me]);
@@ -215,13 +230,20 @@ export function WorkPage() {
       limit: PAGE,
       page: page > 1 ? page : undefined,
     };
-    for (const k of ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state"]) {
+    for (const k of ["departmentId", "assignmentGroupId", "assigneeId", "requesterId", "projectId", "dueToday", "priority", "type", "state", "dir"]) {
       const v = params.get(k);
       if (v) base[k] = v;
     }
     // A state named in the address (a link) decides by itself which half it is in.
     if (params.get("state")) base.open = "false";
-    if (scope !== "all") base.mine = scope;
+    // Requests and approvals sent to you have a tab of their own; Your work leaves them
+    // out, so one task is never in both. A Type picked by hand wins over either.
+    if (scope === "requests" || scope === "assigned") {
+      base.mine = "assigned";
+      if (!params.get("type")) base.type = scope === "requests" ? REQUEST_TYPES : OWN_WORK_TYPES;
+    } else if (scope !== "all") {
+      base.mine = scope;
+    }
     return base;
   }, [slice, q, params, scope, page]);
 
@@ -273,6 +295,13 @@ export function WorkPage() {
   });
 
   const total = data?.total ?? 0;
+  // The column the list is sorted by, and which way — the header arrows read from this, and clicking one flips it.
+  const activeSort = params.get("sort") ?? defaultSort(slice);
+  const activeDir = (params.get("dir") === "asc" || params.get("dir") === "desc" ? params.get("dir") : columnDefaultDir(activeSort)) as "asc" | "desc";
+  const sortBy = (key: string) => {
+    const nextDir = activeSort === key ? (activeDir === "asc" ? "desc" : "asc") : columnDefaultDir(key);
+    set({ sort: key, dir: nextDir, page: null });
+  };
   const from = (page - 1) * PAGE + 1;
   const to = data ? from + data.items.length - 1 : 0;
 
@@ -282,10 +311,10 @@ export function WorkPage() {
         <PanelHeader
           title={<span>Tasks</span>}
           right={
-            <button type="button" onClick={() => setRaising(true)} className={snPrimary}>
+            <Link href="/work/new" className={snPrimary}>
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
               New
-            </button>
+            </Link>
           }
         />
         <Tabs<Scope>
@@ -457,7 +486,7 @@ export function WorkPage() {
           <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
         ) : (
           <>
-            <TaskTable items={data.items} sharedWith={sharedWith} empty={q ? "No records match your search." : "No records to display."} />
+            <TaskTable items={data.items} sharedWith={sharedWith} sort={activeSort} dir={activeDir} onSort={sortBy} empty={q ? "No records match your search." : "No records to display."} />
             <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
               <span>{total === 0 ? "0 tasks" : `${from} to ${to} of ${total}`}</span>
               <span className="flex items-center gap-1">
@@ -472,7 +501,6 @@ export function WorkPage() {
           </>
         )}
       </Panel>
-      <NewWorkSheet open={raising} onClose={() => setRaising(false)} />
     </div>
   );
 }

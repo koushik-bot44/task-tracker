@@ -4,7 +4,6 @@
  * From the state production starts in — the CEO and the default departments,
  * nobody else — the CEO and the people they bring in do what a new organisation
  * does first. On the screens where it matters, checked through the API:
- *   - the CEO's Today shows "Set up your organisation";
  *   - People → Invite: six people in one go, each with a position or none, placed
  *     or not; a link each; the head of department heads their department at once;
  *   - the invitees set passwords from their links and are signed in; a used,
@@ -18,7 +17,7 @@
  *     what they run; a department with people isn't deleted; nobody resets their
  *     own password from People; your own sign-in email changes with your password;
  *   - Today lists a task with no project, and its + opens New Task;
- *   - once all is set up the set-up card goes; a phone fits.
+ *   - a phone fits.
  * Everything made ("orgrig-…@example.com", "ORG …") is removed at the end, and
  * every table is recounted to prove the run left no trace.
  */
@@ -158,12 +157,6 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
   const desk = await pageAs(ceo);
   const page = desk.page;
 
-  /* ---- Today: the set-up card ---- */
-  await page.goto(`${BASE}/`);
-  const card = page.getByRole("region", { name: "Set up your organisation" });
-  record("the CEO's Today shows Set up your organisation", await opened(card, 90000));
-  record("…with nothing done yet", await until(async () => (await card.innerText()).includes("0 of 5 done"), 15000), (await card.innerText().catch(() => "")).split("\n").slice(0, 2).join(" / "));
-
   /* ---- People → Invite: six at once ---- */
   try {
     await page.goto(`${BASE}/people`);
@@ -171,7 +164,7 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
     const sheet = page.getByRole("dialog", { name: "Invite people" });
     record("People → Invite opens Invite people", await opened(sheet));
     const offered = await sheet.getByLabel("Position for new person 1", { exact: true }).locator("option").allInnerTexts();
-    record("the CEO can give every position but CEO and admin", offered.join("|") === "Assignee|Head of department|Manager|Team lead|Team member", offered.join(", "));
+    record("the CEO can give every position but CEO and admin", offered.join("|") === "Associate|Head of department|Manager|Team lead|Team member", offered.join(", "));
     for (const [i, p] of PEOPLE.entries()) {
       const n = i + 1;
       if (i > 0) await sheet.getByRole("button", { name: "+ Another person", exact: true }).click();
@@ -211,9 +204,6 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
   record("…is in the department chosen, or none", PEOPLE.every((p) => row(p.key)?.departmentId === (p.department ? dept(p.department) : null)));
   record("…and stays Invited until the link is used", invited.length === 6 && invited.every((u) => u.status === "PENDING"));
   record("the person invited as Head of department heads Operations at once", (await headOf("Operations")) === (await idOf("head")));
-
-  await page.goto(`${BASE}/`);
-  record("Today's set-up card ticks people and heads", await until(async () => (await card.innerText()).includes("2 of 5 done"), 20000), (await card.innerText().catch(() => "")).split("\n")[1] ?? "");
 
   /* ---- The invitees set their passwords ---- */
   for (const key of ["head", "member"]) {
@@ -343,16 +333,14 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
     `${analyst?.role ?? "none"} / ${intern?.role ?? "none"}`,
   );
 
-  await page.goto(`${BASE}/`);
-  record("Today's set-up card ticks the team and the project", await until(async () => (await card.innerText()).includes("4 of 5 done"), 20000), (await card.innerText().catch(() => "")).split("\n")[1] ?? "");
-
   /* ---- The manager raises a task for a member and a new person ---- */
   const mgr = await pageAs(cookies.get("manager")!);
   try {
-    await mgr.page.goto(`${BASE}/work`);
-    await mgr.page.getByRole("button", { name: "New", exact: true }).click({ timeout: 90000 });
-    const nw = mgr.page.getByRole("dialog", { name: "New Task" });
+    // New Task is a page of its own since 2026-09-15.
+    await mgr.page.goto(`${BASE}/work/new`);
+    const nw = mgr.page.locator("main");
     await nw.getByLabel("Short description", { exact: true }).fill("ORG first task");
+    await nw.getByLabel("Department", { exact: true }).selectOption({ label: "Operations" });
     await until(async () => (await nw.getByLabel("Project", { exact: true }).locator("option").allInnerTexts()).includes("ORG Launch"), 20000);
     await nw.getByLabel("Project", { exact: true }).selectOption({ label: "ORG Launch" });
     await nw.getByRole("checkbox", { name: "Rig Member", exact: true }).check();
@@ -378,8 +366,8 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
   const tempId = await idOf("temp");
   const memberTask = raised.find((t) => t.assigneeId === memberId);
   record(
-    "one record each for the member and the new person, both work in progress, on the project, tied together",
-    raised.length === 2 && raised.every((t) => t.state === "IN_PROGRESS" && t.projectId === project!.id) && Boolean(memberTask) && raised.some((t) => t.assigneeId === tempId) && Boolean(raised[0].siblingKey) && raised[0].siblingKey === raised[1]?.siblingKey,
+    "one record each for the member and the new person, both waiting at New, on the project, tied together",
+    raised.length === 2 && raised.every((t) => t.state === "ASSIGNED" && t.projectId === project!.id) && Boolean(memberTask) && raised.some((t) => t.assigneeId === tempId) && Boolean(raised[0].siblingKey) && raised[0].siblingKey === raised[1]?.siblingKey,
     raised.map((t) => `#${t.number} ${t.state}`).join(", "),
   );
 
@@ -398,7 +386,7 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
     record("…and so does Your work", (mine.json?.items ?? []).some((t: any) => t.id === memberTask.id), `status ${mine.status}`);
     await mem.page.goto(`${BASE}/work/${memberTask.number}`);
     // The Status field is a read-only box: its words are its value, not text on the page.
-    record("…whose record reads Work in progress", await until(async () => mem.page.locator("input").evaluateAll((els) => els.some((e) => (e as HTMLInputElement).value.startsWith("Work in progress"))), 60000));
+    record("…whose record reads New", await until(async () => mem.page.locator("input").evaluateAll((els) => els.some((e) => (e as HTMLInputElement).value.startsWith("New"))), 60000));
     await mem.ctx.close();
   }
 
@@ -409,8 +397,8 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
   record("Today lists a task with no project for the person holding it", (outToday.json?.tasks ?? []).some((t: any) => t.id === standalone.json?.id));
   const out = await pageAs(cookies.get("outsider")!);
   await out.page.goto(`${BASE}/`);
-  await out.page.getByRole("button", { name: "Add a task" }).click({ timeout: 60000 }).catch(() => undefined);
-  record("Today's + opens New Task, which needs no project", await opened(out.page.getByRole("dialog", { name: "New Task" }), 20000));
+  await out.page.getByRole("link", { name: "Add a task" }).click({ timeout: 60000 }).catch(() => undefined);
+  record("Today's + opens the New record page, which needs no project", await until(async () => new URL(out.page.url()).pathname === "/work/new", 20000));
   await out.ctx.close();
 
   /* ---- Who sees what ---- */
@@ -522,11 +510,6 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
   record("…and someone else's address is refused", taken.status === 409, `status ${taken.status}`);
   await mgr.ctx.close();
 
-  /* ---- Set up: the card goes ---- */
-  await page.goto(`${BASE}/`);
-  await page.waitForTimeout(2500);
-  record("with everything set up, Today's set-up card is gone", (await card.count()) === 0);
-
   /* ---- A phone fits ---- */
   const phone = await pageAs(ceo, true);
   for (const path of ["/", "/people", "/projects", "/work"]) {
@@ -570,7 +553,12 @@ async function main() {
     record("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | ").slice(0, 400));
     await cleanup(started, ceoId, heads);
     const after = await countAll();
-    const changed = Object.keys({ ...before, ...after }).filter((t) => before[t] !== after[t]);
+    // LoginAttempt keeps itself: a good sign-in clears every attempt row for that
+    // address (clearFailures in lib/login-attempts.ts) and a failed one prunes what
+    // is past retention, so a row from before the run can be gone after it through
+    // no doing of the rig. Counting it would fail the check for working correctly.
+    const keepsItself = new Set(["LoginAttempt"]);
+    const changed = Object.keys({ ...before, ...after }).filter((t) => !keepsItself.has(t) && before[t] !== after[t]);
     record("the run leaves no trace: every table holds what it held before", changed.length === 0, changed.map((t) => `${t} ${before[t]}→${after[t]}`).join(", "));
     const headsAfter = await prisma.department.findMany({ select: { id: true, hodId: true } });
     record("…and every department's head is as it was", headsAfter.every((d) => heads.get(d.id) === d.hodId));

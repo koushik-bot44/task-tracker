@@ -562,11 +562,6 @@ async function runCases(actors: Record<string, Actor>, userIds: string[]) {
   record("…and back -> 200", (await myEmail({ email: dev.email, password: dev.password })).status, 200);
   record("signed out, changing an email -> 401", await unsigned("POST", "/api/users/me/email", { email: `${PREFIX}anon2@orbit.local`, password: "x" }), 401);
 
-  // The set-up counts are the CEO's.
-  record("the CEO reads the set-up counts -> 200", (await call(director, "GET", "/api/org/setup")).status, 200);
-  record("hod reads the set-up counts -> 403", (await call(hod, "GET", "/api/org/setup")).status, 403);
-  record("the admin reads the set-up counts -> 403", (await call(admin, "GET", "/api/org/setup")).status, 403);
-
   // A project's lead runs it.
   const extra = await prisma.user.create({
     data: { email: `${PREFIX}extra@orbit.local`, name: "Perm extra", role: "RESOURCE", passwordHash: await hashPassword(generateTempPassword(16)) },

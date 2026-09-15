@@ -91,12 +91,10 @@ async function main() {
   });
   await audit(page, "09-new-project-invite");
 
-  // New Task, with two people who are not on Orbit yet.
-  await page.goto(`${BASE}/work`);
+  // New Task, with two people who are not on Orbit yet: a page of its own since 2026-09-15.
+  await page.goto(`${BASE}/work/new`);
   await page.waitForLoadState("domcontentloaded");
-  await page.waitForTimeout(1200);
-  await attempt("click New", async () => await page.getByRole("button", { name: /^new$/i }).first().click({ timeout: 10000 }));
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(1500);
   await attempt("open New Task", async () => {
   const add = page.getByRole("button", { name: /someone not on orbit yet|add someone new/i }).first();
   await add.click({ timeout: 10000 });

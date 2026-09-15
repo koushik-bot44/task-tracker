@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiDelete, apiPost } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { dayInputValue } from "@/lib/dates";
+import { useDepartments } from "@/lib/hooks/use-departments";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useActivity, useWorkItem, useWorkMutations } from "@/lib/hooks/use-work";
 import {
@@ -22,6 +23,7 @@ import {
   type TaskDTO,
   type WorkPriority,
   type WorkState,
+  type WorkType,
 } from "@/lib/types";
 import { TRANSITION_LABEL } from "@/lib/work/workflow";
 import { ActivityStream } from "./activity-stream";
@@ -34,8 +36,10 @@ import { AssignSheet, ConfirmSheet, MorePeopleSheet, WaitSheet } from "./work-sh
 
 /** The moves on the button row, in order; the rest sit under "More". */
 const PRIMARY: WorkState[] = ["IN_PROGRESS", "RESOLVED", "CLOSED", "REOPENED", "WAITING"];
-// No "Stop Work": a task in somebody's hands is work in progress (owner, 2026-09-11).
+// No "Stop Work": once started, the work stays in progress until it moves on.
 const SECONDARY: WorkState[] = ["ESCALATED", "NEW", "CANCELLED"];
+/** The kinds a task can be switched between; a record of another kind keeps its own in the list. */
+const TASK_TYPES: WorkType[] = ["GENERAL", "REQUEST", "APPROVAL"];
 
 function stamp(iso: string | null): string {
   if (!iso) return "";
@@ -75,6 +79,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
   const access = task.access ?? { canEdit: false, canAssign: false, canDelete: false, staff: false, transitions: [] };
   const { transition, assign, update, remove } = useWorkMutations(task.id);
   const { data: projects } = useProjects();
+  const { data: departments } = useDepartments();
   const { data: files, refetch: refetchFiles } = useActivity(task.id, { type: "ATTACHMENT,COMMENT,WORK_NOTE" });
   // Every note that carries files — a note can carry several (2026-09-10).
   const withFiles = (files ?? []).filter((a) => a.attachments.length > 0);
@@ -229,13 +234,31 @@ function RecordBody({ task }: { task: TaskDTO }) {
 
         <div className="grid grid-cols-1 gap-x-6 py-2 md:grid-cols-2">
           <div>
+            {/* Type first, then the number (owner, 2026-09-15); whatever can change, changes here. */}
+            <FormRow label="Type">
+              <select value={task.type} disabled={ro || task.isPrivate} onChange={(e) => update.mutate({ type: e.target.value as WorkType }, { onError: fail })} className={snInput} aria-label="Type">
+                {(TASK_TYPES.includes(task.type) ? TASK_TYPES : [task.type, ...TASK_TYPES]).map((t) => (
+                  <option key={t} value={t}>
+                    {WORK_TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+            </FormRow>
             <FormRow label="Number"><input aria-label="Number" value={task.ref} readOnly className={snInput} /></FormRow>
             {/* Who handed it over. On a task raised straight onto somebody they are
                 the same person; when nobody was named yet, whoever raised it stands. */}
             <FormRow label="Assigned by"><input aria-label="Assigned by" value={task.assignedByName ?? ""} readOnly className={snInput} /></FormRow>
-            <FormRow label="Type"><input aria-label="Type" value={WORK_TYPE_LABEL[task.type]} readOnly className={snInput} /></FormRow>
-            <FormRow label="Category"><input aria-label="Category" value={task.categoryName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
-            <FormRow label="Department"><input aria-label="Department" value={task.departmentName ?? ""} readOnly className={snInput} placeholder="—" /></FormRow>
+            <FormRow label="Department">
+              <select value={task.departmentId ?? ""} disabled={ro} onChange={(e) => update.mutate({ departmentId: e.target.value || null }, { onError: fail })} className={snInput} aria-label="Department">
+                {!task.departmentId ? <option value="">—</option> : null}
+                {task.departmentId && !(departments ?? []).some((d) => d.id === task.departmentId) ? <option value={task.departmentId}>{task.departmentName ?? "Department"}</option> : null}
+                {(departments ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </FormRow>
             {project ? (
               <FormRow label="Project">
                 <Link href={`/project/${project.slug}`} className={cn(snLink, "inline-flex h-8 items-center")}>
@@ -263,11 +286,6 @@ function RecordBody({ task }: { task: TaskDTO }) {
                   </option>
                 ))}
               </select>
-            </FormRow>
-            <FormRow label="Assignment group">
-              <button type="button" disabled={!access.canAssign} onClick={() => setAssignOpen(true)} className={cn(snInput, "text-left", access.canAssign && "cursor-pointer")}>
-                {task.assignmentGroupName ?? <span className="text-muted">—</span>}
-              </button>
             </FormRow>
             <FormRow label={everyone.length > 1 ? `Assigned to (${everyone.length} people)` : "Assigned to"}>
               <div className="space-y-1.5">
@@ -311,7 +329,7 @@ function RecordBody({ task }: { task: TaskDTO }) {
               <input type="date" disabled={ro} value={task.dueDate ? dayInputValue(new Date(task.dueDate)) : ""} onChange={(e) => update.mutate({ dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : null }, { onError: fail })} className={snInput} aria-label="Due date" />
             </FormRow>
             <FormRow label="Opened"><input aria-label="Opened" value={stamp(task.createdAt)} readOnly className={snInput} /></FormRow>
-            <FormRow label="Updated"><input aria-label="Updated" value={stamp(task.updatedAt)} readOnly className={snInput} /></FormRow>
+            <FormRow label="Last updated"><input aria-label="Last updated" value={stamp(task.updatedAt)} readOnly className={snInput} /></FormRow>
           </div>
         </div>
 

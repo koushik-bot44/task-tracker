@@ -1,23 +1,27 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { useMe } from "@/lib/hooks/use-users";
 import { useWorkList, type WorkQuery } from "@/lib/hooks/use-work";
-import { TaskTable, collapseSiblings } from "./task-table";
-import { NewWorkSheet } from "./new-work-sheet";
+import { TaskTable, collapseSiblings, columnDefaultDir } from "./task-table";
 import { Panel, PanelHeader, snButton, snInput, snPrimary } from "./sn";
 
-export type Slice = "open" | "meeting" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
+export type Slice = "open" | "new" | "doing" | "meeting" | "overdue" | "high" | "waiting" | "resolved" | "finished" | "everything";
 
-/* Open reads Work in progress, Unassigned is gone, and Awaiting meeting lists
-   the tasks with a meeting ahead (owner, 2026-09-11). */
+/* Open is every live task and stays the one people land on; Work in progress
+   means only the tasks somebody has actually started, and New the ones given but
+   not started yet (owner, 2026-09-15: "if i click on work in progress i should
+   only see the work in progress stuff"). */
 export const SLICES: { key: Slice; label: string }[] = [
   { key: "everything", label: "All" },
-  { key: "open", label: "Work in progress" },
+  { key: "open", label: "Open" },
+  { key: "new", label: "New" },
+  { key: "doing", label: "Work in progress" },
   { key: "meeting", label: "Awaiting meeting" },
   { key: "overdue", label: "Overdue" },
   { key: "high", label: "Highest priority first" },
@@ -36,6 +40,11 @@ export function sliceQuery(s: Slice): WorkQuery {
     // (owner, 2026-09-10 — "it only shows high priority").
     case "high":
       return {};
+    // Given to somebody but not started; a task nobody holds waits at New too.
+    case "new":
+      return { state: "NEW,ASSIGNED" };
+    case "doing":
+      return { state: "IN_PROGRESS" };
     case "waiting":
       return { state: "WAITING" };
     case "resolved":
@@ -81,9 +90,26 @@ export function WorkTable({
   const [draftQ, setDraftQ] = useState("");
   const [q, setQ] = useState("");
   const [pages, setPages] = useState<string[]>([]);
-  const [raising, setRaising] = useState(false);
+  // New opens the record form as a page, in this department or project when there is one (2026-09-15).
+  const newParams = new URLSearchParams();
+  if (presetDepartmentId) newParams.set("department", presetDepartmentId);
+  if (presetProjectId) newParams.set("project", presetProjectId);
+  const newHref = newParams.toString() ? `/work/new?${newParams.toString()}` : "/work/new";
+  // The column this table is sorted by; null means the Show choice's own order.
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
   const cursor = pages[pages.length - 1];
-  const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: slice === "high" ? "priority" : slice === "overdue" || slice === "meeting" ? "due" : "updated", limit: PAGE, cursor };
+  // The Show choice sets a base order; a header click overrides it, both ways.
+  const baseSort = slice === "high" ? "priority" : slice === "overdue" || slice === "meeting" ? "due" : "updated";
+  const activeSort = sortKey ?? baseSort;
+  const activeDir: "asc" | "desc" = sortDir ?? columnDefaultDir(activeSort);
+  const sortBy = (key: string) => {
+    setPages([]);
+    const nextDir = activeSort === key ? (activeDir === "asc" ? "desc" : "asc") : columnDefaultDir(key);
+    setSortKey(key);
+    setSortDir(nextDir);
+  };
+  const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: activeSort, dir: activeDir, limit: PAGE, cursor };
   const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me));
   const from = pages.length * PAGE + 1;
   // A task given to several people is several records; the list shows it once,
@@ -105,17 +131,17 @@ export function WorkTable({
         right={
           <>
             {headerRight}
-            <button type="button" onClick={() => setRaising(true)} className={snPrimary}>
+            <Link href={newHref} className={snPrimary}>
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
               New
-            </button>
+            </Link>
           </>
         }
       />
       {tabs}
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <span className="text-[13px] text-muted">Show</span>
-        <select value={slice} onChange={(e) => { setPages([]); setSlice(e.target.value as Slice); }} className={cn(snInput, "!w-auto")} aria-label="Which tasks">
+        <select value={slice} onChange={(e) => { setPages([]); setSortKey(null); setSortDir(null); setSlice(e.target.value as Slice); }} className={cn(snInput, "!w-auto")} aria-label="Which tasks">
           {SLICES.map((s) => (
             <option key={s.key} value={s.key}>
               {s.label}
@@ -147,6 +173,9 @@ export function WorkTable({
             items={data.items}
             sharedWith={sharedWith}
             hideProject={hideProject}
+            sort={activeSort}
+            dir={activeDir}
+            onSort={sortBy}
             empty={q ? "No records match your search." : "No records to display."}
           />
           <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[13px] text-muted">
@@ -163,7 +192,6 @@ export function WorkTable({
         </>
       )}
       {data && data.items.length === 0 && !q && slice === "open" && !isLoading ? null : null}
-      <NewWorkSheet open={raising} onClose={() => setRaising(false)} presetProjectId={presetProjectId ?? null} presetDepartmentId={presetDepartmentId ?? null} />
     </Panel>
   );
 }

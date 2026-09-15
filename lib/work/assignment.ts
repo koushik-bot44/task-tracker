@@ -97,6 +97,8 @@ export async function assertAssigneeAllowed(
   task: { projectId: string | null; departmentId: string | null },
   groupId: string | null,
   assigneeId: string | null,
+  /** Someone already on the task giving it to more people (owner, 2026-09-15): anyone may be added. */
+  opts: { sharing?: boolean } = {},
 ): Promise<AssigneeCheck> {
   if (!assigneeId) return { addToProject: false };
   const target = await tx.user.findUnique({
@@ -108,7 +110,7 @@ export async function assertAssigneeAllowed(
   if (!target || target.disabledAt || target.role === "PERSON" || target.role === "ADMIN") {
     throw new HttpError(400, "Pick someone who is on Orbit.");
   }
-  if (groupId) {
+  if (groupId && !opts.sharing) {
     const group = await tx.assignmentGroup.findUnique({
       where: { id: groupId },
       select: { name: true, leadId: true, members: { where: { userId: assigneeId }, select: { id: true } } },
@@ -121,13 +123,13 @@ export async function assertAssigneeAllowed(
   }
   if (task.projectId) {
     if (await isOnProject(assigneeId, task.projectId)) return { addToProject: false };
-    if (isLeadOrAboveRole(actor.role) || scope.all || (task.departmentId ? scope.headedDepartmentIds.has(task.departmentId) : false)) {
+    if (isLeadOrAboveRole(actor.role) || scope.all || (task.departmentId ? scope.headedDepartmentIds.has(task.departmentId) : false) || opts.sharing) {
       return { addToProject: true };
     }
     throw new HttpError(400, "Pick someone on this project, or ask a manager to add them.");
   }
   // Standalone, no team: a lead or above may name anyone; a team member only themselves.
-  if (assigneeId === actor.id || scope.all || isLeadOrAboveRole(actor.role)) return { addToProject: false };
+  if (assigneeId === actor.id || scope.all || isLeadOrAboveRole(actor.role) || opts.sharing) return { addToProject: false };
   throw new HttpError(400, "Only a team lead or above can give this to someone else.");
 }
 

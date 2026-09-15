@@ -80,6 +80,15 @@ export const WORK_TYPE_LABEL: Record<WorkType, string> = {
   APPROVAL: "Approval",
   SUPPORT: "Support",
 };
+/**
+ * Somebody asking you for something waits under Requests, never among your own
+ * work (owner, 2026-09-15). Split once, here, so a tab's count and the rows it
+ * shows can never disagree about which kinds belong to whom.
+ */
+export const REQUEST_WORK_TYPES: WorkType[] = ["REQUEST", "APPROVAL"];
+/** Your own work is every other kind. */
+export const OWN_WORK_TYPES: WorkType[] = WORK_TYPES.filter((t) => !REQUEST_WORK_TYPES.includes(t));
+
 /** The letter in front of the number: T-1024, I-1025, R-1026 … */
 export const WORK_TYPE_PREFIX: Record<WorkType, string> = {
   GENERAL: "TASK",
@@ -103,7 +112,7 @@ export const WORK_STATES = ["NEW", "ASSIGNED", "IN_PROGRESS", "WAITING", "RESOLV
 export type WorkState = (typeof WORK_STATES)[number];
 export const WORK_STATE_LABEL: Record<WorkState, string> = {
   NEW: "New",
-  ASSIGNED: "Assigned",
+  ASSIGNED: "New",
   IN_PROGRESS: "Work in progress",
   WAITING: "On Hold",
   RESOLVED: "Resolved",
@@ -543,7 +552,7 @@ void _rolesMatch;
 /** Role words appear ONLY on the People page. */
 export const ROLE_LABEL: Record<UserRole, string> = {
   FOUNDER: "CEO",
-  CO_FOUNDER: "Assignee",
+  CO_FOUNDER: "Associate",
   HOD: "Head of department",
   MANAGER: "Manager",
   TEAM_LEAD: "Team lead",
@@ -554,7 +563,7 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 
 export const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   FOUNDER: "CEO",
-  CO_FOUNDER: "Assignee",
+  CO_FOUNDER: "Associate",
   HOD: "Head",
   MANAGER: "Manager",
   TEAM_LEAD: "Lead",

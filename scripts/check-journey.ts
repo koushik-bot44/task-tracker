@@ -256,7 +256,7 @@ async function journey(ceo: string, ceoId: string) {
   const t0 = new Date();
   const made = await api(cookie.get("manager"), "POST", "/api/tasks", { title: `JNY journey task ${RUN}`, projectId, departmentId: deptId, assigneeId: id("member") });
   const task = made.json;
-  record("the manager gives a task to the member: work in progress at once", made.status === 201 && task?.state === "IN_PROGRESS" && task?.status === "DOING", `status ${made.status} ${task?.state ?? made.json?.error}`);
+  record("the manager gives a task to the member: it shows New until they start it", made.status === 201 && task?.state === "ASSIGNED" && task?.status === "TODO", `status ${made.status} ${task?.state ?? made.json?.error}`);
   if (!task?.id) throw new Error("no task to go on with");
   const today = await api(cookie.get("member"), "GET", "/api/today");
   record("it is on the member's Today", (today.json?.tasks ?? []).some((t: any) => t.id === task.id));
@@ -304,6 +304,8 @@ async function journey(ceo: string, ceoId: string) {
   record("…inviting only the task's people, not someone from another department", attendees.includes(id("member")) && !attendees.includes(id("outsider")), `${attendees.length} invited`);
 
   /* ---- progress, on hold, resolved, closed, reopened, reassigned, deleted, restored ---- */
+  const started = await api(cookie.get("member"), "POST", `/api/tasks/${task.id}/start`, {});
+  record("the member presses Start Work: work in progress", started.status === 200 && started.json?.state === "IN_PROGRESS" && started.json?.status === "DOING", `${started.status} ${started.json?.state ?? started.json?.error}`);
   const progress = await api(cookie.get("member"), "PATCH", `/api/tasks/${task.id}`, { progress: 50 });
   record("the member marks it half done", progress.status === 200 && progress.json?.progress === 50, `status ${progress.status}`);
   const noReason = await api(cookie.get("member"), "POST", `/api/tasks/${task.id}/wait`, {});
@@ -333,7 +335,7 @@ async function journey(ceo: string, ceoId: string) {
   const bells = await prisma.notification.findMany({ where: { createdAt: { gte: t0 }, OR: [{ taskId: task.id }, { eventId: meeting.json?.id ?? "none" }] }, select: { userId: true, type: true } });
   const got = (k: string) => bells.filter((b) => b.userId === (k === "ceo" ? ceoId : id(k))).map((b) => b.type).sort();
   const EXPECT: Record<string, string[]> = {
-    manager: ["task_note", "task_resolved", "work.status", "work.status"],
+    manager: ["task_note", "task_resolved", "work.status", "work.status", "work.status"],
     member: ["event.created", "task_given", "work.reassigned", "work.status", "work.status", "work.status"],
     member2: ["task_given"],
     head: [],

@@ -263,9 +263,9 @@ async function main() {
     record("New project shows the link of the person invited with it", false, (e as Error).message.split("\n")[0]);
   }
   try {
-    await page.goto(`${BASE}/work`);
-    await page.getByRole("button", { name: /^new$/i }).first().click({ timeout: 60000 });
-    const taskSheet = page.getByRole("dialog", { name: "New Task" });
+    // New Task is a page of its own since 2026-09-15.
+    await page.goto(`${BASE}/work/new`);
+    const taskSheet = page;
     await taskSheet.getByLabel("Short description", { exact: true }).fill("PPL Task With Invite");
     await taskSheet.getByLabel("Department", { exact: true }).selectOption({ index: 1 });
     await taskSheet.getByRole("button", { name: /someone not on orbit yet|add someone new/i }).first().click();

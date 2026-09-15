@@ -168,8 +168,8 @@ async function edges(ceo: string) {
   const both = await Promise.all([api(ceo, "PATCH", `/api/tasks/${contested.json?.id}`, { assigneeId: people[0].id }), api(mgr, "PATCH", `/api/tasks/${contested.json?.id}`, { assigneeId: people[1].id })]);
   const settled = await prisma.task.findUnique({ where: { id: contested.json?.id }, select: { assigneeId: true, state: true, status: true } });
   record(
-    "two people assigning at once: no 5xx, one holder, work in progress",
-    both.every((r) => r.status < 500) && [people[0].id, people[1].id].includes(settled?.assigneeId ?? "") && settled?.state === "IN_PROGRESS" && settled?.status === "DOING",
+    "two people assigning at once: no 5xx, one holder, waiting at New",
+    both.every((r) => r.status < 500) && [people[0].id, people[1].id].includes(settled?.assigneeId ?? "") && settled?.state === "ASSIGNED" && settled?.status === "TODO",
     `${both.map((r) => r.status).join(", ")} · ${settled?.state}`,
   );
   const invite = await api(ceo, "POST", "/api/users/invite", { people: [{ name: "EDG invitee", emails: [`edg-invitee-${RUN}@example.com`], departmentId: dept.id }] });
@@ -183,7 +183,8 @@ async function edges(ceo: string) {
   const fileLeft = await prisma.storedFile.count({ where: { id: fileId } });
   record("one note deleted twice at once: one 200, one 404, and its file let go", deletes.map((r) => r.status).sort().join(",") === "200,404" && fileLeft === 0, `${deletes.map((r) => r.status).join(", ")}; file rows left ${fileLeft}`);
   const toResolve = await api(mgr, "POST", "/api/tasks", { title: `EDG resolve twice ${RUN}`, departmentId: dept.id, projectId: project.id, assigneeId: people[2].id });
-  // A project task is marked done by a team lead or above, so the manager presses it.
+  // Given to someone it waits at New, so it is started first; a project task is marked done by a lead or above.
+  await api(mgr, "POST", `/api/tasks/${toResolve.json?.id}/start`, {});
   const resolves = await Promise.all([1, 2].map(() => api(mgr, "POST", `/api/tasks/${toResolve.json?.id}/resolve`, { resolutionCode: "COMPLETED" })));
   const resolvedRows = await prisma.taskActivity.count({ where: { taskId: toResolve.json?.id, type: "FIELD_CHANGE", AND: [{ metadata: { path: ["field"], equals: "state" } }, { metadata: { path: ["newValue"], equals: "RESOLVED" } }] } });
   record("Resolve pressed twice at once: no 5xx, resolved once", resolves.every((r) => r.status < 500) && resolvedRows === 1, `${resolves.map((r) => `${r.status} ${r.json?.error ?? ""}`.trim()).join(", ")}; ${resolvedRows} resolve rows`);

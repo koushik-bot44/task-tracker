@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, route } from "@/lib/session";
-import type { DashboardTodayDTO } from "@/lib/types";
+import { OWN_WORK_TYPES, type DashboardTodayDTO } from "@/lib/types";
 import { loadScope } from "@/lib/work/access";
 import { countTasks, counters, departmentBreakdown, filterWhere, listWork } from "@/lib/work/query";
 
@@ -37,7 +37,9 @@ export const GET = route(async () => {
     runsDepartments ? listWork(user, scope, { mine: "department", unassigned: true, sort: "created", limit: 20 }) : Promise.resolve(nothing),
     runsDepartments ? departmentBreakdown(user, scope) : Promise.resolve([]),
     scope.groupIds.size ? prisma.assignmentGroup.findMany({ where: { id: { in: [...scope.groupIds] } }, select: { id: true, name: true } }) : Promise.resolve([]),
-    countTasks(filterWhere(user, scope, { mine: "assigned" })),
+    // The tab's number has to count what the tab shows: requests and approvals
+    // are under Requests, not Your work (owner, 2026-09-15).
+    countTasks(filterWhere(user, scope, { mine: "assigned", type: OWN_WORK_TYPES })),
     scope.groupIds.size ? countTasks(filterWhere(user, scope, { mine: "team" })) : Promise.resolve(0),
     runsDepartments ? countTasks(filterWhere(user, scope, { mine: "department", unassigned: true })) : Promise.resolve(0),
     scope.all ? countTasks(filterWhere(user, scope, {})) : Promise.resolve(null),

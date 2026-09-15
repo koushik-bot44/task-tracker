@@ -95,6 +95,8 @@ export const POST = route(async (req: Request, { params }: Params) => {
       dueDate: source.dueDate ? source.dueDate.toISOString() : null,
       assigneeId,
       siblingKey: key,
+      // Whoever is on the task may give it to anyone (owner, 2026-09-15).
+      sharing: true,
     });
     made.push(row.id);
     held.add(assigneeId);

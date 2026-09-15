@@ -4,10 +4,17 @@ import Link from "next/link";
 import { Tooltip } from "@/components/tooltip";
 import { cn } from "@/lib/cn";
 import { dateWord, formatDMY } from "@/lib/dates";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronUp } from "lucide-react";
 import { WORK_PRIORITY_LABEL, WORK_STATE_LABEL, type TaskDTO } from "@/lib/types";
 import { WorkCards, meetingWhen } from "./work-cards";
 import { snLink } from "./sn";
+
+export type SortDir = "asc" | "desc";
+/** Which way a column starts when first clicked: dates and names A→Z, the "latest" columns newest first. */
+export function columnDefaultDir(sort: string): SortDir {
+  return sort === "updated" || sort === "created" || sort === "number" ? "desc" : "asc";
+}
+type SortProps = { sort?: string; dir?: SortDir; onSort?: (key: string) => void };
 
 /**
  * The task list, in one place.
@@ -39,6 +46,9 @@ export function TaskTable({
   sharedWith,
   empty = "No records to display.",
   hideProject = false,
+  sort,
+  dir,
+  onSort,
 }: {
   items: TaskDTO[];
   /** Everyone holding the same task, keyed by task id. */
@@ -46,8 +56,9 @@ export function TaskTable({
   empty?: string;
   /** On a project's own page the project column would say the same thing twice. */
   hideProject?: boolean;
-}) {
+} & SortProps) {
   const rows = collapseSiblings(items);
+  const s: SortProps = { sort, dir, onSort };
   return (
     <>
       <div className="md:hidden">
@@ -58,17 +69,18 @@ export function TaskTable({
         <table className="w-full min-w-[960px] border-collapse text-[13px]">
           <thead>
             <tr className="bg-hover text-left text-muted">
-              <Th>Number</Th>
-              <Th className="w-[26%]">Short description</Th>
-              <Th>Department</Th>
-              {hideProject ? null : <Th>Project</Th>}
-              <Th>Status</Th>
-              <Th>Priority</Th>
-              <Th>Assigned by</Th>
-              <Th>Assigned to</Th>
-              <Th>Assigned</Th>
-              <Th>Due</Th>
-              <Th>Updated</Th>
+              <Th sortKey="number" {...s}>Number</Th>
+              {/* Short description does not sort: sorting words A→Z tells nobody anything (owner, 2026-09-15). */}
+              <Th className="w-[26%]" {...s}>Short description</Th>
+              <Th sortKey="department" {...s}>Department</Th>
+              {hideProject ? null : <Th sortKey="project" {...s}>Project</Th>}
+              <Th sortKey="status" {...s}>Status</Th>
+              <Th sortKey="priority" {...s}>Priority</Th>
+              <Th sortKey="assignedBy" {...s}>Assigned by</Th>
+              <Th sortKey="assignedTo" {...s}>Assigned to</Th>
+              <Th sortKey="assigned" {...s}>Assigned</Th>
+              <Th sortKey="due" {...s}>Due</Th>
+              <Th sortKey="updated" {...s}>Updated</Th>
             </tr>
           </thead>
           <tbody>
@@ -89,8 +101,27 @@ export function TaskTable({
   );
 }
 
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("border-b border-line px-3 py-2 font-semibold", className)}>{children}</th>;
+function Th({ children, className, sortKey, sort, dir, onSort }: { children: React.ReactNode; className?: string; sortKey?: string } & SortProps) {
+  // A column sorts only when a handler and a key are both given (owner, 2026-09-15: only where it applies).
+  if (!onSort || !sortKey) return <th className={cn("border-b border-line px-3 py-2 font-semibold", className)}>{children}</th>;
+  const active = sort === sortKey;
+  return (
+    <th aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"} className={cn("border-b border-line px-3 py-2 font-semibold", className)}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        aria-label={`Sort by ${typeof children === "string" ? children : sortKey}${active ? (dir === "asc" ? ", ascending — click for descending" : ", descending — click for ascending") : ""}`}
+        className="group -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 hover:text-ink"
+      >
+        <span>{children}</span>
+        {active ? (
+          dir === "asc" ? <ChevronUp className="h-3.5 w-3.5 text-primary-ink" strokeWidth={2.5} aria-hidden /> : <ChevronDown className="h-3.5 w-3.5 text-primary-ink" strokeWidth={2.5} aria-hidden />
+        ) : (
+          <ChevronDown className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-40" strokeWidth={2} aria-hidden />
+        )}
+      </button>
+    </th>
+  );
 }
 
 /** The names behind a count, one per line, so a hover answers "who exactly?". */

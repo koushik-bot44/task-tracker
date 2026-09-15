@@ -65,8 +65,9 @@ record("resolving needs a resolution", Boolean(transitionNeeds("RESOLVED").resol
 record("no other move needs anything", STATES.filter((s) => s !== "WAITING" && s !== "RESOLVED").every((s) => Object.keys(transitionNeeds(s)).length === 0));
 
 /* ---- giving and taking away a holder ---- */
-record("given to someone, a new task is work in progress at once", stateAfterAssignment("NEW", true) === "IN_PROGRESS");
-record("…and so is one left at Assigned", stateAfterAssignment("ASSIGNED", true) === "IN_PROGRESS");
+// Given to someone, a task waits at New (Assigned) until they press Start Work (owner, 2026-09-15).
+record("given to someone, a new task waits for Start Work", stateAfterAssignment("NEW", true) === "ASSIGNED");
+record("…and one already waiting keeps waiting", stateAfterAssignment("ASSIGNED", true) === "ASSIGNED");
 record("given to someone else, work in progress stays work in progress", stateAfterAssignment("IN_PROGRESS", true) === "IN_PROGRESS");
 record("taken from its holder, work in progress goes back to the queue", stateAfterAssignment("IN_PROGRESS", false) === "NEW");
 record("…and so does Assigned", stateAfterAssignment("ASSIGNED", false) === "NEW");

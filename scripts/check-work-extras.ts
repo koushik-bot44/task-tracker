@@ -2,15 +2,15 @@
  *   npx tsx --env-file=.env.local scripts/check-work-extras.ts
  *   (dev server up, restarted after the task_progress_meetings migration)
  *
- * A task given to someone is Work in progress at once, and back in the queue
- * when nobody holds it. The Individual tab lists the tasks given straight to a
+ * A task given to someone waits at New until they press Start Work, and goes
+ * back in the queue when nobody holds it. The Individual tab lists the tasks given straight to a
  * person in no department, and a person narrows it. A manager schedules a
  * meeting from a task: it is on the task's small calendar, on Today for the
  * people invited (linking back to the task), and the task shows under Awaiting
  * meeting with when the meeting is. Progress is marked by whoever may change
  * the task, and nobody else. An old ?task= link opens the full record. Show
- * reads Work in progress and Awaiting meeting, with no Unassigned; the table
- * and the record say Status. On a phone the small calendar fits.
+ * reads Open, New, Work in progress and Awaiting meeting, with no Unassigned;
+ * the table and the record say Status. On a phone the small calendar fits.
  * Throwaway records ("XTR ") and accounts (xtr-*) are removed in `finally`.
  */
 import { chromium, type Browser, type Locator, type Page } from "playwright";
@@ -100,17 +100,17 @@ async function main() {
   const outsiderCookie = (await signIn(outsider.email, PASSWORD)) ?? "";
   record("the throwaway member and manager sign in", Boolean(memberCookie && outsiderCookie));
 
-  /* ---- given to someone = Work in progress ---- */
+  /* ---- given to someone = New, until they start it ---- */
   const made = await call(ceo, "POST", "/api/tasks", { title: `${PREFIX}individual job`, assigneeId: member.id });
   let task = made.json;
-  record("a task given straight to a person is Work in progress at once", made.status === 201 && task?.state === "IN_PROGRESS" && task?.status === "DOING", `status ${made.status} · ${task?.state ?? made.json?.error}`);
+  record("a task given straight to a person waits at New", made.status === 201 && task?.state === "ASSIGNED" && task?.status === "TODO", `status ${made.status} · ${task?.state ?? made.json?.error}`);
   if (!task?.id) return;
   if (task.departmentId) task = (await call(ceo, "PATCH", `/api/tasks/${task.id}`, { departmentId: null })).json ?? task;
   record("…in no department, so it is individual work", task.departmentId === null, String(task.departmentId));
   const unheld = await call(ceo, "PATCH", `/api/tasks/${task.id}`, { assigneeId: null });
   record("…nobody holding it puts it back in the queue", unheld.status === 200 && unheld.json?.state === "NEW", `${unheld.json?.state}`);
   const again = await call(ceo, "PATCH", `/api/tasks/${task.id}`, { assigneeId: member.id });
-  record("…and given again it is Work in progress again", again.status === 200 && again.json?.state === "IN_PROGRESS", `${again.json?.state}`);
+  record("…and given again it waits at New again", again.status === 200 && again.json?.state === "ASSIGNED", `${again.json?.state}`);
   const deptTask = dept ? await call(ceo, "POST", "/api/tasks", { title: `${PREFIX}department job`, assigneeId: member.id, departmentId: dept.id }) : null;
 
   /* ---- Individual ---- */
@@ -171,8 +171,8 @@ async function main() {
   const show = page.getByRole("combobox", { name: "Which tasks" });
   const options = await show.locator("option").allInnerTexts();
   record(
-    "Show reads Work in progress and Awaiting meeting, with no Unassigned",
-    options.includes("Work in progress") && options.includes("Awaiting meeting") && !options.includes("Unassigned") && !options.includes("Open"),
+    "Show reads Open, New, Work in progress and Awaiting meeting, with no Unassigned",
+    ["Open", "New", "Work in progress", "Awaiting meeting"].every((o) => options.includes(o)) && !options.includes("Unassigned"),
     options.join(" · "),
   );
   await tab.click();

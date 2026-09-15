@@ -110,7 +110,7 @@ export function assertCanCreateUserWithRole(actor: { role: Role }, newRole: Role
   }
   // A co-founder shares the CEO's sight, so only the CEO may appoint one.
   if (newRole === "CO_FOUNDER" && actor.role !== "FOUNDER") {
-    throw new HttpError(403, "Only the CEO can appoint an assignee.");
+    throw new HttpError(403, "Only the CEO can appoint an associate.");
   }
   if (newRole === "ADMIN" && !isAdmin(actor)) {
     throw new HttpError(403, "Only an admin can create an admin account.");

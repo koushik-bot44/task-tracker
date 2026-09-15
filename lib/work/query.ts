@@ -55,7 +55,9 @@ export type WorkFilter = {
   /** Default true: open work only. `false` = everything, `finished` = the other half. */
   open?: "true" | "false" | "finished";
   /** "meeting": the soonest meeting first, tasks with none after. */
-  sort?: "updated" | "due" | "priority" | "created" | "number" | "meeting";
+  sort?: "updated" | "due" | "priority" | "created" | "number" | "meeting" | "department" | "project" | "status" | "assignedBy" | "assignedTo" | "assigned" | "title";
+  /** A→Z / Z→A on the chosen column; each column has a sensible default (owner, 2026-09-15). */
+  dir?: "asc" | "desc";
   /**
    * "tasks": one row per TASK. The same task given to several people is one
    * record each; listed this way it is shown, counted and paged once, and
@@ -141,13 +143,44 @@ export type WorkListDTO = { items: TaskDTO[]; nextCursor: string | null; total: 
  * never swap or vanish at a page break. Priority is the enum's own order —
  * Critical, High, Medium, Low — then the soonest due (owner, 2026-09-10).
  */
-function orderFor(sort: WorkFilter["sort"]): Prisma.TaskOrderByWithRelationInput[] {
-  // "meeting" is ordered after the read (listWorkTasks); the due date is its base.
-  if (sort === "due" || sort === "meeting") return [{ dueDate: { sort: "asc", nulls: "last" } }, { number: "desc" }, { id: "desc" }];
-  if (sort === "created") return [{ createdAt: "desc" }, { id: "desc" }];
-  if (sort === "number") return [{ number: "desc" }, { id: "desc" }];
-  if (sort === "priority") return [{ priority: "asc" }, { dueDate: { sort: "asc", nulls: "last" } }, { id: "desc" }];
-  return [{ updatedAt: "desc" }, { id: "desc" }];
+/** The way a column starts when first clicked: dates and names A→Z, the "latest" columns newest first. */
+export function columnDefaultDir(sort: WorkFilter["sort"]): "asc" | "desc" {
+  return sort === "updated" || sort === "created" || sort === "number" ? "desc" : "asc";
+}
+
+function orderFor(sort: WorkFilter["sort"], dir?: "asc" | "desc"): Prisma.TaskOrderByWithRelationInput[] {
+  const d = dir ?? columnDefaultDir(sort);
+  // The number is unique, so it settles ties and keeps cursor paging exact.
+  const tie: Prisma.TaskOrderByWithRelationInput[] = [{ number: "desc" }, { id: "desc" }];
+  switch (sort) {
+    // "meeting" is ordered after the read (listWorkTasks); the due date is its base.
+    case "due":
+    case "meeting":
+      return [{ dueDate: { sort: d, nulls: "last" } }, ...tie];
+    case "assigned":
+      return [{ assignedAt: { sort: d, nulls: "last" } }, ...tie];
+    case "created":
+      return [{ createdAt: d }, { id: "desc" }];
+    case "number":
+      return [{ number: d }, { id: "desc" }];
+    case "priority":
+      // The enum runs Critical → Low, so ascending is the urgent end first.
+      return [{ priority: d }, { dueDate: { sort: "asc", nulls: "last" } }, { id: "desc" }];
+    case "status":
+      return [{ state: d }, ...tie];
+    case "department":
+      return [{ department: { name: d } }, ...tie];
+    case "project":
+      return [{ project: { name: d } }, ...tie];
+    case "assignedBy":
+      return [{ givenBy: { name: d } }, ...tie];
+    case "assignedTo":
+      return [{ assignee: { name: d } }, ...tie];
+    case "title":
+      return [{ title: d }, ...tie];
+    default:
+      return [{ updatedAt: d }, { id: "desc" }];
+  }
 }
 
 /** A whole number within bounds; anything unreadable falls back. */
@@ -212,7 +245,7 @@ export async function listWork(actor: Actor, scope: Scope, f: WorkFilter): Promi
   const where = filterWhere(actor, scope, f);
   const limit = wholeNumber(f.limit, 1, 200, 50);
   const [rows, total] = await Promise.all([
-    findListed({ where, orderBy: orderFor(f.sort), take: limit + 1, ...(f.cursor ? { cursor: { id: f.cursor }, skip: 1 } : {}) }),
+    findListed({ where, orderBy: orderFor(f.sort, f.dir), take: limit + 1, ...(f.cursor ? { cursor: { id: f.cursor }, skip: 1 } : {}) }),
     prisma.task.count({ where }),
   ]);
   const page = rows.slice(0, limit);
@@ -231,7 +264,7 @@ export async function listWorkTasks(actor: Actor, scope: Scope, f: WorkFilter): 
   const page = wholeNumber(f.page, 1, 100_000, 1);
   // Every matching record's id and shared key, in order: short rows, and the
   // only exact way to count and page tasks rather than records.
-  const ordered = await prisma.task.findMany({ where, orderBy: orderFor(f.sort), select: { id: true, siblingKey: true } });
+  const ordered = await prisma.task.findMany({ where, orderBy: orderFor(f.sort, f.dir), select: { id: true, siblingKey: true } });
   const firsts: string[] = [];
   const seen = new Set<string>();
   for (const r of ordered) {
@@ -412,7 +445,8 @@ export function parseFilter(params: URLSearchParams): WorkFilter {
     // A search or an explicit state looks at everything; a plain list is open
     // work. The Work screen always says which it means, so its search keeps Show.
     open: open === "false" || open === "finished" ? open : open === "true" ? "true" : params.get("state") || params.get("q") ? "false" : "true",
-    sort: sort === "due" || sort === "priority" || sort === "created" || sort === "number" || sort === "updated" || sort === "meeting" ? sort : undefined,
+    sort: (["updated", "due", "priority", "created", "number", "meeting", "department", "project", "status", "assignedBy", "assignedTo", "assigned", "title"] as const).includes(sort as never) ? (sort as WorkFilter["sort"]) : undefined,
+    dir: params.get("dir") === "asc" || params.get("dir") === "desc" ? (params.get("dir") as "asc" | "desc") : undefined,
     rows: str("rows") === "tasks" ? "tasks" : undefined,
     page: params.get("page") ? Number(params.get("page")) : undefined,
     cursor: str("cursor"),

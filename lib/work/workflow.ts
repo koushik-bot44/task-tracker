@@ -89,13 +89,13 @@ export function pathToStatus(from: WorkState, status: TaskStatus, hasAssignee: b
 }
 
 /**
- * A task that lands in somebody's hands is work in progress at once — it no
- * longer waits at "Assigned" for a Start Work press (owner, 2026-09-11). One
- * that nobody holds any more goes back to the queue. Every other state keeps
- * its place.
+ * A task that lands in somebody's hands waits at New (Assigned) until that
+ * person presses Start Work (owner, 2026-09-15; from 2026-09-11 it started at
+ * once). Work already started stays in progress; one that nobody holds any more
+ * goes back to the queue. Every other state keeps its place.
  */
 export function stateAfterAssignment(state: WorkState, hasAssignee: boolean): WorkState {
-  if ((state === "NEW" || state === "ASSIGNED") && hasAssignee) return "IN_PROGRESS";
+  if (state === "NEW" && hasAssignee) return "ASSIGNED";
   if ((state === "ASSIGNED" || state === "IN_PROGRESS") && !hasAssignee) return "NEW";
   return state;
 }

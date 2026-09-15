@@ -20,8 +20,9 @@ import {
 } from "@/lib/types";
 
 /**
- * Who holds it: pick a team, then a person on it. With no team the people
- * come from the project (or the whole list for a lead). "No one" clears it.
+ * Who holds it: a person from the project (or the list a lead sees); a task
+ * that already sits with a team offers its people. "No one" clears it. No team
+ * to pick (owner, 2026-09-15).
  */
 export function AssignSheet({
   open,
@@ -59,18 +60,6 @@ export function AssignSheet({
   return (
     <Sheet open={open} onClose={onClose} title="Who is doing this?">
       <div className="space-y-4">
-        {(groups ?? []).length ? (
-          <Field label="Team">
-            <select value={groupId ?? ""} onChange={(e) => setGroupId(e.target.value || null)} className={inputClass} aria-label="Team">
-              <option value="">No team</option>
-              {(groups ?? []).map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.departmentName} · {g.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : null}
         <ul className="divide-y divide-line">
           {people.map((p) => (
             <li key={p.id}>
@@ -78,7 +67,7 @@ export function AssignSheet({
                 type="button"
                 disabled={busy}
                 onClick={() => {
-                  onAssign({ assignmentGroupId: groupId, assigneeId: p.id });
+                  onAssign({ assigneeId: p.id });
                   onClose();
                 }}
                 className={cn("press flex min-h-[56px] w-full items-center gap-3 px-2 text-left", task.assigneeId === p.id && "bg-primary-soft")}
@@ -94,7 +83,7 @@ export function AssignSheet({
               type="button"
               disabled={busy}
               onClick={() => {
-                onAssign({ assignmentGroupId: groupId, assigneeId: null });
+                onAssign({ assigneeId: null });
                 onClose();
               }}
               className={cn("press flex min-h-[56px] w-full items-center gap-3 px-2 text-left", task.assigneeId === null && "bg-primary-soft")}
