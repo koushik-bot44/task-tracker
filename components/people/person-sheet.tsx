@@ -384,7 +384,6 @@ function PersonBody({ user, me, departments, onClose }: { user: UserDTO; me: Use
               }
             }}
             inputMode="tel"
-            placeholder="e.g. +916302608825"
             className={cn(inputClass, "min-w-0 flex-1", !phoneValid && "border-danger")}
           />
           <Button variant="secondary" onClick={savePhone} disabled={!phoneValid || !phoneDirty || busy} loading={action === "phone"}>

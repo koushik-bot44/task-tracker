@@ -79,7 +79,6 @@ export function ReviewMilestoneSheet({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={2000}
-            placeholder="e.g. Good pace, keep going"
             aria-label="A line for the team"
             autoFocus
             className={inputClass}

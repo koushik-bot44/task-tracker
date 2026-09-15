@@ -89,7 +89,6 @@ export function AddMilestoneSheet({
                 submit();
               }
             }}
-            placeholder="e.g. Development"
             aria-label="Milestone name"
             autoFocus
             maxLength={120}

@@ -65,7 +65,7 @@ export function NonNegotiables({
 
       {adding && !readOnly ? (
         <div className="mb-4 flex items-center gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="e.g. No screens past bedtime" aria-label="New non-negotiable" className={cn(inputCls, "h-10 flex-1")} />
+          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} aria-label="New non-negotiable" className={cn(inputCls, "h-10 flex-1")} />
           <button type="button" onClick={add} aria-label="Add non-negotiable" className="press grid h-10 w-10 shrink-0 place-items-center rounded-card bg-primary text-on-primary"><Plus className="h-4 w-4" aria-hidden /></button>
         </div>
       ) : null}

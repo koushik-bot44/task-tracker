@@ -199,7 +199,6 @@ export function NewProjectSheet({
                 submit();
               }
             }}
-            placeholder="e.g. New website"
             aria-label="Project name"
             autoFocus
             className={inputClass}

@@ -171,7 +171,7 @@ async function journey(ceo: string, ceoId: string, dept: (name: string) => strin
     const sheet = page.getByRole("dialog", { name: "Invite people" });
     record("People → Invite opens Invite people", await opened(sheet));
     const offered = await sheet.getByLabel("Position for new person 1", { exact: true }).locator("option").allInnerTexts();
-    record("the CEO can give every position but CEO and admin", offered.join("|") === "Co-founder|Head of department|Manager|Team lead|Team member", offered.join(", "));
+    record("the CEO can give every position but CEO and admin", offered.join("|") === "Assignee|Head of department|Manager|Team lead|Team member", offered.join(", "));
     for (const [i, p] of PEOPLE.entries()) {
       const n = i + 1;
       if (i > 0) await sheet.getByRole("button", { name: "+ Another person", exact: true }).click();

@@ -139,7 +139,6 @@ export function NotificationsRow() {
                 }
               }}
               inputMode="tel"
-              placeholder="e.g. +916302608825"
               className={cn(inputClass, "min-w-[10rem] flex-1", !valid && "border-danger")}
             />
             <Button variant="secondary" onClick={savePhone} disabled={!valid || !dirty || updateMe.isPending} loading={updateMe.isPending && dirty}>

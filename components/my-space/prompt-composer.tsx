@@ -108,7 +108,6 @@ export function PromptComposer({
                     }}
                     rows={7}
                     autoFocus
-                    placeholder={"e.g.\nMailbox not working for hierarchy\nRepro: open a lead's inbox — child tasks don't appear. Check the notify recipients."}
                     aria-label="Prompt"
                     className="w-full resize-y rounded-input border border-line bg-bg p-3 text-sm leading-relaxed text-ink outline-none transition-colors duration-150 ease-out placeholder:text-muted focus:border-primary"
                   />

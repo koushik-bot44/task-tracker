@@ -123,7 +123,7 @@ function TeamSheet({ open, onClose, departmentId, people, group }: { open: boole
     >
       <div className="space-y-4">
         <Field label="Team name">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Network" aria-label="Team name" autoFocus={!group} className={inputClass} />
+          <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Team name" autoFocus={!group} className={inputClass} />
         </Field>
         <Field label="Lead">
           <select value={leadId} onChange={(e) => setLeadId(e.target.value)} className={inputClass} aria-label="Lead">

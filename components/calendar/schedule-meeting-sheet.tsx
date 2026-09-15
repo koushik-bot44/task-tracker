@@ -421,7 +421,6 @@ export function ScheduleMeetingSheet({
                 submit();
               }
             }}
-            placeholder="e.g. Weekly catch-up"
             aria-label="What's it about"
             className={inputClass}
           />

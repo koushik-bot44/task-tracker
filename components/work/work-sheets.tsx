@@ -167,10 +167,10 @@ export function ResolveSheet({ open, onClose, onResolve, busy = false }: { open:
           ))}
         </div>
         <Field label="What was done">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} placeholder="Restarted the access point and corrected the settings." />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} />
         </Field>
         <Field label="What caused it (optional)">
-          <input value={rootCause} onChange={(e) => setRootCause(e.target.value)} className={inputClass} placeholder="A corrupted configuration." />
+          <input value={rootCause} onChange={(e) => setRootCause(e.target.value)} className={inputClass} />
         </Field>
       </div>
     </Sheet>

@@ -169,10 +169,10 @@ function AddPerson() {
       </div>
       <div className="mx-auto max-w-sm space-y-3">
         <Labeled label="Their name">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aarav" aria-label="Person's name" className={inputCls} />
+          <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Person's name" className={inputCls} />
         </Labeled>
         <Labeled label="Login email">
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="their-login@home" type="email" aria-label="Login email" className={inputCls} />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" aria-label="Login email" className={inputCls} />
         </Labeled>
         <Labeled label="Password (you set this, then tell them)">
           <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="at least 6 characters" type="text" aria-label="Password" className={inputCls} />

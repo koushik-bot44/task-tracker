@@ -124,7 +124,6 @@ export function DepartmentSheet({
                   submit();
                 }
               }}
-              placeholder="e.g. Marketing"
               aria-label="Department name"
               autoFocus
               className={inputClass}

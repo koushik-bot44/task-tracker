@@ -89,7 +89,6 @@ export function NewPeopleRows({
                   <input
                     value={p.name}
                     onChange={(e) => edit(i, { name: e.target.value })}
-                    placeholder="Kiran"
                     aria-label={`Name of ${who}`}
                     autoComplete="off"
                     autoFocus={autoFocusLast && i === rows.length - 1}
@@ -118,7 +117,7 @@ export function NewPeopleRows({
                       autoComplete="off"
                       value={email}
                       onChange={(e) => edit(i, { emails: p.emails.map((x, k) => (k === j ? e.target.value : x)) })}
-                      placeholder={j === 0 ? "kiran@company.com" : "their other address"}
+                      placeholder={j === 0 ? undefined : "their other address"}
                       aria-label={j === 0 ? `Email for ${who}` : `Another email for ${who}`}
                       className={inputClass}
                     />

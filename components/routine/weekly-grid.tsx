@@ -236,7 +236,7 @@ function SegmentEditor({ segments, weekParam, personId }: { segments: HabitSegme
           value={newSegment}
           onChange={(e) => setNewSegment(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && newSegment.trim()) { addSegment.mutate({ name: newSegment.trim() }, { onError: err }); setNewSegment(""); } }}
-          placeholder="New segment (e.g. Sleep & Wake)"
+          placeholder="New segment"
           aria-label="New segment name"
           className={cn(inputCls, "h-10 flex-1")}
         />
