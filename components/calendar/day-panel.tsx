@@ -1,25 +1,20 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
 import { isReview } from "@/components/calendar/chips";
-import { useToast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { DeadlineChip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
 import { Face } from "@/components/ui/face";
-import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
-import { dateWord, shortDate } from "@/lib/dates";
-import { useMeetingReply } from "@/lib/hooks/use-today";
-import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDateDTO, MeetingResponse } from "@/lib/types";
+import { dateWord } from "@/lib/dates";
+import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDateDTO } from "@/lib/types";
 
 export type DayItems = { events: CalendarEventDTO[]; deadlines: CalendarDeadlineDTO[]; taskDates: CalendarTaskDateDTO[] };
 
 /**
- * One day, opened from the grid or the strip: its reviews and meetings (with
- * everyone's replies and your own) and its project deadlines — nothing else
+ * One day, opened from the grid or the strip: its reviews and meetings (who is
+ * on them and what they are about) and its deadlines — nothing else
  * (owner, 2026-09-08). A bottom sheet on a phone, a panel on a desktop.
  */
 export function DayPanel({
@@ -120,45 +115,18 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h3 className="mb-2 text-micro font-semibold uppercase tracking-wider text-muted">{children}</h3>;
 }
 
-const REPLY_WORD: Record<"YES" | "NO" | "none", string> = { YES: "coming", NO: "can't", none: "no reply yet" };
-
 /**
- * A meeting on the day: when and what, everyone's faces with a green (coming)
- * / red (can't) / grey (no reply) dot, your own reply, and — for the person
- * who can move it — Reschedule once somebody can't make it.
+ * A meeting on the day: when it is, what it is, what it is about, who is on it
+ * and who called it.
+ *
+ * Nothing to press (owner, 2026-09-16: "postpone all remove that keep simple
+ * and clear"). Replying, "I'll be there", "Can't" and Postpone are gone from
+ * the screen entirely. The one control left is the organiser's, because a
+ * meeting still has to be correctable and cancellable by the person who called
+ * it.
  */
 function MeetingCard({ event, isManager, onEdit }: { event: CalendarEventDTO; isManager: boolean; onEdit: () => void }) {
-  const { reply } = useMeetingReply();
-  const { show: toast } = useToast();
-  const [changing, setChanging] = useState(false);
-  const [moving, setMoving] = useState(false);
-  const [sending, setSending] = useState<MeetingResponse | null>(null);
-
   const review = isReview(event);
-  const yes = event.attendees.filter((a) => a.response === "YES").length;
-  const no = event.attendees.filter((a) => a.response === "NO").length;
-  const quiet = event.attendees.length - yes - no;
-  const summary =
-    event.attendees.length === 0
-      ? "Nobody invited yet"
-      : [yes > 0 ? `${yes} coming` : null, no > 0 ? `${no} can't` : null, quiet > 0 ? `${quiet} no reply yet` : null].filter(Boolean).join(" · ");
-
-  const answer = (response: MeetingResponse) => {
-    setSending(response);
-    reply.mutate(
-      { eventId: event.id, response },
-      {
-        onSuccess: () => {
-          setChanging(false);
-          toast({ message: response === "YES" ? "Told them you'll be there" : "Told them you can't" });
-        },
-        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
-        onSettled: () => setSending(null),
-      },
-    );
-  };
-
-  const showButtons = event.isAttendee && (event.myResponse === null || changing);
 
   return (
     <div className="space-y-3 rounded-card bg-bg p-4">
@@ -197,161 +165,37 @@ function MeetingCard({ event, isManager, onEdit }: { event: CalendarEventDTO; is
       ) : null}
       {event.description.trim() ? <p className="whitespace-pre-wrap text-sm text-ink">{event.description}</p> : null}
 
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {event.attendees.length > 0 ? (
-            <span className="flex items-center gap-1.5">
-              {event.attendees.map((a) => {
-                const word = REPLY_WORD[a.response ?? "none"];
-                return (
-                  <span key={a.userId} className="relative" title={`${a.name} · ${word}`}>
-                    <Face name={a.name} title={`${a.name} · ${word}`} />
-                    <span
-                      className={cn(
-                        "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-bg",
-                        a.response === "YES" ? "bg-ok" : a.response === "NO" ? "bg-danger" : "bg-guide",
-                      )}
-                      aria-hidden
-                    />
-                  </span>
-                );
-              })}
-            </span>
-          ) : null}
-          <span className="text-micro text-muted">{summary}</span>
+      {/* Who is on it — the people, without who has and hasn't replied. */}
+      {event.attendees.length > 0 ? (
+        <div className="space-y-2">
+          <span className="flex flex-wrap items-center gap-1.5">
+            {event.attendees.map((a) => (
+              <Face key={a.userId} name={a.name} title={a.name} />
+            ))}
+          </span>
+          <p className="text-micro text-muted">
+            <span className="font-medium text-ink">On it:</span> {event.attendees.map((a) => a.name).join(", ")}
+          </p>
         </div>
-        {/* Two initials and "2 no reply yet" does not say WHO. */}
-        {(["YES", "NO", "none"] as const).map((r) => {
-          const names = event.attendees.filter((a) => (a.response ?? "none") === r).map((a) => a.name);
-          if (names.length === 0) return null;
-          return (
-            <p key={r} className="text-micro text-muted">
-              <span className="font-medium text-ink">{r === "YES" ? "Coming" : r === "NO" ? "Can't make it" : "No reply yet"}:</span> {names.join(", ")}
-            </p>
-          );
-        })}
-      </div>
+      ) : (
+        <p className="text-micro text-muted">Nobody invited yet</p>
+      )}
 
       <p className="text-micro text-muted">Scheduled by {event.createdByName}</p>
 
-      {showButtons ? (
-        <div className="flex gap-2">
-          <Button variant="primary" className="flex-1" onClick={() => answer("YES")} loading={sending === "YES"} disabled={reply.isPending}>
-            I&apos;ll be there
-          </Button>
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onClick={() => (event.canReschedule ? setMoving(true) : answer("NO"))}
-            loading={sending === "NO"}
-            disabled={reply.isPending}
-          >
-            Can&apos;t
-          </Button>
-        </div>
-      ) : event.isAttendee ? (
-        <p className="flex items-center gap-1 text-sm text-ink">
-          {event.myResponse === "YES" ? "You said you'll be there." : "You said you can't."}
-          <button type="button" onClick={() => setChanging(true)} className="press h-11 rounded-input px-2 text-sm font-medium text-primary-ink">
-            Change
-          </button>
-        </p>
-      ) : null}
-
-      {event.canReschedule || isManager ? (
+      {isManager ? (
         <div className="flex flex-wrap items-center gap-2">
-          {event.canReschedule ? (
-            <Button variant="secondary" onClick={() => setMoving(true)}>
-              Postpone
+          {review ? (
+            <Link href={`/project/${event.projectSlug ?? ""}`} className="press inline-flex h-11 items-center rounded-input px-2 text-sm text-muted hover:text-ink">
+              Move it from the project page
+            </Link>
+          ) : (
+            <Button variant="quiet" onClick={onEdit}>
+              Edit or cancel
             </Button>
-          ) : null}
-          {isManager ? (
-            review ? (
-              <Link href={`/project/${event.projectSlug ?? ""}`} className="press inline-flex h-11 items-center rounded-input px-2 text-sm text-muted hover:text-ink">
-                Move it from the project page
-              </Link>
-            ) : (
-              <Button variant="quiet" onClick={onEdit}>
-                Edit or cancel
-              </Button>
-            )
-          ) : null}
+          )}
         </div>
       ) : null}
-
-      {event.canReschedule ? <RescheduleSheet open={moving} event={event} onClose={() => setMoving(false)} /> : null}
     </div>
-  );
-}
-
-/** Three working days as words; one tap moves the meeting and re-asks everyone. */
-function RescheduleSheet({ open, event, onClose }: { open: boolean; event: CalendarEventDTO; onClose: () => void }) {
-  const { slots, reschedule } = useMeetingReply();
-  const { show: toast } = useToast();
-  const [picked, setPicked] = useState<string | null>(null);
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["meeting-slots", event.id],
-    queryFn: () => slots(event.id),
-    enabled: open,
-  });
-
-  const move = (iso: string) => {
-    setPicked(iso);
-    reschedule.mutate(
-      { eventId: event.id, date: iso.slice(0, 10) },
-      {
-        onSuccess: () => {
-          toast({ message: "Moved · everyone will get a new message" });
-          onClose();
-        },
-        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
-        onSettled: () => setPicked(null),
-      },
-    );
-  };
-
-  return (
-    <Sheet open={open} onClose={onClose} title="Move this meeting" subtitle={`${event.title} · ${dateWord(event.date)}`}>
-      <p className="pt-1 text-sm text-muted">Pick a new day. Everyone on it gets a new message and can reply again.</p>
-      {/* Three days is a shortcut, not the whole choice: any day can be picked
-          from the calendar on the right (owner, 2026-09-15). */}
-      <label className="mt-3 flex h-11 w-full items-center justify-between gap-2 rounded-input bg-hover px-4 text-sm font-semibold text-ink">
-        <span>Another day</span>
-        <input
-          type="date"
-          min={new Date().toISOString().slice(0, 10)}
-          disabled={reschedule.isPending}
-          onChange={(e) => {
-            if (e.target.value) move(`${e.target.value}T00:00:00`);
-          }}
-          aria-label="Pick another day"
-          className="h-8 rounded-[3px] border border-line bg-surface px-2 text-sm font-normal text-ink outline-none"
-        />
-      </label>
-      <div className="mt-4 space-y-2">
-        {isLoading ? (
-          <div className="space-y-2" aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-11 animate-pulse rounded-input bg-hover" />
-            ))}
-          </div>
-        ) : isError ? (
-          <p className="text-sm text-danger-ink">Couldn&apos;t load the days. Close this and try again.</p>
-        ) : (
-          (data?.slots ?? []).map((iso) => (
-            <button
-              key={iso}
-              type="button"
-              onClick={() => move(iso)}
-              disabled={reschedule.isPending}
-              className="press flex h-11 w-full items-center justify-between rounded-input bg-hover px-4 text-sm font-semibold text-ink disabled:opacity-40"
-            >
-              <span>{dateWord(iso)}</span>
-              <span className="font-normal text-muted">{picked === iso ? "Moving…" : shortDate(iso)}</span>
-            </button>
-          ))
-        )}
-      </div>
-    </Sheet>
   );
 }
