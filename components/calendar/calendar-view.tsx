@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DeadlineMark, EventChip, isReview } from "@/components/calendar/chips";
+import { DeadlineMark, EventChip, TaskDateMark, isReview } from "@/components/calendar/chips";
 import { DayPanel, type DayItems } from "@/components/calendar/day-panel";
 import { ProjectFilter } from "@/components/calendar/project-filter";
 import { ScheduleMeetingSheet } from "@/components/calendar/schedule-meeting-sheet";
@@ -19,7 +19,7 @@ import { useMe } from "@/lib/hooks/use-users";
 import { isManagerRole } from "@/lib/roles";
 import type { CalendarEventDTO } from "@/lib/types";
 
-const EMPTY: DayItems = { events: [], deadlines: [] };
+const EMPTY: DayItems = { events: [], deadlines: [], taskDates: [] };
 // v2: the capsules changed meaning (tap = show that project), so a filter
 // saved under the old rule would read as the opposite of itself.
 const FILTER_KEY = "orbit-calendar-projects-v2";
@@ -73,13 +73,14 @@ export function CalendarView() {
     const bucket = (k: string) => {
       let d = m.get(k);
       if (!d) {
-        d = { events: [], deadlines: [] };
+        d = { events: [], deadlines: [], taskDates: [] };
         m.set(k, d);
       }
       return d;
     };
     for (const d of data?.deadlines ?? []) bucket(dayKey(d.deadline)).deadlines.push(d);
     for (const e of data?.events ?? []) bucket(dayKey(e.date)).events.push(e);
+    for (const t of data?.taskDates ?? []) bucket(dayKey(t.dueDate)).taskDates.push(t);
     // Reviews first, then by time.
     for (const d of m.values()) {
       d.events.sort((a, b) => Number(isReview(b)) - Number(isReview(a)) || (a.startTime ?? "").localeCompare(b.startTime ?? ""));
@@ -90,7 +91,7 @@ export function CalendarView() {
   const dayOf = (k: string): DayItems => buckets.get(k) ?? EMPTY;
   const countOf = (k: string) => {
     const d = dayOf(k);
-    return d.events.length + d.deadlines.length;
+    return d.events.length + d.deadlines.length + d.taskDates.length;
   };
 
   const grid = useMemo(() => monthMatrix(ym.year, ym.month), [ym]);
@@ -99,7 +100,7 @@ export function CalendarView() {
     () =>
       strip.filter((d) => {
         const b = buckets.get(dayKeyOf(d));
-        return b ? b.events.length + b.deadlines.length > 0 : false;
+        return b ? b.events.length + b.deadlines.length + b.taskDates.length > 0 : false;
       }),
     [strip, buckets],
   );
@@ -179,6 +180,9 @@ export function CalendarView() {
             const marks = [
               ...items.deadlines.map((x) => ({ key: `d-${x.projectId}`, node: <DeadlineMark deadline={x} compact /> })),
               ...items.events.map((x) => ({ key: `e-${x.id}`, node: <EventChip event={x} compact /> })),
+              // Last on purpose: when a day is full, a task date is what gets
+              // folded into "+2 more", never a meeting (owner, 2026-09-15).
+              ...items.taskDates.map((x) => ({ key: `t-${x.id}`, node: <TaskDateMark task={x} compact /> })),
             ];
             const shown = marks.slice(0, 3);
             const more = marks.length - shown.length;
@@ -271,6 +275,9 @@ export function CalendarView() {
                     ))}
                     {items.events.map((x) => (
                       <EventChip key={x.id} event={x} />
+                    ))}
+                    {items.taskDates.map((x) => (
+                      <TaskDateMark key={x.id} task={x} />
                     ))}
                   </div>
                 </button>

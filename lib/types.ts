@@ -462,9 +462,25 @@ export type CalendarEventDTO = {
   createdAt: string;
 };
 
+/**
+ * A task that falls due on a day. Back on the calendar (owner, 2026-09-15) as a
+ * quieter kind than a meeting: it is a date, not something you attend, so it is
+ * drawn outlined and never pushes a meeting out of a day.
+ */
+export type CalendarTaskDateDTO = {
+  id: string;
+  number: number;
+  ref: string;
+  title: string;
+  dueDate: string;
+  projectName: string | null;
+  projectSlug: string | null;
+};
+
 export type CalendarPayload = {
   events: CalendarEventDTO[];
   deadlines: CalendarDeadlineDTO[];
+  taskDates: CalendarTaskDateDTO[];
 };
 
 /** Today's page, in one round trip. */

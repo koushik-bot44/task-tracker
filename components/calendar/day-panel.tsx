@@ -13,9 +13,9 @@ import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
 import { dateWord, shortDate } from "@/lib/dates";
 import { useMeetingReply } from "@/lib/hooks/use-today";
-import type { CalendarDeadlineDTO, CalendarEventDTO, MeetingResponse } from "@/lib/types";
+import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDateDTO, MeetingResponse } from "@/lib/types";
 
-export type DayItems = { events: CalendarEventDTO[]; deadlines: CalendarDeadlineDTO[] };
+export type DayItems = { events: CalendarEventDTO[]; deadlines: CalendarDeadlineDTO[]; taskDates: CalendarTaskDateDTO[] };
 
 /**
  * One day, opened from the grid or the strip: its reviews and meetings (with
@@ -39,7 +39,7 @@ export function DayPanel({
   const iso = day ? `${day}T00:00:00` : null;
   const meetings = [...items.events].sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
 
-  const empty = meetings.length === 0 && items.deadlines.length === 0;
+  const empty = meetings.length === 0 && items.deadlines.length === 0 && items.taskDates.length === 0;
 
   return (
     <Drawer
@@ -87,6 +87,26 @@ export function DayPanel({
                       <span className="block text-micro text-muted">Project deadline</span>
                     </span>
                     <DeadlineChip deadline={d.deadline} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {items.taskDates.length > 0 ? (
+            <section>
+              <SectionLabel>Tasks due</SectionLabel>
+              <div className="space-y-2">
+                {items.taskDates.map((t) => (
+                  <Link
+                    key={t.id}
+                    href={`/work/${t.number}`}
+                    className="press flex min-h-[56px] items-center gap-3 rounded-card bg-bg px-4"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-row text-ink">{t.title}</span>
+                      <span className="block text-micro text-muted">{t.ref}{t.projectName ? ` · ${t.projectName}` : ""}</span>
+                    </span>
                   </Link>
                 ))}
               </div>

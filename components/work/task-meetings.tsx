@@ -50,6 +50,9 @@ export function TaskMeetings({ task }: { task: TaskDTO }) {
   const canSchedule = isManagerRole(me?.role);
   const { data: meetings } = useTaskMeetings(task.id);
   const today = istDayKey(new Date());
+  /** This task's own due date, marked differently from its meetings: a meeting is
+   *  a filled dot (something to attend), a due date an outlined one (owner, 2026-09-15). */
+  const dueKey = task.dueDate ? task.dueDate.slice(0, 10) : null;
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [picked, setPicked] = useState<string | null>(null);
   const [scheduleOn, setScheduleOn] = useState<string | null>(null);
@@ -120,14 +123,19 @@ export function TaskMeetings({ task }: { task: TaskDTO }) {
               type="button"
               onClick={() => setPicked(on ? null : key)}
               aria-pressed={on}
-              aria-label={`${dayLabel(key)}${count ? `, ${count} meeting${count === 1 ? "" : "s"}` : ""}`}
+              aria-label={`${dayLabel(key)}${count ? `, ${count} meeting${count === 1 ? "" : "s"}` : ""}${key === dueKey ? ", this task is due" : ""}`}
               className={cn(
                 "press relative mx-auto grid h-7 w-7 place-items-center rounded-full text-[12px] tabular-nums",
                 on ? "bg-primary text-on-primary" : key === today ? "font-semibold text-primary-ink ring-1 ring-primary" : key < today ? "text-muted hover:bg-hover" : "text-ink hover:bg-hover",
               )}
             >
               {Number(key.slice(8))}
-              {count ? <span aria-hidden className={cn("absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full", on ? "bg-on-primary" : "bg-primary")} /> : null}
+              {count || key === dueKey ? (
+                <span aria-hidden className="absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
+                  {count ? <span className={cn("h-1 w-1 rounded-full", on ? "bg-on-primary" : "bg-primary")} /> : null}
+                  {key === dueKey ? <span className={cn("h-1.5 w-1.5 rounded-full border", on ? "border-on-primary" : "border-primary")} /> : null}
+                </span>
+              ) : null}
             </button>
           );
         })}

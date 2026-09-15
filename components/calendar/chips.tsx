@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/cn";
 import { DEADLINE_TONE_STYLE, dateWord, deadlineTone } from "@/lib/dates";
-import type { CalendarDeadlineDTO, CalendarEventDTO } from "@/lib/types";
+import type { CalendarDeadlineDTO, CalendarEventDTO, CalendarTaskDateDTO } from "@/lib/types";
 
 /**
  * Calendar marks — three kinds, nothing else:
@@ -12,8 +12,11 @@ import type { CalendarDeadlineDTO, CalendarEventDTO } from "@/lib/types";
  *   REVIEW    a milestone's review meeting: the accent, filled — "11:00 Design review".
  *   MEETING   any other meeting: the accent, soft — "15:00 Skyzen sync".
  *
- * Task dates are NOT on the calendar: it carries meetings and deadlines, and
- * nothing decorative — no dots (owner, 2026-09-08).
+ *   TASK DATE a task falling due: outlined, never filled, and always last in a
+ *             day (owner, 2026-09-15). Filled means something you attend;
+ *             outlined means a date to keep. The difference is the shape and
+ *             the weight, not the colour, so it survives the dark theme and a
+ *             reader who cannot tell the colours apart.
  *
  * Nothing here is under 13px; `compact` only trims the height for the grid.
  */
@@ -48,6 +51,19 @@ export function EventChip({ event, compact = false }: { event: CalendarEventDTO;
           ? event.projectName
           : `${review && event.milestoneName ? `${event.milestoneName} review` : event.title}${!compact && event.projectName ? ` · ${event.projectName}` : ""}`}
       </span>
+    </span>
+  );
+}
+
+/** A task that falls due: outlined, so it never reads as something to attend. */
+export function TaskDateMark({ task, compact = false }: { task: CalendarTaskDateDTO; compact?: boolean }) {
+  return (
+    <span
+      className={cn(BASE, size(compact), "border border-line bg-surface text-muted")}
+      title={`Due · ${task.ref} ${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}
+    >
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full border border-current" />
+      <span className="min-w-0 truncate">{compact ? task.title : `${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}</span>
     </span>
   );
 }
