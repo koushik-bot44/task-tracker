@@ -42,14 +42,11 @@ export function EventChip({ event, compact = false }: { event: CalendarEventDTO;
       className={cn(BASE, size(compact), review ? "bg-primary text-on-primary" : "bg-primary-soft text-primary-ink")}
       title={`${review ? "Review" : "Meeting"} · ${eventLabel(event)}${event.projectName ? ` · ${event.projectName}` : ""}`}
     >
-      {event.startTime ? <span className="shrink-0 tabular-nums">{event.startTime}</span> : null}
-      {/* "Milestone 2 review" says nothing — three of them on one month look
-          identical. In a month cell the project's name is the useful half; the
-          agenda has room for both (owner, 2026-09-08). */}
+      {/* What it is, then what it is about — and no time (owner, 2026-09-15:
+          "just meeting and dead line ...no time"). The hour is on the day itself
+          when it is opened; on a month it only crowds out the words. */}
       <span className="min-w-0 truncate">
-        {compact && review && event.projectName
-          ? event.projectName
-          : `${review && event.milestoneName ? `${event.milestoneName} review` : event.title}${!compact && event.projectName ? ` · ${event.projectName}` : ""}`}
+        {review ? `Review · ${event.milestoneName ?? event.projectName ?? event.title}` : `Meeting · ${event.title}`}
       </span>
     </span>
   );
@@ -76,7 +73,7 @@ export function DeadlineMark({ deadline, compact = false }: { deadline: Calendar
       className={cn(BASE, size(compact), DEADLINE_TONE_STYLE[tone])}
       title={`${deadline.name} · due ${dateWord(deadline.deadline)}`}
     >
-      <span className="min-w-0 truncate">{deadline.name}</span>
+      <span className="min-w-0 truncate">Deadline · {deadline.name}</span>
     </span>
   );
 }
