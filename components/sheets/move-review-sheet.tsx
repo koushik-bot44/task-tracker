@@ -10,7 +10,9 @@ import type { MilestoneDTO } from "@/lib/types";
 
 /**
  * Tap the date block on a box: move its review (the meeting follows), fix
- * the name, or — quietly, at the bottom — delete the milestone.
+ * the name, or — quietly, at the bottom — delete the stage.
+ *
+ * The word on screen is "stage" (owner, 2026-09-16); the model keeps its name.
  */
 export function MoveReviewSheet({
   open,
@@ -52,7 +54,7 @@ export function MoveReviewSheet({
       {
         onSuccess: () => {
           onClose();
-          toast({ message: patch.reviewDate ? "Review moved · meeting moved too" : "Milestone renamed" });
+          toast({ message: patch.reviewDate ? "Review moved · meeting moved too" : "Stage renamed" });
         },
         onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
       },
@@ -61,11 +63,11 @@ export function MoveReviewSheet({
 
   const remove = () => {
     if (!milestone || busy) return;
-    if (!window.confirm(`Delete "${milestone.name}"? Its tasks move to Not in a milestone yet.`)) return;
+    if (!window.confirm(`Delete "${milestone.name}"? Its tasks move to Not in a stage yet.`)) return;
     deleteMilestone.mutate(milestone.id, {
       onSuccess: () => {
         onClose();
-        toast({ message: "Milestone deleted · its tasks are in Not in a milestone yet" });
+        toast({ message: "Stage deleted · its tasks are in Not in a stage yet" });
       },
       onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
     });
@@ -97,7 +99,7 @@ export function MoveReviewSheet({
                 submit();
               }
             }}
-            aria-label="Milestone name"
+            aria-label="Stage name"
             maxLength={120}
             className={inputClass}
           />
@@ -109,7 +111,7 @@ export function MoveReviewSheet({
             disabled={busy}
             className="press h-11 rounded-input px-2 text-sm font-medium text-danger-ink disabled:opacity-40"
           >
-            Delete milestone
+            Delete stage
           </button>
         </div>
       </div>

@@ -119,7 +119,7 @@ export function ProjectCard({ project }: { project: ProjectDTO }) {
               <div className="mt-1 flex items-center gap-2">
                 {done && !project.deadline ? <Chip tone="ok">Done</Chip> : <DeadlineChip deadline={project.deadline} done={done} />}
                 <span className={cn("min-w-0 flex-1 truncate text-micro", behind ? "text-danger-ink" : "text-muted")}>
-                  {behind ? "Behind" : next ? `Next: ${next.name} · ${dateWord(next.reviewDate)}` : done ? "Finished" : "No milestone yet"}
+                  {behind ? "Behind" : next ? `Next: ${next.name} · ${dateWord(next.reviewDate)}` : done ? "Finished" : "No stage yet"}
                   {behind && next ? ` · Next: ${next.name} · ${dateWord(next.reviewDate)}` : ""}
                 </span>
               </div>

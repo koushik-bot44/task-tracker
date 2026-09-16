@@ -18,7 +18,7 @@ type Params = { params: { id: string } };
 
 async function load(actorId: string, role: Parameters<typeof canSeeProject>[0]["role"], id: string) {
   const m = await prisma.milestone.findUnique({ where: { id }, select: { id: true, projectId: true, reviewEventId: true, reviewDate: true } });
-  if (!m || !(await canSeeProject({ id: actorId, role }, m.projectId))) throw new HttpError(404, "Milestone not found");
+  if (!m || !(await canSeeProject({ id: actorId, role }, m.projectId))) throw new HttpError(404, "Stage not found");
   return m;
 }
 
@@ -26,7 +26,7 @@ async function load(actorId: string, role: Parameters<typeof canSeeProject>[0]["
 export const PATCH = route(async (req: Request, { params }: Params) => {
   const actor = await requireUser();
   const m = await load(actor.id, actor.role, params.id);
-  if (!(await canManageProject(actor, m.projectId))) throw new HttpError(403, "Only the people running this project can change a milestone.");
+  if (!(await canManageProject(actor, m.projectId))) throw new HttpError(403, "Only the people running this project can change a stage.");
 
   const parsed = await parseBody(req, updateMilestoneSchema);
   if (!parsed.ok) return parsed.response;
@@ -56,7 +56,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
 export const DELETE = route(async (_req: Request, { params }: Params) => {
   const actor = await requireUser();
   const m = await load(actor.id, actor.role, params.id);
-  if (!(await canManageProject(actor, m.projectId))) throw new HttpError(403, "Only the people running this project can delete a milestone.");
+  if (!(await canManageProject(actor, m.projectId))) throw new HttpError(403, "Only the people running this project can delete a stage.");
   // Its people hear the meeting is off before it goes (bell only, like any cancel).
   if (m.reviewEventId) {
     const ev = await prisma.calendarEvent.findUnique({ where: { id: m.reviewEventId }, include: { project: { select: { name: true } } } });

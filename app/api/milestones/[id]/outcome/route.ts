@@ -34,7 +34,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
     where: { id: params.id },
     select: { id: true, name: true, projectId: true, project: { select: { name: true, slug: true, status: true, progressManual: true } } },
   });
-  if (!m) throw new HttpError(404, "Milestone not found");
+  if (!m) throw new HttpError(404, "Stage not found");
 
   const line = (note ?? "").trim();
   await prisma.$transaction(async (tx) => {

@@ -34,7 +34,7 @@ export const POST = route(async (req: Request) => {
   const { projectId, name, reviewDate } = parsed.data;
 
   if (!(await canSeeProject(actor, projectId))) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  if (!(await canManageProject(actor, projectId))) throw new HttpError(403, "Only the people running this project can add a milestone.");
+  if (!(await canManageProject(actor, projectId))) throw new HttpError(403, "Only the people running this project can add a stage.");
 
   // One representation for a review day, so the meeting and the tasks can
   // match it exactly (owner, 2026-09-08).

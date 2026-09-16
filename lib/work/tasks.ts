@@ -282,9 +282,9 @@ export async function createWork(actor: ActorUser, input: CreateWorkInput): Prom
     milestoneId = parent.milestoneId;
     if (!due && parent.dueDate) { due = parent.dueDate; guessed = parent.dueProvisional; }
   } else if (milestoneId) {
-    if (!projectId) throw new HttpError(400, "A milestone belongs to a project.");
+    if (!projectId) throw new HttpError(400, "A stage belongs to a project.");
     const m = await prisma.milestone.findFirst({ where: { id: milestoneId, projectId }, select: { reviewDate: true } });
-    if (!m) throw new HttpError(400, "Milestone not found");
+    if (!m) throw new HttpError(400, "Stage not found");
     if (!due) { due = m.reviewDate; guessed = true; }
   }
 
@@ -485,12 +485,12 @@ export async function updateWork(actor: ActorUser, id: string, patch: UpdateWork
   }
 
   if (patch.milestoneId !== undefined) {
-    if (existing.isPrivate || existing.parentId !== null) throw new HttpError(400, "Only a task (not a step) sits in a milestone");
+    if (existing.isPrivate || existing.parentId !== null) throw new HttpError(400, "Only a task (not a step) sits in a stage");
     if (patch.milestoneId === null) data.milestoneId = null;
     else {
-      if (!existing.projectId) throw new HttpError(400, "A milestone belongs to a project.");
+      if (!existing.projectId) throw new HttpError(400, "A stage belongs to a project.");
       const m = await prisma.milestone.findFirst({ where: { id: patch.milestoneId, projectId: existing.projectId }, select: { id: true } });
-      if (!m) throw new HttpError(400, "Milestone not found");
+      if (!m) throw new HttpError(400, "Stage not found");
       data.milestoneId = m.id;
     }
   }

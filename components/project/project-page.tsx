@@ -64,7 +64,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 /**
  * /project/<slug> — the owner's sketch: PROJECT START, then one box per
- * milestone down the page with its note beside it, then "+ Add milestone".
+ * stage down the page with its note beside it, then "+ Add stage".
  * Boxes run top to bottom in the order they were added (the API's orderKey
  * order); a new one lands at the bottom (owner, 2026-09-04).
  */
@@ -187,7 +187,7 @@ export function ProjectPage({ slug }: { slug: string }) {
     if (!task || !e.over) return;
     const target = boxIdFromDrop(e.over.id);
     if (target === task.milestoneId) return;
-    const name = target ? milestones.find((m) => m.id === target)?.name ?? "that milestone" : "Not in a milestone yet";
+    const name = target ? milestones.find((m) => m.id === target)?.name ?? "that stage" : "Not in a stage yet";
     updateTask.mutate(
       { id: task.id, patch: { milestoneId: target } },
       {
@@ -269,8 +269,8 @@ export function ProjectPage({ slug }: { slug: string }) {
                 </div>
                 <div className={COLS}>
                   <EmptyState
-                    title="No milestones yet."
-                    body="A milestone is a box of tasks with a review date."
+                    title="No stages yet."
+                    body="A stage is a box of tasks with a review date."
                     action={
                       canManage ? (
                         <Button variant="secondary" icon={<Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />} onClick={() => setAddOpen(true)}>
@@ -391,8 +391,8 @@ export function ProjectPage({ slug }: { slug: string }) {
         fill
         open={notesOpen}
         onClose={() => setNotesOpen(false)}
-        label={`${notesTarget?.name ?? "Milestone"} notes`}
-        header={<h2 className="truncate text-section font-semibold text-ink">{notesTarget?.name ?? "Milestone"} notes</h2>}
+        label={`${notesTarget?.name ?? "Stage"} notes`}
+        header={<h2 className="truncate text-section font-semibold text-ink">{notesTarget?.name ?? "Stage"} notes</h2>}
       >
         {notesTarget ? <NotesThread targetType="MILESTONE" targetId={notesTarget.id} autoFocus fill /> : null}
       </Drawer>

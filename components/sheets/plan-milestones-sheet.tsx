@@ -14,9 +14,13 @@ import type { MilestoneDTO, ProjectDTO } from "@/lib/types";
 type Count = "2" | "3" | "4" | "5" | "6";
 
 /**
- * "Plan into milestones": how many boxes? — then the preview of how the tasks
+ * "Plan into stages": how many boxes? — then the preview of how the tasks
  * split and when each review lands, then one button. The server does exactly
  * what the preview shows (both use lib/plan).
+ *
+ * The word on screen is "stage" (owner, 2026-09-16: "remove the word mile
+ * stone"). The Milestone model, its API and its props keep their names — that
+ * is the database, not the screen.
  */
 export function PlanMilestonesSheet({
   open,
@@ -28,7 +32,7 @@ export function PlanMilestonesSheet({
   open: boolean;
   onClose: () => void;
   project: ProjectDTO;
-  /** Tasks not in a milestone yet. */
+  /** Tasks not in a stage yet. */
   looseCount: number;
   /** The last box's review date, if any. */
   lastReviewDate: string | null;
@@ -57,7 +61,7 @@ export function PlanMilestonesSheet({
       void qc.invalidateQueries({ queryKey: ["calendar"] });
       void qc.invalidateQueries({ queryKey: ["today"] });
       onClose();
-      toast({ message: `Planned ${rows.length === 1 ? "1 milestone" : `${n} milestones`} · reviews are on the calendar` });
+      toast({ message: `Planned ${rows.length === 1 ? "1 stage" : `${n} stages`} · reviews are on the calendar` });
     },
     onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
   });
@@ -66,8 +70,8 @@ export function PlanMilestonesSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Plan into milestones"
-      subtitle={`${looseCount} ${looseCount === 1 ? "task" : "tasks"} not in a milestone yet`}
+      title="Plan into stages"
+      subtitle={`${looseCount} ${looseCount === 1 ? "task" : "tasks"} not in a stage yet`}
       footer={
         <Button variant="primary" full onClick={() => plan.mutate()} loading={plan.isPending} disabled={looseCount === 0}>
           Plan it
@@ -76,9 +80,9 @@ export function PlanMilestonesSheet({
     >
       <div className="space-y-5 pt-1">
         <div>
-          <span className="mb-1.5 block text-micro font-medium text-muted">How many milestones?</span>
+          <span className="mb-1.5 block text-micro font-medium text-muted">How many stages?</span>
           <Segmented<Count>
-            label="How many milestones"
+            label="How many stages"
             value={count}
             onChange={setCount}
             options={[
@@ -94,7 +98,7 @@ export function PlanMilestonesSheet({
         <ol className="space-y-2" aria-label="What you will get">
           {sizes.map((size, i) => (
             <li key={i} className="flex min-h-11 items-center gap-3 rounded-input bg-hover px-3">
-              <span className="text-micro font-semibold uppercase tracking-[0.08em] text-muted">Milestone {i + 1}</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.08em] text-muted">Stage {i + 1}</span>
               <span className="min-w-0 flex-1 truncate text-sm text-ink">
                 {size} {size === 1 ? "task" : "tasks"}
               </span>
@@ -104,7 +108,7 @@ export function PlanMilestonesSheet({
         </ol>
 
         <p className="text-sm text-muted">
-          Each task takes its milestone&apos;s review date. Every review goes on the calendar as a meeting, and everyone invited gets a
+          Each task takes its stage&apos;s review date. Every review goes on the calendar as a meeting, and everyone invited gets a
           message the evening before.
         </p>
       </div>

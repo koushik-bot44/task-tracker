@@ -16,8 +16,8 @@ export function HelpSheet({ open, onClose }: { open: boolean; onClose: () => voi
           underneath — say <strong className="font-medium text-ink">I&apos;ll be there</strong> or{" "}
           <strong className="font-medium text-ink">Can&apos;t</strong> with one tap.
         </Concept>
-        <Concept title="Projects have milestones">
-          A project is a line of boxes. Each box is a milestone with a review date. Tasks live inside a box; the
+        <Concept title="Projects have stages">
+          A project is a line of boxes. Each box is a stage with a review date. Tasks live inside a box; the
           box whose review is next is the one with the blue edge.
         </Concept>
         <Concept title="Add a task in two taps">
@@ -34,7 +34,7 @@ export function HelpSheet({ open, onClose }: { open: boolean; onClose: () => voi
           CEO says On track or Needs work, and everyone on the project hears the result.
         </Concept>
         <Concept title="Notes go anywhere">
-          Every project, milestone and task has a notes thread. Add a photo from your camera or attach a PDF.
+          Every project, stage and task has a notes thread. Add a photo from your camera or attach a PDF.
         </Concept>
       </div>
     </Sheet>

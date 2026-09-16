@@ -53,7 +53,7 @@ export const TRACKED_FIELDS = [
   ["requesterId", "Requested by"],
   ["categoryId", "Category"],
   ["dueDate", "Due"],
-  ["milestoneId", "Milestone"],
+  ["milestoneId", "Stage"],
   ["projectId", "Project"],
   ["parentId", "Part of"],
   ["waitingReason", "Waiting for"],

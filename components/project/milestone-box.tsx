@@ -18,7 +18,7 @@ const taskWord = (n: number) => (n === 0 ? "No tasks yet" : `${n} task${n === 1 
 /**
  * One milestone box from the owner's sketch. CURRENT is open and accented;
  * PAST folds to one line ("Reviewed 12 Sep · On track · 4 tasks"); FUTURE
- * folds to "3 tasks". "Not in a milestone yet" is the loose box at the end.
+ * folds to "3 tasks". "Not in a stage yet" is the loose box at the end.
  * Every box is a drop target for a row dragged from another box.
  */
 export function MilestoneBox({
@@ -52,7 +52,7 @@ export function MilestoneBox({
   const { setNodeRef, isOver } = useDroppable({ id: boxDropId(milestone?.id ?? null) });
   const [expanded, setExpanded] = useState(false);
   const open = state === "current" || state === "loose" || expanded;
-  const name = milestone?.name ?? "Not in a milestone yet";
+  const name = milestone?.name ?? "Not in a stage yet";
   const starred = tasks.filter((t) => t.important && t.status !== "DONE").length;
 
   let line: string | null = null;
@@ -80,7 +80,7 @@ export function MilestoneBox({
         />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            {milestone ? <p className="smallcaps text-muted">Milestone {index}</p> : null}
+            {milestone ? <p className="smallcaps text-muted">Stage {index}</p> : null}
             <h2 className="truncate text-row font-semibold text-ink">{name}</h2>
           </div>
           {milestone ? (

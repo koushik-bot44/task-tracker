@@ -17,9 +17,12 @@ function suggestedDay(previousReviewDate: string | null): string {
 }
 
 /**
- * "+ Add milestone": Name · Review date. The new box goes at the bottom, so
+ * "+ Add stage": Name · Review date. The new box goes at the bottom, so
  * the date starts a week after the last box's review. Saving it also creates
  * the review meeting, which the toast says out loud.
+ *
+ * The word on screen is "stage" (owner, 2026-09-16); the model behind it keeps
+ * its own name.
  */
 export function AddMilestoneSheet({
   open,
@@ -60,7 +63,7 @@ export function AddMilestoneSheet({
       {
         onSuccess: () => {
           onClose();
-          toast({ message: "Milestone added · review meeting created" });
+          toast({ message: "Stage added · review meeting created" });
         },
         onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
       },
@@ -71,7 +74,7 @@ export function AddMilestoneSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Add milestone"
+      title="Add stage"
       footer={
         <Button variant="primary" full onClick={submit} loading={addMilestone.isPending} disabled={!ready}>
           Save
@@ -89,7 +92,7 @@ export function AddMilestoneSheet({
                 submit();
               }
             }}
-            aria-label="Milestone name"
+            aria-label="Stage name"
             autoFocus
             maxLength={120}
             className={inputClass}

@@ -200,7 +200,7 @@ async function seed() {
   const id = async (email: string) => (await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true } })).id;
   // A project of its own, so the rig never depends on what the clone happens to hold.
   const pets = await prisma.project.create({
-    data: { name: `${PREFIX}project`, slug: "wfx-project", color: "#4ade80", orderKey: "zzz-wfx", departmentId: dev.id, ownerId: await id("founder@orbit.local") },
+    data: { name: `${PREFIX}project`, slug: "wfx-project", color: "#4ade80", orderKey: "a2", departmentId: dev.id, ownerId: await id("founder@orbit.local") },
     select: { id: true },
   });
   made.departmentId = dev.id;
@@ -210,7 +210,7 @@ async function seed() {
     id("staff-development-member-2@orbit.local"), id("abhi@orbit.local"), id("test-manager@orbit.local"),
   ]);
   const team = await prisma.assignmentGroup.create({
-    data: { departmentId: dev.id, name: `${PREFIX}team`, leadId: lead, orderKey: "wfx", members: { create: [{ userId: m1 }, { userId: m2 }] } },
+    data: { departmentId: dev.id, name: `${PREFIX}team`, leadId: lead, orderKey: "a5", members: { create: [{ userId: m1 }, { userId: m2 }] } },
   });
   made.groupId = team.id;
 
@@ -241,14 +241,14 @@ async function seed() {
   // One task given to three people.
   for (const who of [m1, m2, abhi]) {
     const t = await prisma.task.create({
-      data: { title: `${PREFIX}shared`, orderKey: "wfx-shared", state: "ASSIGNED", priority: "HIGH", type: "REQUEST", assigneeId: who, assignedAt: now, requesterId: lead, givenById: lead, departmentId: dev.id, siblingKey: "wfx-shared-1" },
+      data: { title: `${PREFIX}shared`, orderKey: "a0", state: "ASSIGNED", priority: "HIGH", type: "REQUEST", assigneeId: who, assignedAt: now, requesterId: lead, givenById: lead, departmentId: dev.id, siblingKey: "wfx-shared-1" },
       select: { id: true },
     });
     made.taskIds.push(t.id);
   }
   // A task with steps: the steps must never appear in the list.
   const parent = await prisma.task.create({
-    data: { title: `${PREFIX}parent`, orderKey: "wfx-parent", state: "ASSIGNED", priority: "MEDIUM", type: "GENERAL", assigneeId: m1, assignedAt: now, requesterId: lead, departmentId: dev.id },
+    data: { title: `${PREFIX}parent`, orderKey: "a1", state: "ASSIGNED", priority: "MEDIUM", type: "GENERAL", assigneeId: m1, assignedAt: now, requesterId: lead, departmentId: dev.id },
     select: { id: true },
   });
   made.taskIds.push(parent.id);
@@ -258,10 +258,10 @@ async function seed() {
   }
   // A task inside a milestone, for the "changed somewhere else" check.
   const review = new Date(`${istDayKey(day(10))}T00:00:00.000Z`);
-  const ms = await prisma.milestone.create({ data: { projectId: pets.id, name: `${PREFIX}milestone`, reviewDate: review, orderKey: "zzz-wfx" }, select: { id: true } });
+  const ms = await prisma.milestone.create({ data: { projectId: pets.id, name: `${PREFIX}milestone`, reviewDate: review, orderKey: "a4" }, select: { id: true } });
   made.milestoneId = ms.id;
   const mt = await prisma.task.create({
-    data: { title: `${PREFIX}milestone task`, orderKey: "wfx-ms", state: "ASSIGNED", priority: "MEDIUM", type: "PROJECT_TASK", assigneeId: m1, assignedAt: now, requesterId: ceo, departmentId: dev.id, projectId: pets.id, milestoneId: ms.id, dueDate: review, dueProvisional: true },
+    data: { title: `${PREFIX}milestone task`, orderKey: "a3", state: "ASSIGNED", priority: "MEDIUM", type: "PROJECT_TASK", assigneeId: m1, assignedAt: now, requesterId: ceo, departmentId: dev.id, projectId: pets.id, milestoneId: ms.id, dueDate: review, dueProvisional: true },
     select: { id: true },
   });
   made.taskIds.push(mt.id);

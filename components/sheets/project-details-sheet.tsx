@@ -97,7 +97,7 @@ export function ProjectDetailsSheet({
   };
 
   const remove = () => {
-    if (!window.confirm(`Delete "${project.name}"? Its milestones, tasks, notes and meetings go with it. This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${project.name}"? Its stages, tasks, notes and meetings go with it. This cannot be undone.`)) return;
     deleteProject.mutate(project.id, {
       onSuccess: () => {
         onClose();

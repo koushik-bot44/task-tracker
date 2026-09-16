@@ -45,7 +45,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
     throw new HttpError(404, "Meeting not found");
   }
   if (existing.milestoneId && patch.date !== undefined) {
-    throw new HttpError(400, "Move a review from the project page — its date is the milestone's.");
+    throw new HttpError(400, "Move a review from the project page — its date is the stage's.");
   }
 
   const newDate = patch.date !== undefined ? eventDay(patch.date) : existing.date;
@@ -105,7 +105,7 @@ export const DELETE = route(async (_req: Request, { params }: Params) => {
   if (existing.projectId && !(await canSeeProject(actor, existing.projectId))) {
     throw new HttpError(404, "Meeting not found");
   }
-  if (existing.milestoneId) throw new HttpError(400, "A review goes with its milestone — delete the milestone instead.");
+  if (existing.milestoneId) throw new HttpError(400, "A review goes with its stage — delete the stage instead.");
   await notifyEvent(existing, "cancelled", existing.project?.name ?? null);
   await prisma.calendarEvent.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });

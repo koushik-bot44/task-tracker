@@ -39,7 +39,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   if (existing.isPrivate) {
     if (existing.ownerId !== user.id) return NextResponse.json({ error: "Task not found" }, { status: 404 });
     if (patch.assigneeId !== undefined) return badRequest([{ path: ["assigneeId"], message: "Private tasks aren't assignable" }]);
-    if (patch.milestoneId !== undefined) return badRequest([{ path: ["milestoneId"], message: "Only a task (not a step) sits in a milestone" }]);
+    if (patch.milestoneId !== undefined) return badRequest([{ path: ["milestoneId"], message: "Only a task (not a step) sits in a stage" }]);
   }
 
   const row = await updateWork(user, params.id, patch);

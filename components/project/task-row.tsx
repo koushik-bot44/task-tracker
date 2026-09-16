@@ -82,7 +82,7 @@ export function TaskRow({
         {...attributes}
         onPointerDown={onPointerDown}
         onClick={(e) => e.stopPropagation()}
-        aria-label={`Drag ${title} to another milestone`}
+        aria-label={`Drag ${title} to another stage`}
         data-drag-grip
         className="absolute -left-4 top-1/2 hidden h-11 w-4 -translate-y-1/2 cursor-grab place-items-center text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 md:grid"
         style={{ touchAction: "none" }}

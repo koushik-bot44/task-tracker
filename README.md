@@ -32,7 +32,7 @@ on the owner's word.
 - **Project** — belongs to a department, has a lead, a start date, a deadline,
   a status (`PLANNED · ACTIVE · PAUSED · DONE`) and a **progress %** that the
   founder or a director sets by hand. Nothing computes it.
-- **Milestone** — a box on the project page: a name, a review date, the tasks
+- **Stage** (the `Milestone` model) — a box on the project page: a name, a review date, the tasks
   inside it, and notes (text, photos, PDFs). Creating one creates its **review
   meeting** at 11:00 IST with the founder, the lead and every task holder.
   After the review the founder posts an outcome — *On track* or *Needs work* —
@@ -41,7 +41,7 @@ on the owner's word.
 - **Task** — one line: what, who, by when. Status is `TODO · DOING · STUCK ·
   DONE`; a star marks it important; *Put away* archives it. Steps are one
   level deep (a checklist). Anyone on a project can give a task to anyone on it.
-- **Notes** — one `Comment` table for projects, milestones and tasks, with an
+- **Notes** — one `Comment` table for projects, stages and tasks, with an
   optional attachment on Vercel Blob (the camera and paper-clip hide when
   `BLOB_READ_WRITE_TOKEN` is unset).
 - **My notes** — a person's private outline (the old tree engine, trimmed).
@@ -72,10 +72,10 @@ How Orbit works · Sign out).
   your OK* (reviews due today, founder/director only), and the floating **+**
   which is *Give a task* (three taps: what · who · by when).
 - **Projects** — cards by department: lead face, 12px bar + %, deadline chip,
-  *Next: milestone · date*. Behind projects float to the top.
+  *Next: stage · date*. Behind projects float to the top.
 - **Project** — the owner's sketch: PROJECT START, connectors, one box per
-  milestone with its tasks, notes beside it, *+ Give a task*, *+ Add
-  milestone*, *Not in a milestone yet*. Tasks drag between boxes.
+  stage with its tasks, notes beside it, *+ Give a task*, *+ Add
+  stage*, *Not in a stage yet*. Tasks drag between boxes.
 - **Calendar** — review chips, meeting chips, deadline marks, task dates; the
   day panel shows replies; *+ Schedule meeting* for managers.
 - **People** — org chart by department, *Not placed yet*, *Invite* with a
@@ -101,9 +101,9 @@ days, moves the meeting, clears every reply and re-sends `tomorrow`.
 ## Design system
 
 Light only. Warm off-white page, white cards with one soft shadow and no
-borders (the current milestone box gets the one accent ring), radius 16,
+borders (the current stage box gets the one accent ring), radius 16,
 gutters 16, content max 760, type 17 / 15 / 13 — nothing smaller. Sentence
-case everywhere except the small-caps `MILESTONE n` / `REVIEW` labels. Dates
+case everywhere except the small-caps `STAGE n` / `REVIEW` labels. Dates
 are words (*Today*, *Tomorrow*, *Thu*, *12 Sep*, *3 days late*).
 
 Shared components live in `components/ui/`: Face, Card, Chip, Row, Sheet,

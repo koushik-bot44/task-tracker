@@ -19,7 +19,7 @@ type Params = { params: { id: string } };
 const planSchema = z.object({ count: z.number().int().min(1).max(12) });
 
 /**
- * "Plan into milestones" (owner, 2026-09-04): every task not yet in a
+ * "Plan into stages" (owner, 2026-09-04): every task not yet in a
  * milestone is divided equally, in order, into `count` new boxes appended
  * after the existing ones. Review dates spread evenly from the last box (or
  * the project start, never before today) to the deadline; each task takes its
@@ -67,7 +67,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
     for (let i = 0; i < count; i++) {
       key = generateKeyBetween(key, null);
       const m = await tx.milestone.create({
-        data: { projectId: params.id, name: `Milestone ${existing + i + 1}`, reviewDate: dates[i], orderKey: key },
+        data: { projectId: params.id, name: `Stage ${existing + i + 1}`, reviewDate: dates[i], orderKey: key },
       });
       created.push(m.id);
       const ids = loose.slice(offset, offset + sizes[i]).map((t) => t.id);

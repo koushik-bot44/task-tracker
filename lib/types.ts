@@ -265,7 +265,7 @@ export type TaskDTO = {
   /** A step's parent. Project tasks are one level deep: a step's parentId is
       always a root task (deeper rows are flattened on read). */
   parentId: string | null;
-  /** The milestone box this task sits in; null = "Not in a milestone yet". */
+  /** The stage box this task sits in; null = "Not in a stage yet" on screen. */
   milestoneId: string | null;
   title: string;
   /** My notes only (the private-task Notes box). "" on project tasks. */
