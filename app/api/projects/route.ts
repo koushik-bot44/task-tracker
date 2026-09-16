@@ -100,6 +100,17 @@ export const POST = route(async (req: Request) => {
   const last = await prisma.project.findFirst({ orderBy: { orderKey: "desc" }, select: { orderKey: true } });
   const count = await prisma.project.count();
 
+  /* One hand-written key stored by an old fixture used to stop every new
+     project: generateKeyBetween validates its lower bound and threw "invalid
+     order key: zzz-wfx", which surfaced as a bare 500 (2026-09-16). A key we
+     cannot build on is no reason to refuse the project. */
+  let orderKey: string;
+  try {
+    orderKey = generateKeyBetween(last?.orderKey ?? null, null);
+  } catch {
+    orderKey = generateKeyBetween(null, null);
+  }
+
   const project = await prisma.project.create({
     data: {
       name,
@@ -107,7 +118,7 @@ export const POST = route(async (req: Request) => {
       color: color ?? PROJECT_COLORS[count % PROJECT_COLORS.length],
       icon: icon ?? null,
       status: status ?? "ACTIVE",
-      orderKey: generateKeyBetween(last?.orderKey ?? null, null),
+      orderKey,
       description: description ?? "",
       leadId: leadId ?? null,
       departmentId,

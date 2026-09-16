@@ -5,12 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { NewPeopleRows, blankPerson, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
 import { rolesOfferedTo } from "@/components/people/person-sheet";
-import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { Face } from "@/components/ui/face";
-import { Row } from "@/components/ui/row";
-import { Sheet, inputClass } from "@/components/ui/sheet";
+import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { snButton, snInput, snPrimary } from "@/components/work/sn";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { useProjectMutations, useProjectPeople } from "@/lib/hooks/use-projects";
@@ -24,10 +22,13 @@ function isWorkAccount(u: UserDTO): boolean {
 }
 
 /**
- * Add people to a project: find someone and tap Add (people already on it
+ * Add people to a project: find someone and press Add (people already on it
  * read "On it", and a member can be quietly removed), or invite people who
  * aren't on Orbit yet at the bottom — several at once, the same rows as a new
  * project has (owner, 2026-09-10).
+ *
+ * Dressed as the record behind it (owner, 2026-09-16: "adding people also"):
+ * the 13px text, 1px lines and small square buttons of components/work/sn.tsx.
  */
 export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open: boolean; onClose: () => void; projectId: string; projectName?: string }) {
   const { show: toast } = useToast();
@@ -130,10 +131,22 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
   const loading = (loadingUsers || loadingPeople) && candidates.length === 0;
 
   return (
-    <Sheet open={open} onClose={onClose} title="Add people">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Add people"
+      subtitle={projectName}
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className={snButton}>
+            Close
+          </button>
+        </div>
+      }
+    >
       <div className="pt-1">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" strokeWidth={1.75} aria-hidden />
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" strokeWidth={2} aria-hidden />
           <input
             type="search"
             value={q}
@@ -142,48 +155,52 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
             aria-label="Find someone"
             autoComplete="off"
             autoFocus
-            className={cn(inputClass, "pl-10")}
+            className={cn(snInput, "pl-7")}
           />
         </div>
 
         {loading ? (
           <Skeleton rows={4} className="mt-3" />
         ) : candidates.length === 0 ? (
-          <p className="px-1 py-6 text-center text-sm text-muted">{needle ? "No one called that." : "No one to add yet."}</p>
+          <p className="px-1 py-6 text-center text-[13px] text-muted">{needle ? "No one called that." : "No one to add yet."}</p>
         ) : (
-          <ul className="-mx-4 mt-2">
+          /* A plain bordered list, like every list on a record. */
+          <ul className="mt-2 rounded-[3px] border border-line">
             {candidates.map((u) => {
               const p = onProject.get(u.id);
               const removable = Boolean(p && p.isMember && !p.isLead && !p.isOwner);
               return (
-                <li key={u.id}>
-                  <Row
-                    left={<Face name={u.name} />}
-                    right={
-                      p ? (
-                        <>
-                          <Chip tone="ok">On it</Chip>
-                          {removable ? (
-                            <button
-                              type="button"
-                              onClick={() => remove(p)}
-                              disabled={busyId === u.id}
-                              className="press h-9 rounded-input px-2 text-sm text-muted hover:text-ink disabled:opacity-40"
-                            >
-                              Remove
-                            </button>
-                          ) : null}
-                        </>
-                      ) : (
-                        <Button variant="secondary" onClick={() => add(u)} loading={busyId === u.id} aria-label={`Add ${u.name}`}>
-                          Add
-                        </Button>
-                      )
-                    }
-                  >
+                <li key={u.id} className="flex min-h-[36px] items-center gap-2 border-b border-line/70 px-2 py-1 text-[13px] last:border-b-0">
+                  <Face name={u.name} size="sm" />
+                  <span className="min-w-0 flex-1 truncate text-ink">
                     {u.name}
-                    {u.status === "PENDING" ? <span className="text-micro text-muted"> · invited</span> : null}
-                  </Row>
+                    {u.status === "PENDING" ? <span className="text-muted"> · invited</span> : null}
+                  </span>
+                  {p ? (
+                    <>
+                      <span className="shrink-0 rounded-[3px] border border-ok bg-ok-soft px-1.5 py-0.5 text-[12px] font-medium text-ok-ink">On it</span>
+                      {removable ? (
+                        <button
+                          type="button"
+                          onClick={() => remove(p)}
+                          disabled={busyId === u.id}
+                          className={cn(snButton, "!h-7 !px-2 !text-[12px] !text-muted hover:!text-ink")}
+                        >
+                          {busyId === u.id ? "Removing…" : "Remove"}
+                        </button>
+                      ) : null}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => add(u)}
+                      disabled={busyId === u.id}
+                      aria-label={`Add ${u.name}`}
+                      className={cn(snButton, "!h-7 !px-2 !text-[12px]")}
+                    >
+                      {busyId === u.id ? "Adding…" : "Add"}
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -191,10 +208,10 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
         )}
 
         {canInvite ? (
-          <div className="mt-6 space-y-3">
-            <div>
-              <h3 className="text-sm font-semibold text-ink">Invite people who aren&apos;t on Orbit yet</h3>
-              <p className="mt-0.5 text-micro text-muted">
+          <div className="mt-5 space-y-2">
+            <div className="border-b border-line pb-1">
+              <h3 className="text-[13px] font-semibold text-ink">Invite people who aren&apos;t on Orbit yet</h3>
+              <p className="mt-0.5 text-[12px] text-muted">
                 As many as you like, each with a position or as a Team member. Each gets a link to set a password — send it on WhatsApp or copy it — and lands on this project. Anyone already on Orbit is simply added.
               </p>
             </div>
@@ -206,10 +223,12 @@ export function AddPeopleSheet({ open, onClose, projectId, projectName }: { open
               addLabel={newPeople.length ? "+ Another person" : "+ Someone not on Orbit yet"}
               autoFocusLast={newPeople.length > 1}
             />
-            {problem ? <p className="text-micro text-danger-ink">{problem}</p> : null}
-            <Button variant="primary" full onClick={sendInvites} loading={invitePeople.isPending} disabled={!inviteReady}>
-              {invites.length > 1 ? `Send ${invites.length} invites` : "Send invite"}
-            </Button>
+            {problem ? <p className="text-[12px] text-danger-ink">{problem}</p> : null}
+            <div className="flex justify-end">
+              <button type="button" onClick={sendInvites} disabled={!inviteReady} className={snPrimary}>
+                {invitePeople.isPending ? "Sending…" : invites.length > 1 ? `Send ${invites.length} invites` : "Send invite"}
+              </button>
+            </div>
           </div>
         ) : null}
       </div>

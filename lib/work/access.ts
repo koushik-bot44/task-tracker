@@ -228,7 +228,12 @@ export async function canTransitionTask(actor: Actor, t: TaskAccessRow, to: Work
     case "REOPENED":
       return t.requesterId === actor.id || holder || projectLead || deptLead || leadsTeam(scope, t);
     case "CANCELLED":
-      return (t.requesterId === actor.id && (t.state === "NEW" || t.state === "ASSIGNED")) || projectLead || deptLead || leadsTeam(scope, t);
+      // Declining is answering, so the person it was SENT TO does it — this was
+      // the only answering branch that never mentioned them, so an approval or a
+      // request could be approved by its holder but never turned down by them
+      // (owner, 2026-09-16; reproduced as a 403 on /cancel). onThisTask covers
+      // the holder and everyone else the same record was sent to.
+      return onThisTask || (t.requesterId === actor.id && (t.state === "NEW" || t.state === "ASSIGNED")) || projectLead || deptLead || leadsTeam(scope, t);
   }
 }
 

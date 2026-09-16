@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Face } from "@/components/ui/face";
-import { Field, Sheet, inputClass } from "@/components/ui/sheet";
+import { Sheet } from "@/components/ui/sheet";
+import { FormRow, snButton, snInput, snPrimary } from "@/components/work/sn";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { dayInputValue } from "@/lib/dates";
@@ -31,11 +31,15 @@ const ABOUT: { key: About; label: string }[] = [
 type Candidate = { userId: string; name: string };
 
 /**
- * Schedule a meeting (owner, 2026-09-08 — "make it simpler"): three questions.
- * "About?" (a project / a department / everyone / chosen people) — the choice
- * fills the faces by itself; "When?"; "What's it about?". Tap a face to add
- * or leave someone out. The same sheet edits or cancels an existing meeting.
- * A review meeting never comes here — its day belongs to the milestone.
+ * Schedule a meeting: "About?" (a project / a department / everyone / chosen
+ * people) — the choice fills the people by itself; "When?"; a short
+ * description. The same sheet edits or cancels an existing meeting. A review
+ * meeting never comes here — its day belongs to the milestone.
+ *
+ * It is dressed as the record behind it (owner, 2026-09-16: "convert the ui to
+ * service now ui .. how current task inner ui looks"): the same 13px text, 1px
+ * lines and labels down the left as components/work/sn.tsx, so scheduling a
+ * meeting from a task does not look like a different program.
  */
 export function ScheduleMeetingSheet({
   open,
@@ -73,7 +77,7 @@ export function ScheduleMeetingSheet({
   const [projectId, setProjectId] = useState<string | null>(meeting?.projectId ?? presetProjectId);
   const [departmentId, setDepartmentId] = useState("");
   const [who, setWho] = useState<Set<string>>(new Set());
-  /** Narrows the faces on screen; who is ticked is untouched by it. */
+  /** Narrows the people on screen; who is ticked is untouched by it. */
   const [findQ, setFindQ] = useState("");
   const [seededFor, setSeededFor] = useState<string | null>(null);
   const [date, setDate] = useState("");
@@ -134,7 +138,7 @@ export function ScheduleMeetingSheet({
     setTitleTouched(Boolean(meeting));
   }, [open, meeting, presetProjectId, presetTaskId, defaultDate]);
 
-  // The choice fills the faces: a project's people, a department's people,
+  // The choice fills the people: a project's people, a department's people,
   // the whole company — all picked; "People" starts empty. An edit keeps
   // the meeting's own list.
   const seedKey = about === "project" ? `p:${projectId ?? ""}` : about === "department" ? `d:${departmentId}` : about;
@@ -237,6 +241,8 @@ export function ScheduleMeetingSheet({
             ? "The whole company"
             : null;
 
+  const saving = meeting ? updateEvent.isPending : createEvent.isPending;
+
   return (
     <Sheet
       open={open}
@@ -244,187 +250,191 @@ export function ScheduleMeetingSheet({
       title={meeting ? "Edit meeting" : "Schedule a meeting"}
       subtitle={subtitle ?? undefined}
       footer={
-        meeting ? (
-          <div className="flex gap-2">
-            <Button variant="danger" onClick={cancelMeeting} disabled={pending} loading={deleteEvent.isPending}>
-              Cancel meeting
-            </Button>
-            <Button variant="primary" className="flex-1" onClick={submit} disabled={!ready || pending} loading={updateEvent.isPending}>
-              Save
-            </Button>
-          </div>
-        ) : (
-          <Button variant="primary" full onClick={submit} disabled={!ready || pending} loading={createEvent.isPending}>
-            Save
-          </Button>
-        )
+        /* The record's own buttons: small, square, to the right. */
+        <div className="flex items-center justify-end gap-2">
+          {meeting ? (
+            <button
+              type="button"
+              onClick={cancelMeeting}
+              disabled={pending}
+              className={cn(snButton, "!border-danger !text-danger-ink hover:!bg-danger-soft")}
+            >
+              {deleteEvent.isPending ? "Cancelling…" : "Cancel meeting"}
+            </button>
+          ) : null}
+          <button type="button" onClick={onClose} disabled={pending} className={snButton}>
+            Close
+          </button>
+          <button type="button" onClick={submit} disabled={!ready || pending} className={snPrimary}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
       }
     >
-      <div className="space-y-5 pt-1">
-        {presetProjectId || presetTaskId || meeting ? null : (
-          <div>
-            <span className="mb-1.5 block text-micro font-medium text-muted">About what?</span>
-            <div role="group" aria-label="About what" className="flex flex-wrap gap-2">
-              {ABOUT.map((o) => (
-                <button
-                  key={o.key}
-                  type="button"
-                  aria-pressed={about === o.key}
-                  onClick={() => {
-                    setAbout(o.key);
-                    setFindQ("");
-                    setSeededFor(null);
-                  }}
-                  className={cn(
-                    "press h-9 rounded-chip px-3.5 text-sm font-medium",
-                    about === o.key ? "bg-ink text-on-ink" : "bg-surface text-muted shadow-e1 hover:text-ink",
-                  )}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {about === "project" && !presetProjectId && !meeting ? (
-          <Field label="Which project?">
-            <select
-              value={projectId ?? ""}
-              onChange={(e) => setProjectId(e.target.value || null)}
-              aria-label="Project"
-              className={cn(inputClass, "appearance-none")}
-            >
-              <option value="">Pick a project…</option>
-              {(projects ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : null}
-
-        {about === "department" && !meeting ? (
-          <Field label="Which department?">
-            <select
-              value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-              aria-label="Department"
-              className={cn(inputClass, "appearance-none")}
-            >
-              <option value="">Pick a department…</option>
-              {(departments ?? []).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : null}
-
-        <div>
-          <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="text-micro font-medium text-muted">Who?</span>
-            {people.length > 0 ? (
-              <span className="text-micro tabular-nums text-muted">
-                {who.size} of {people.length}
-              </span>
-            ) : null}
-          </div>
-          {about === "project" && !projectId ? (
-            <p className="text-sm text-muted">Pick a project first.</p>
-          ) : about === "department" && !departmentId ? (
-            <p className="text-sm text-muted">Pick a department first.</p>
-          ) : about === "project" && loadingPeople && people.length === 0 ? (
-            <div className="h-[5.5rem] animate-pulse rounded-card bg-hover" aria-hidden />
-          ) : people.length === 0 ? (
-            <p className="text-sm text-muted">
-              {about === "project" ? "Nobody is on this project yet — add people from the project page." : "Nobody here yet."}
-            </p>
-          ) : (
-            <>
-            {/* A company is too many faces to scroll through; find the one you mean. */}
-            {people.length > 6 ? (
-              <input
-                value={findQ}
-                onChange={(e) => setFindQ(e.target.value)}
-                placeholder="Find a person"
-                aria-label="Find a person"
-                className={cn(inputClass, "mb-2")}
-              />
-            ) : null}
-            {shown.length === 0 ? (
-              <p className="text-sm text-muted">Nobody matches &ldquo;{findQ.trim()}&rdquo;.</p>
-            ) : null}
-            <div role="group" aria-label="Who" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-              {shown.map((p) => {
-                const on = who.has(p.userId);
-                return (
-                  <button
-                    key={p.userId}
-                    type="button"
-                    role="checkbox"
-                    aria-checked={on}
-                    onClick={() => toggle(p.userId)}
-                    className={cn(
-                      "press flex w-[72px] shrink-0 flex-col items-center gap-1 rounded-card px-1 py-2",
-                      on ? "bg-primary-soft ring-2 ring-primary" : "bg-hover opacity-60",
-                    )}
-                  >
-                    <Face name={p.name} size="lg" />
-                    <span className="w-full truncate text-center text-micro font-medium text-ink">{p.name.split(" ")[0]}</span>
-                  </button>
-                );
-              })}
-            </div>
-            </>
+      {/* One bordered form, labels down the left — the record's own shape. */}
+      <div className="-mx-4 border-y border-line">
+        <div className="divide-y divide-line/70">
+          {presetProjectId || presetTaskId || meeting ? null : (
+            <FormRow label="About">
+              <select
+                value={about}
+                onChange={(e) => {
+                  setAbout(e.target.value as About);
+                  setFindQ("");
+                  setSeededFor(null);
+                }}
+                aria-label="About what"
+                className={snInput}
+              >
+                {ABOUT.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </FormRow>
           )}
-          {people.length > 0 && who.size === 0 ? <p className="mt-1 text-micro text-danger-ink">Pick at least one person.</p> : null}
-        </div>
 
-        <div>
-          <span className="mb-1.5 block text-micro font-medium text-muted">When?</span>
-          <div className="space-y-2">
+          {about === "project" && !presetProjectId && !meeting ? (
+            <FormRow label="Project" required>
+              <select value={projectId ?? ""} onChange={(e) => setProjectId(e.target.value || null)} aria-label="Project" className={snInput}>
+                <option value="">Pick a project…</option>
+                {(projects ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </FormRow>
+          ) : null}
+
+          {about === "department" && !meeting ? (
+            <FormRow label="Department" required>
+              <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} aria-label="Department" className={snInput}>
+                <option value="">Pick a department…</option>
+                {(departments ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </FormRow>
+          ) : null}
+
+          <FormRow label="Short description" required>
+            <input
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setTitleTouched(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              aria-label="What's it about"
+              className={snInput}
+            />
+          </FormRow>
+
+          <FormRow label="Day" required>
             <input
               type="date"
               value={date}
               min={meeting ? undefined : dayInputValue(new Date())}
               onChange={(e) => setDate(e.target.value)}
               aria-label="Day"
-              className={inputClass}
+              className={snInput}
             />
-            <div className="grid grid-cols-2 gap-2">
-              <label className="block">
-                <span className="mb-1 block text-micro text-muted">Starts</span>
-                <input type="time" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Start time" className={inputClass} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-micro text-muted">Ends (optional)</span>
-                <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} aria-label="End time" className={inputClass} />
-              </label>
-            </div>
-          </div>
-          {end && !endValid ? <p className="mt-1 text-micro text-danger-ink">The end has to be after the start.</p> : null}
-        </div>
+          </FormRow>
 
-        <Field label="What's it about?">
-          <input
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setTitleTouched(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submit();
-              }
-            }}
-            aria-label="What's it about"
-            className={inputClass}
-          />
-        </Field>
+          <FormRow label="Starts" required>
+            <input type="time" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Start time" className={snInput} />
+          </FormRow>
+
+          <FormRow label="Ends">
+            <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} aria-label="End time" className={snInput} />
+            {end && !endValid ? <p className="mt-1 text-[12px] text-danger-ink">The end has to be after the start.</p> : null}
+          </FormRow>
+
+          <FormRow label="People" required>
+            {about === "project" && !projectId ? (
+              <p className="text-[13px] text-muted">Pick a project first.</p>
+            ) : about === "department" && !departmentId ? (
+              <p className="text-[13px] text-muted">Pick a department first.</p>
+            ) : about === "project" && loadingPeople && people.length === 0 ? (
+              <div className="h-20 animate-pulse rounded-[3px] bg-hover" aria-hidden />
+            ) : people.length === 0 ? (
+              <p className="text-[13px] text-muted">
+                {about === "project" ? "Nobody is on this project yet — add people from the project page." : "Nobody here yet."}
+              </p>
+            ) : (
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-[12px] tabular-nums text-muted">
+                    {who.size} of {people.length} picked
+                  </span>
+                  {people.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setWho(who.size === people.length ? new Set() : new Set(people.map((p) => p.userId)))}
+                      className="text-[12px] font-medium text-primary-ink hover:underline"
+                    >
+                      {who.size === people.length ? "None" : "All"}
+                    </button>
+                  ) : null}
+                </div>
+                {/* A company is too many names to scroll; find the one you mean. */}
+                {people.length > 6 ? (
+                  <input
+                    value={findQ}
+                    onChange={(e) => setFindQ(e.target.value)}
+                    placeholder="Find a person"
+                    aria-label="Find a person"
+                    className={cn(snInput, "mb-1")}
+                  />
+                ) : null}
+                <div role="group" aria-label="Who" className="max-h-52 overflow-y-auto rounded-[3px] border border-line">
+                  {shown.length === 0 ? (
+                    <p className="px-2 py-2 text-[13px] text-muted">Nobody matches &ldquo;{findQ.trim()}&rdquo;.</p>
+                  ) : (
+                    shown.map((p) => {
+                      const on = who.has(p.userId);
+                      return (
+                        <button
+                          key={p.userId}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={on}
+                          onClick={() => toggle(p.userId)}
+                          className={cn(
+                            "flex min-h-[32px] w-full items-center gap-2 border-b border-line/70 px-2 text-left text-[13px] last:border-b-0 hover:bg-hover",
+                            on ? "bg-primary-soft/40" : "",
+                          )}
+                        >
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "grid h-3.5 w-3.5 shrink-0 place-items-center rounded-[2px] border text-[10px] font-bold",
+                              on ? "border-primary bg-primary text-on-primary" : "border-line bg-surface text-transparent",
+                            )}
+                          >
+                            ✓
+                          </span>
+                          <Face name={p.name} size="sm" />
+                          <span className="min-w-0 truncate text-ink">{p.name}</span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                {who.size === 0 ? <p className="mt-1 text-[12px] text-danger-ink">Pick at least one person.</p> : null}
+              </div>
+            )}
+          </FormRow>
+        </div>
       </div>
     </Sheet>
   );

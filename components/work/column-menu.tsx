@@ -91,6 +91,11 @@ export function ColumnMenu({
   const sorted = Boolean(sortKey) && sort === sortKey;
   const narrowed = filterKeys.some((k) => filter[k]);
   const canFilter = Boolean(onFilter) && kind !== "none";
+  /* Now that the menu stays open while you pick, the rows behind it change and
+     the columns can re-flow under it. A stable mark of what is applied, so the
+     panel is placed again against its heading instead of floating where the
+     heading used to be (2026-09-16). */
+  const placedFor = filterKeys.map((k) => filter[k] ?? "").join("|");
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -98,7 +103,7 @@ export function ColumnMenu({
     if (!r) return;
     const width = 232;
     setAt({ top: Math.round(r.bottom + 4), left: Math.round(Math.min(r.left, window.innerWidth - width - 8)) });
-  }, [open]);
+  }, [open, placedFor]);
 
   useEffect(() => {
     if (!open) return;

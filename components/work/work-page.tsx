@@ -502,7 +502,7 @@ export function WorkPage() {
 
         {scope === "department" && !params.get("departmentId") ? (
           <DepartmentTree departments={departmentChoices} filter={groupedFilter} />
-        ) : isLoading || !me ? (
+        ) : (isLoading && !data) || !me ? (
           <div className="p-3"><Skeleton rows={6} /></div>
         ) : isError || !data ? (
           <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
