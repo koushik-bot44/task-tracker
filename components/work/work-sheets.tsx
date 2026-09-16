@@ -5,9 +5,9 @@ import { InviteLinks, type InviteLink } from "@/components/people/invite-links";
 import { NewPeopleRows, invitesProblem, toInvites, type NewPerson } from "@/components/people/new-people-rows";
 import { rolesOfferedTo } from "@/components/people/person-sheet";
 import { useToast } from "@/components/toast";
-import { Button } from "@/components/ui/button";
 import { Face } from "@/components/ui/face";
-import { Field, Sheet, inputClass } from "@/components/ui/sheet";
+import { Sheet } from "@/components/ui/sheet";
+import { FormRow, snButton, snInput, snPrimary } from "@/components/work/sn";
 import { apiPost } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useGroups } from "@/lib/hooks/use-work";
@@ -23,6 +23,60 @@ import {
   type TaskDTO,
   type WaitingReason,
 } from "@/lib/types";
+
+/*
+ * Every sheet a record opens wears the record's own clothes (owner, 2026-09-16:
+ * "how current task inner ui looks .. everything should look according to
+ * this"): 13px text, 1px lines, 3px corners, labels down the left, and small
+ * square buttons to the right instead of a full-width coloured bar. The pieces
+ * come from components/work/sn.tsx, so they cannot drift from the record.
+ */
+
+/** The footer every one of these sheets uses: quiet Close, then the one action. */
+function SheetButtons({
+  onClose,
+  action,
+  onAction,
+  busy = false,
+  disabled = false,
+  busyLabel,
+  danger = false,
+  closeLabel = "Close",
+}: {
+  onClose: () => void;
+  action: string;
+  onAction: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+  busyLabel?: string;
+  danger?: boolean;
+  closeLabel?: string;
+}) {
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <button type="button" onClick={onClose} className={snButton}>
+        {closeLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onAction}
+        disabled={busy || disabled}
+        className={danger ? cn(snButton, "!border-danger !text-danger-ink hover:!bg-danger-soft") : snPrimary}
+      >
+        {busy ? busyLabel ?? "Working…" : action}
+      </button>
+    </div>
+  );
+}
+
+/** A plain bordered list, the way a record lists anything. */
+function PickList({ children, label }: { children: React.ReactNode; label?: string }) {
+  return (
+    <div role={label ? "group" : undefined} aria-label={label} className="max-h-72 overflow-y-auto rounded-[3px] border border-line">
+      {children}
+    </div>
+  );
+}
 
 /**
  * Who holds it: a person from the project (or the list a lead sees); a task
@@ -63,41 +117,58 @@ export function AssignSheet({
   }, [group, task.projectId, projectPeople, users, me]);
 
   return (
-    <Sheet open={open} onClose={onClose} title="Who is doing this?">
-      <div className="space-y-4">
-        <ul className="divide-y divide-line">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Who is doing this?"
+      footer={
+        <div className="flex items-center justify-end">
+          <button type="button" onClick={onClose} className={snButton}>
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="pt-1">
+        <PickList label="Who is doing this">
           {people.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  onAssign({ assigneeId: p.id });
-                  onClose();
-                }}
-                className={cn("press flex min-h-[56px] w-full items-center gap-3 px-2 text-left", task.assigneeId === p.id && "bg-primary-soft")}
-              >
-                <Face name={p.name} />
-                <span className="min-w-0 flex-1 truncate text-row text-ink">{p.id === me?.id ? `${p.name} (me)` : p.name}</span>
-              </button>
-            </li>
-          ))}
-          {people.length === 0 ? <li className="py-6 text-center text-sm text-muted">{group ? "Nobody is on this team yet." : "Nobody to pick from."}</li> : null}
-          <li>
             <button
+              key={p.id}
               type="button"
               disabled={busy}
               onClick={() => {
-                onAssign({ assigneeId: null });
+                onAssign({ assigneeId: p.id });
                 onClose();
               }}
-              className={cn("press flex min-h-[56px] w-full items-center gap-3 px-2 text-left", task.assigneeId === null && "bg-primary-soft")}
+              className={cn(
+                "flex min-h-[34px] w-full items-center gap-2 border-b border-line/70 px-2 text-left text-[13px] last:border-b-0 hover:bg-hover disabled:opacity-40",
+                task.assigneeId === p.id && "bg-primary-soft/50",
+              )}
             >
-              <span className="grid h-8 w-8 place-items-center rounded-full border border-dashed border-muted" aria-hidden />
-              <span className="text-row text-muted">No one{group ? ` — leave it with ${group.name}` : ""}</span>
+              <Face name={p.name} size="sm" />
+              <span className="min-w-0 flex-1 truncate text-ink">{p.id === me?.id ? `${p.name} (me)` : p.name}</span>
+              {task.assigneeId === p.id ? <span className="shrink-0 text-[12px] text-muted">holds it</span> : null}
             </button>
-          </li>
-        </ul>
+          ))}
+          {people.length === 0 ? (
+            <p className="px-2 py-4 text-center text-[13px] text-muted">{group ? "Nobody is on this team yet." : "Nobody to pick from."}</p>
+          ) : null}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              onAssign({ assigneeId: null });
+              onClose();
+            }}
+            className={cn(
+              "flex min-h-[34px] w-full items-center gap-2 border-t border-line px-2 text-left text-[13px] hover:bg-hover disabled:opacity-40",
+              task.assigneeId === null && "bg-primary-soft/50",
+            )}
+          >
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-dashed border-muted" aria-hidden />
+            <span className="text-muted">No one{group ? ` — leave it with ${group.name}` : ""}</span>
+          </button>
+        </PickList>
       </div>
     </Sheet>
   );
@@ -113,24 +184,33 @@ export function WaitSheet({ open, onClose, onWait, busy = false }: { open: boole
       onClose={onClose}
       title="Waiting for what?"
       footer={
-        <Button variant="primary" full loading={busy} onClick={() => { onWait(reason, note.trim()); onClose(); }}>
-          Mark as waiting
-        </Button>
+        <SheetButtons
+          onClose={onClose}
+          action="Mark as waiting"
+          busy={busy}
+          busyLabel="Marking…"
+          onAction={() => {
+            onWait(reason, note.trim());
+            onClose();
+          }}
+        />
       }
     >
-      <div className="space-y-4">
-        <ul className="divide-y divide-line">
-          {WAITING_REASONS.map((r) => (
-            <li key={r}>
-              <button type="button" onClick={() => setReason(r)} className={cn("press flex min-h-[48px] w-full items-center px-2 text-left text-row text-ink", reason === r && "bg-primary-soft")}>
-                {WAITING_REASON_LABEL[r]}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <Field label="A word on it (optional)">
-          <input value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} placeholder="What exactly are we waiting on?" />
-        </Field>
+      <div className="-mx-4 border-y border-line">
+        <div className="divide-y divide-line/70">
+          <FormRow label="Waiting for" required>
+            <select value={reason} onChange={(e) => setReason(e.target.value as WaitingReason)} aria-label="Waiting for" className={snInput}>
+              {WAITING_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {WAITING_REASON_LABEL[r]}
+                </option>
+              ))}
+            </select>
+          </FormRow>
+          <FormRow label="A word on it">
+            <input value={note} onChange={(e) => setNote(e.target.value)} className={snInput} placeholder="What exactly are we waiting on?" />
+          </FormRow>
+        </div>
       </div>
     </Sheet>
   );
@@ -147,25 +227,36 @@ export function ResolveSheet({ open, onClose, onResolve, busy = false }: { open:
       onClose={onClose}
       title="How was it resolved?"
       footer={
-        <Button variant="primary" full loading={busy} onClick={() => { onResolve({ resolutionCode: code, resolutionNotes: notes.trim(), rootCause: rootCause.trim() }); onClose(); }}>
-          Resolve
-        </Button>
+        <SheetButtons
+          onClose={onClose}
+          action="Resolve"
+          busy={busy}
+          busyLabel="Resolving…"
+          onAction={() => {
+            onResolve({ resolutionCode: code, resolutionNotes: notes.trim(), rootCause: rootCause.trim() });
+            onClose();
+          }}
+        />
       }
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {RESOLUTION_CODES.map((c) => (
-            <button key={c} type="button" onClick={() => setCode(c)} className={cn("press h-9 rounded-chip px-3 text-micro font-medium", code === c ? "bg-primary text-on-primary" : "bg-hover text-ink")}>
-              {RESOLUTION_CODE_LABEL[c]}
-            </button>
-          ))}
+      <div className="-mx-4 border-y border-line">
+        <div className="divide-y divide-line/70">
+          <FormRow label="Resolution" required>
+            <select value={code} onChange={(e) => setCode(e.target.value as ResolutionCode)} aria-label="Resolution" className={snInput}>
+              {RESOLUTION_CODES.map((c) => (
+                <option key={c} value={c}>
+                  {RESOLUTION_CODE_LABEL[c]}
+                </option>
+              ))}
+            </select>
+          </FormRow>
+          <FormRow label="What was done" required>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className={cn(snInput, "!h-auto py-1.5")} />
+          </FormRow>
+          <FormRow label="What caused it">
+            <input value={rootCause} onChange={(e) => setRootCause(e.target.value)} className={snInput} />
+          </FormRow>
         </div>
-        <Field label="What was done">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className={cn(inputClass, "h-auto py-2.5")} />
-        </Field>
-        <Field label="What caused it (optional)">
-          <input value={rootCause} onChange={(e) => setRootCause(e.target.value)} className={inputClass} />
-        </Field>
       </div>
     </Sheet>
   );
@@ -174,17 +265,34 @@ export function ResolveSheet({ open, onClose, onResolve, busy = false }: { open:
 /** One question, one button. */
 export function ConfirmSheet({ open, onClose, title, body, action, tone = "primary", onConfirm, busy = false }: { open: boolean; onClose: () => void; title: string; body?: string; action: string; tone?: "primary" | "danger"; onConfirm: () => void; busy?: boolean }) {
   return (
-    <Sheet open={open} onClose={onClose} title={title} footer={<Button variant={tone} full loading={busy} onClick={() => { onConfirm(); onClose(); }}>{action}</Button>}>
-      {body ? <p className="text-sm text-muted">{body}</p> : null}
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      footer={
+        <SheetButtons
+          onClose={onClose}
+          action={action}
+          busy={busy}
+          danger={tone === "danger"}
+          onAction={() => {
+            onConfirm();
+            onClose();
+          }}
+        />
+      }
+    >
+      {body ? <p className="py-1 text-[13px] text-muted">{body}</p> : null}
     </Sheet>
   );
 }
 
 /**
- * Give this same task to more people.
+ * Put more people on this same task.
  *
- * One task per person is the model, so this ticks the people to copy it to.
- * Anybody already on it is shown greyed and cannot be ticked twice.
+ * One record, several people, one chat between them (owner, 2026-09-15) — so
+ * this ticks the people to ADD to it, not people to copy it to. Anybody already
+ * on it is shown greyed and cannot be ticked twice.
  */
 export function MorePeopleSheet({
   open,
@@ -207,7 +315,7 @@ export function MorePeopleSheet({
   const { data: projectPeople } = useProjectPeople(task.projectId, open && Boolean(task.projectId));
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
-  /** People who are not on Orbit yet: invited here, then given the task like anyone else. */
+  /** People who are not on Orbit yet: invited here, then put on the task like anyone else. */
   const [invites, setInvites] = useState<NewPerson[]>([]);
   const [inviting, setInviting] = useState(false);
   /** Shown after inviting: the link each new person opens. Mail may not be set up,
@@ -265,30 +373,43 @@ export function MorePeopleSheet({
       subtitle="Everybody on it shares the same task and the same chat."
       footer={
         links.length ? (
-          <Button variant="primary" full onClick={onClose}>
-            Done
-          </Button>
+          <div className="flex items-center justify-end">
+            <button type="button" onClick={onClose} className={snPrimary}>
+              Done
+            </button>
+          </div>
         ) : (
-          <Button variant="primary" full loading={busy || inviting} disabled={total === 0 || Boolean(inviteProblem)} onClick={() => void submit()}>
-            {total ? `Add ${total} to this task` : "Pick who to add"}
-          </Button>
+          <SheetButtons
+            onClose={onClose}
+            action={total ? `Add ${total} to this task` : "Pick who to add"}
+            busy={busy || inviting}
+            busyLabel="Adding…"
+            disabled={total === 0 || Boolean(inviteProblem)}
+            onAction={() => void submit()}
+          />
         )
       }
     >
       {links.length ? (
         <InviteLinks links={links} />
       ) : (
-      <div className="space-y-3">
-        {people.length > 6 ? (
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person" aria-label="Find a person" className={inputClass} />
-        ) : null}
-        <ul className="divide-y divide-line rounded-input border border-line">
-          {shown.map((p) => {
-            const has = on.has(p.id);
-            const ticked = picked.has(p.id);
-            return (
-              <li key={p.id}>
-                <label className={cn("flex min-h-[44px] items-center gap-3 px-3", has ? "cursor-default opacity-50" : "cursor-pointer")}>
+        <div className="space-y-2 pt-1">
+          {people.length > 6 ? (
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person" aria-label="Find a person" className={snInput} />
+          ) : null}
+          {picked.size ? <p className="text-[12px] tabular-nums text-muted">{picked.size} picked</p> : null}
+          <PickList label="Who to add">
+            {shown.map((p) => {
+              const has = on.has(p.id);
+              const ticked = picked.has(p.id);
+              return (
+                <label
+                  key={p.id}
+                  className={cn(
+                    "flex min-h-[32px] items-center gap-2 border-b border-line/70 px-2 text-[13px] last:border-b-0",
+                    has ? "cursor-default opacity-50" : "cursor-pointer hover:bg-hover",
+                  )}
+                >
                   <input
                     type="checkbox"
                     disabled={has}
@@ -301,26 +422,26 @@ export function MorePeopleSheet({
                         return next;
                       })
                     }
-                    className="h-5 w-5 accent-[var(--primary)]"
+                    className="h-3.5 w-3.5 shrink-0 accent-[var(--primary)]"
                   />
-                  <span className="min-w-0 flex-1 truncate text-sm text-ink">{p.name}</span>
-                  {has ? <span className="shrink-0 text-micro text-muted">already on it</span> : null}
+                  <Face name={p.name} size="sm" />
+                  <span className="min-w-0 flex-1 truncate text-ink">{p.name}</span>
+                  {has ? <span className="shrink-0 text-[12px] text-muted">already on it</span> : null}
                 </label>
-              </li>
-            );
-          })}
-          {shown.length === 0 ? <li className="px-3 py-3 text-sm text-muted">Nobody to pick from.</li> : null}
-        </ul>
-        {/* Somebody who is not on Orbit yet can still be given the task: they are
-            invited from here, exactly as on the new-task form, and hold it from
-            the moment they set a password (owner, 2026-09-15). */}
-        {canAdministerAccountsRole(me?.role) ? (
-          <div className="space-y-1.5">
-            <NewPeopleRows rows={invites} onChange={setInvites} roles={rolesOfferedTo(me?.role)} addLabel={invites.length ? "+ Another person" : "+ Someone not on Orbit yet"} autoFocusLast />
-            {inviteProblem ? <p className="text-micro text-danger-ink">{inviteProblem}</p> : null}
-          </div>
-        ) : null}
-      </div>
+              );
+            })}
+            {shown.length === 0 ? <p className="px-2 py-3 text-[13px] text-muted">Nobody to pick from.</p> : null}
+          </PickList>
+          {/* Somebody who is not on Orbit yet can still be put on the task: they are
+              invited from here, exactly as on the new-task form, and are on it from
+              the moment they set a password (owner, 2026-09-15). */}
+          {canAdministerAccountsRole(me?.role) ? (
+            <div className="space-y-1.5 border-t border-line pt-2">
+              <NewPeopleRows rows={invites} onChange={setInvites} roles={rolesOfferedTo(me?.role)} addLabel={invites.length ? "+ Another person" : "+ Someone not on Orbit yet"} autoFocusLast />
+              {inviteProblem ? <p className="text-[12px] text-danger-ink">{inviteProblem}</p> : null}
+            </div>
+          ) : null}
+        </div>
       )}
     </Sheet>
   );
