@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   ActivityDTO,
@@ -34,13 +34,26 @@ function qs(q: WorkQuery): string {
   return s ? `?${s}` : "";
 }
 
-/** The queue. */
+/**
+ * The queue.
+ *
+ * The rows stay on screen while a narrowed list loads. Every narrowing makes a
+ * NEW query key, so without this `isLoading` flipped true and work-page.tsx
+ * swapped the whole table — heading row included — for a skeleton. That
+ * unmounted the column menus and threw away which one was open, so a menu
+ * appeared to slam shut the instant you picked anything, and picking two
+ * statuses meant opening it twice (owner, 2026-09-16: "the filter should be
+ * opened .. until i tap out of box anywhere").
+ *
+ * The skeleton still shows on the first load, when there is nothing to keep.
+ */
 export function useWorkList(query: WorkQuery, enabled = true) {
   return useQuery({
     queryKey: [...workKey, "list", query],
     queryFn: () => apiGet<WorkListDTO>(`/api/work${qs(query)}`),
     enabled,
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 }
 

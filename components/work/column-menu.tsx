@@ -139,19 +139,38 @@ export function ColumnMenu({
     setOpen(false);
     onSort(sortKey, d);
   };
+  /* Narrowing leaves the menu OPEN (owner, 2026-09-16: "keep it open ... closes
+     soon after selecting something"). Status and Priority take several at once,
+     and shutting on the first tick meant re-opening the menu for every one.
+     Sorting still closes: that is one decisive choice, not a list. The menu goes
+     when you click away or press Escape. */
   const set = (patch: Patch) => {
     onFilter?.(patch);
-    setOpen(false);
   };
   /** One of a list: picking the same one again takes it off. */
   const only = (key: string, value: string) => set({ [key]: filter[key] === value ? null : value });
+  /* One choice can stand for SEVERAL states: "New" is NEW and ASSIGNED together.
+     Both of these used to compare that whole choice against the comma list it had
+     just been split into, so "NEW,ASSIGNED" was never found among ["NEW",
+     "ASSIGNED"]: the row never showed its tick, and pressing it again added it a
+     second time instead of taking it off, leaving state=NEW,ASSIGNED,NEW,ASSIGNED.
+     A choice is now its parts, so a row is ticked when all of its parts are on,
+     and pressing it takes all of them off (2026-09-16). */
+  const partsOf = (value: string) => value.split(",").filter(Boolean);
+  const applied = (key: string) => (filter[key] ?? "").split(",").filter(Boolean);
   /** Several at once, held as a comma list. */
   const toggle = (key: string, value: string) => {
-    const on = (filter[key] ?? "").split(",").filter(Boolean);
-    const next = on.includes(value) ? on.filter((v) => v !== value) : [...on, value];
+    const on = applied(key);
+    const parts = partsOf(value);
+    const allOn = parts.every((p) => on.includes(p));
+    const next = allOn ? on.filter((v) => !parts.includes(v)) : [...on, ...parts.filter((p) => !on.includes(p))];
     set({ [key]: next.length ? next.join(",") : null });
   };
-  const ticked = (key: string, value: string) => (filter[key] ?? "").split(",").filter(Boolean).includes(value);
+  const ticked = (key: string, value: string) => {
+    const on = applied(key);
+    const parts = partsOf(value);
+    return parts.length > 0 && parts.every((p) => on.includes(p));
+  };
 
   return (
     <>
