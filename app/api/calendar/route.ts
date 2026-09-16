@@ -75,15 +75,11 @@ export const GET = route(async (req: Request) => {
   const hasWork = user.role !== "ADMIN" && user.role !== "PERSON";
   const scope = hasWork ? await loadScope(user) : null;
 
-  const [eventRows, deadlineRows, taskRows] = await Promise.all([
+  const [eventRows, taskRows] = await Promise.all([
     prisma.calendarEvent.findMany({
       where: eventWhere,
       include: eventInclude,
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    }),
-    prisma.project.findMany({
-      where: { deadline: { gte: from, lte: to }, ...(projectIds ? { id: { in: projectIds } } : {}) },
-      select: { id: true, name: true, slug: true, deadline: true, color: true },
     }),
     scope
       ? prisma.task.findMany({
@@ -102,13 +98,13 @@ export const GET = route(async (req: Request) => {
       : Promise.resolve([]),
   ]);
 
-  const deadlines: CalendarDeadlineDTO[] = deadlineRows.map((p) => ({
-    projectId: p.id,
-    name: p.name,
-    slug: p.slug,
-    deadline: (p.deadline as Date).toISOString(),
-    color: p.color,
-  }));
+  /* A project's deadline is shown on the project, once — not repeated on every
+     calendar (owner, 2026-09-16: "deadlines are always only appears once keep
+     it just dead line for the task .. remove prj deadline"). The field stays in
+     the payload so nothing downstream has to change, and so this is one line to
+     put back if it is ever wanted again. Task deadlines are untouched: they are
+     `taskDates` below. */
+  const deadlines: CalendarDeadlineDTO[] = [];
 
   const taskDates: CalendarTaskDateDTO[] = taskRows.map((t) => ({
     id: t.id,

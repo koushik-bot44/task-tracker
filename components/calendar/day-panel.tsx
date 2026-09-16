@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { isReview } from "@/components/calendar/chips";
-import { DeadlineChip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
 import { Face } from "@/components/ui/face";
 import { snButton } from "@/components/work/sn";
@@ -38,7 +37,9 @@ export function DayPanel({
   const iso = day ? `${day}T00:00:00` : null;
   const meetings = [...items.events].sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
 
-  const empty = meetings.length === 0 && items.deadlines.length === 0 && items.taskDates.length === 0;
+  // Project deadlines are no longer a day's business, so a day is empty when it
+  // has no meeting and nothing falling due (owner, 2026-09-16).
+  const empty = meetings.length === 0 && items.taskDates.length === 0;
 
   return (
     <Drawer
@@ -92,26 +93,6 @@ export function DayPanel({
             </section>
           ) : null}
 
-          {items.deadlines.length > 0 ? (
-            <section>
-              <SectionLabel>Project deadlines</SectionLabel>
-              <div className="rounded-[3px] border border-line">
-                {items.deadlines.map((d) => (
-                  <Link
-                    key={d.projectId}
-                    href={`/project/${d.slug}`}
-                    className="flex min-h-[38px] items-center gap-2 border-b border-line/70 px-2 py-1 text-[13px] last:border-b-0 hover:bg-hover"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-ink">{d.name}</span>
-                      <span className="block text-[12px] text-muted">Project deadline</span>
-                    </span>
-                    <DeadlineChip deadline={d.deadline} />
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
         </div>
       ) : null}
     </Drawer>

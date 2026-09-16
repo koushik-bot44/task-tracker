@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DeadlineMark, EventChip, TaskDateMark, isReview } from "@/components/calendar/chips";
+import { EventChip, TaskDateMark, isReview } from "@/components/calendar/chips";
 import { DayPanel, type DayItems } from "@/components/calendar/day-panel";
 import { ProjectFilter } from "@/components/calendar/project-filter";
 import { ScheduleMeetingSheet } from "@/components/calendar/schedule-meeting-sheet";
@@ -177,8 +177,11 @@ export function CalendarView() {
           {grid.map((d) => {
             const k = dayKeyOf(d);
             const items = dayOf(k);
+            /* A project's own deadline is not a day's business: it appears
+                once, on the project, and repeating it here crowded out the
+                thing that actually falls due (owner, 2026-09-16: "remove prj
+                deadline"). Only meetings and TASK deadlines are days. */
             const marks = [
-              ...items.deadlines.map((x) => ({ key: `d-${x.projectId}`, node: <DeadlineMark deadline={x} compact /> })),
               ...items.events.map((x) => ({ key: `e-${x.id}`, node: <EventChip event={x} compact /> })),
               // A task's own deadline, in red (owner, 2026-09-15). Last, so on a
               // full day it is a deadline that folds into "+2 more", not a meeting.
@@ -270,9 +273,6 @@ export function CalendarView() {
                     ) : null}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {items.deadlines.map((x) => (
-                      <DeadlineMark key={x.projectId} deadline={x} />
-                    ))}
                     {items.events.map((x) => (
                       <EventChip key={x.id} event={x} />
                     ))}
