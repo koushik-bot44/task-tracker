@@ -52,7 +52,7 @@ export const PATCH = route(async (req: Request, { params }: Params) => {
   return NextResponse.json(serializeMilestone(row!));
 });
 
-/** Delete a box: its tasks move to "Not in a milestone yet"; its review meeting goes with it. */
+/** Delete a box: its tasks move to "Not in a stage yet"; its review meeting goes with it. */
 export const DELETE = route(async (_req: Request, { params }: Params) => {
   const actor = await requireUser();
   const m = await load(actor.id, actor.role, params.id);

@@ -274,7 +274,7 @@ export function ProjectPage({ slug }: { slug: string }) {
                     action={
                       canManage ? (
                         <Button variant="secondary" icon={<Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />} onClick={() => setAddOpen(true)}>
-                          Add milestone
+                          Add stage
                         </Button>
                       ) : undefined
                     }
@@ -328,7 +328,7 @@ export function ProjectPage({ slug }: { slug: string }) {
                 />
                 {canManage && loose.length >= 2 ? (
                   <Button variant="primary" full icon={<Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />} onClick={() => setPlanOpen(true)}>
-                    Plan into milestones
+                    Plan into stages
                   </Button>
                 ) : null}
               </div>
@@ -345,7 +345,7 @@ export function ProjectPage({ slug }: { slug: string }) {
             </div>
             <div className={COLS}>
               <Button variant="secondary" full icon={<Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />} onClick={() => setAddOpen(true)}>
-                Add milestone
+                Add stage
               </Button>
             </div>
           </>

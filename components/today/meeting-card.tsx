@@ -15,7 +15,7 @@ import type { CalendarEventDTO } from "@/lib/types";
  * concerns, then gets out of the way.
  */
 export function MeetingCard({ meeting }: { meeting: CalendarEventDTO }) {
-  // "Milestone 1 review" says nothing on its own — the project belongs in the
+  // "Stage 1 review" says nothing on its own — the project belongs in the
   // headline (owner, 2026-09-08).
   const headline = meeting.projectName ? `${meeting.title} · ${meeting.projectName}` : meeting.title;
   const when = [dateWord(meeting.date), meeting.startTime].filter(Boolean).join(" · ");

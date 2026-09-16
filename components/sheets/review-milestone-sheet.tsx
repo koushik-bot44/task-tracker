@@ -8,7 +8,7 @@ import { useReviewOutcome } from "@/lib/hooks/use-today";
 import type { MilestoneDTO, MilestoneOutcome, TaskDTO } from "@/lib/types";
 
 /**
- * The CEO's review of a milestone, from the box itself (owner, 2026-09-08 —
+ * The CEO's review of a stage, from the box itself (owner, 2026-09-08 —
  * it used to be a card on Today). How many tasks are done, an optional line
  * for the team, then On track or Needs work. Whatever he writes shows on the
  * box for everyone who can see the project.
@@ -71,7 +71,7 @@ export function ReviewMilestoneSheet({
     >
       <div className="space-y-4 pt-1">
         <p className="text-sm text-muted">
-          {done} of {tasks.length} {tasks.length === 1 ? "task" : "tasks"} done in this milestone.
+          {done} of {tasks.length} {tasks.length === 1 ? "task" : "tasks"} done in this stage.
         </p>
         <label className="block">
           <span className="mb-1.5 block text-micro font-medium text-muted">A line for the team (optional)</span>
