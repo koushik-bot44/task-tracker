@@ -14,6 +14,7 @@ import { useDashboardToday, useGroups, useWorkList, type WorkQuery } from "@/lib
 import { canSeeUserListRole, isAdminRole, isExecutiveRole, isLeadOrAboveRole, oversesCompanyRole } from "@/lib/roles";
 import { OWN_WORK_TYPES as OWN_WORK_TYPE_LIST, REQUEST_WORK_TYPES, WORK_PRIORITIES, WORK_PRIORITY_LABEL, WORK_TYPES, WORK_TYPE_LABEL } from "@/lib/types";
 import { DepartmentTree } from "./department-tree";
+import { ClearFiltersButton } from "./clear-filters-button";
 import { TaskTable, columnDefaultDir } from "./task-table";
 import { Panel, PanelHeader, Tabs, snButton, snInput, snPrimary } from "./sn";
 
@@ -443,19 +444,16 @@ export function WorkPage() {
               filled with colour the instant anything narrows the list. A control
               that only appears is one nobody learns is there, and a plain white
               box among plain white boxes did not say "a filter is on" (owner,
-              2026-09-18). Blue, like the column filter marks when they are on. */}
-          <button
-            type="button"
-            disabled={!narrowed}
-            onClick={() => {
+              2026-09-18). Blue, like the column filter marks when they are on —
+              and it fills like water rising; see ClearFiltersButton. */}
+          <ClearFiltersButton
+            on={narrowed}
+            onClear={() => {
               setMoreFilters(false);
               setDraftQ("");
               set({ ...Object.fromEntries(EXTRA_KEYS.map((k) => [k, null])), q: null, page: null });
             }}
-            className={narrowed ? snPrimary : snButton}
-          >
-            Clear filters
-          </button>
+          />
         </div>
 
         {moreFilters ? (
