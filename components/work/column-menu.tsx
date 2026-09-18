@@ -267,7 +267,10 @@ export function ColumnMenu({
               {narrowed ? (
                 <>
                   <hr className="my-1 border-line" />
-                  <Row picked={false} onClick={() => set(Object.fromEntries(filterKeys.map((k) => [k, null])))}>
+                  {/* Filled, like Clear filters on the toolbar: this row only exists
+                      while the column is narrowed, so it should look like the
+                      live thing it is (owner, 2026-09-18). */}
+                  <Row picked={false} clear onClick={() => set(Object.fromEntries(filterKeys.map((k) => [k, null])))}>
                     Clear {label.toLowerCase()}
                   </Row>
                 </>
@@ -280,14 +283,19 @@ export function ColumnMenu({
   );
 }
 
-function Row({ picked, onClick, children }: { picked: boolean; onClick: () => void; children: React.ReactNode }) {
+function Row({ picked, onClick, children, clear = false }: { picked: boolean; onClick: () => void; children: React.ReactNode; clear?: boolean }) {
   return (
     <button
       type="button"
       role="menuitemradio"
       aria-checked={picked}
       onClick={onClick}
-      className="flex min-h-[32px] w-full items-center gap-2 px-3 text-[13px] text-ink hover:bg-hover"
+      // cn() is a plain join, so the two looks are whole alternatives rather
+      // than one overriding the other.
+      className={cn(
+        "flex min-h-[32px] w-full items-center gap-2 px-3 text-[13px]",
+        clear ? "bg-primary font-medium text-on-primary hover:opacity-90" : "text-ink hover:bg-hover",
+      )}
     >
       <Check className={cn("h-3.5 w-3.5 shrink-0", picked ? "text-primary-ink" : "opacity-0")} aria-hidden />
       <span className="min-w-0 truncate">{children}</span>

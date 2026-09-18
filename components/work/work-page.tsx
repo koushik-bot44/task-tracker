@@ -166,12 +166,23 @@ export function WorkPage() {
      Priority looked like it did nothing. A change now builds on the last
      address asked for, until the screen catches up (review, 2026-09-10). */
   const asked = useRef<{ from: string; chain: string[] } | null>(null);
+  /* The address just asked for, until the screen shows it. Whatever says "the
+     list is narrowed" — the Clear filters fill, the ticks in a column's menu —
+     reads this, so it changes on the click and not a round trip later (owner,
+     2026-09-18: "instantly the change in color"). */
+  const [pending, setPending] = useState<string | null>(null);
   useEffect(() => {
     const a = asked.current;
-    if (!a) return;
+    if (!a) {
+      setPending(null);
+      return;
+    }
     const caughtUp = current === a.chain[a.chain.length - 1];
     const wentElsewhere = current !== a.from && !a.chain.includes(current);
-    if (caughtUp || wentElsewhere) asked.current = null;
+    if (caughtUp || wentElsewhere) {
+      asked.current = null;
+      setPending(null);
+    }
   }, [current]);
   const set = useCallback(
     (patch: Record<string, string | null>) => {
@@ -183,6 +194,7 @@ export function WorkPage() {
       }
       const s = next.toString();
       asked.current = a ? { from: a.from, chain: [...a.chain, s] } : { from: current, chain: [s] };
+      setPending(s === current ? null : s);
       router.replace(`${pathname}${s ? `?${s}` : ""}`);
     },
     [current, pathname, router],
@@ -234,7 +246,10 @@ export function WorkPage() {
     [groups, params],
   );
 
-  const narrowed = Boolean(q) || EXTRA_KEYS.some((k) => params.get(k));
+  // Read from the address just asked for, so this turns true the moment a filter
+  // is picked rather than when the list comes back.
+  const live = useMemo(() => new URLSearchParams(pending ?? current), [pending, current]);
+  const narrowed = Boolean(live.get("q")) || EXTRA_KEYS.some((k) => live.get(k));
 
   const query: WorkQuery = useMemo(() => {
     const base: WorkQuery = {
@@ -424,19 +439,23 @@ export function WorkPage() {
             {moreFilters ? "Fewer filters" : "More filters"}
           </button>
 
-          {narrowed ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMoreFilters(false);
-                setDraftQ("");
-                set({ ...Object.fromEntries(EXTRA_KEYS.map((k) => [k, null])), q: null, page: null });
-              }}
-              className={snButton}
-            >
-              Clear filters
-            </button>
-          ) : null}
+          {/* Always here, never a surprise: grey while there is nothing to clear,
+              filled with colour the instant anything narrows the list. A control
+              that only appears is one nobody learns is there, and a plain white
+              box among plain white boxes did not say "a filter is on" (owner,
+              2026-09-18). Blue, like the column filter marks when they are on. */}
+          <button
+            type="button"
+            disabled={!narrowed}
+            onClick={() => {
+              setMoreFilters(false);
+              setDraftQ("");
+              set({ ...Object.fromEntries(EXTRA_KEYS.map((k) => [k, null])), q: null, page: null });
+            }}
+            className={narrowed ? snPrimary : snButton}
+          >
+            Clear filters
+          </button>
         </div>
 
         {moreFilters ? (
@@ -516,7 +535,9 @@ export function WorkPage() {
               onSort={sortBy}
               // From a column's own menu the way round is named, so it is set, not flipped.
               onSortDir={(key, d) => set({ sort: key, dir: d, page: null })}
-              filter={Object.fromEntries(COLUMN_FILTER_KEYS.map((k) => [k, params.get(k)]))}
+              // The address just asked for, so a tick shows on the click — and a second
+              // quick pick builds on the first instead of overwriting it.
+              filter={Object.fromEntries(COLUMN_FILTER_KEYS.map((k) => [k, live.get(k)]))}
               onFilter={(patch) => {
                 // A narrowing always starts again at page one.
                 setDraftQ(typeof patch.q === "string" ? patch.q : patch.q === null ? "" : draftQ);
