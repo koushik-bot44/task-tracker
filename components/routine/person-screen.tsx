@@ -9,10 +9,12 @@ import { useToast } from "@/components/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
-import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO, PlaceDTO } from "@/lib/types";
+import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
 import { SegmentGrid } from "./weekly-grid";
 import { CalendarView, monthOf } from "./calendar-view";
+import { WAVES_BACKGROUND } from "./background";
+import { WavesBackground } from "./waves-background";
 import { CheckInCard } from "./checkin-card";
 import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
@@ -101,7 +103,9 @@ export function PersonScreen() {
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
   // Shared time-of-day scene (person + manager Well Being use the same source).
-  const { mounted, night, overNight, floatText, scene } = useTimeScene();
+  const timeScene = useTimeScene();
+  // Under the Waves backdrop the top is light, so the day tints hold all day.
+  const { mounted, night, overNight, floatText, scene } = WAVES_BACKGROUND ? { ...timeScene, night: false, overNight: false, floatText: "text-ink" as const, scene: "pk-day" as const } : timeScene;
   const qc = useQueryClient();
 
   const signOut = async () => {
@@ -161,6 +165,10 @@ export function PersonScreen() {
   return (
     <div className="relative min-h-dvh bg-bg">
       <div aria-hidden className="wb-scene wb-scene-full">
+{WAVES_BACKGROUND ? (
+          <WavesBackground />
+        ) : (
+          <>
         {mounted ? <WellBeingScene night={night} /> : null}
         {/* The same picture the CEO's Well Being wears — the person's screen is the
             other half of the same room (owner, 2026-09-08). */}
@@ -179,6 +187,8 @@ export function PersonScreen() {
               : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
           }}
         />
+          </>
+        )}
       </div>
       <div
         className="relative z-10 mx-auto flex min-h-dvh max-w-2xl flex-col"
@@ -367,7 +377,7 @@ export function PersonScreen() {
               ) : null}
 
               {active === "map" && data ? (
-                <PersonMap points={location.data?.points ?? []} lastSeen={lastSeen} places={location.data?.places ?? []} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
+                <PersonMap points={location.data?.points ?? []} lastSeen={lastSeen} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
               ) : null}
             </main>
           </div>
@@ -399,7 +409,7 @@ function PersonCalendar({ today, month, selected, onMonth, onSelect }: { today: 
 /** The Map tab — his own view of today: the map, the day's check-ins, and
     whether his phone is sharing its position with his parents. Nothing here is
     hidden from him: if sharing is on, this line says so. */
-function PersonMap({ points, lastSeen, places, sharingOn, loading }: { points: LocationPointDTO[]; lastSeen: LocationPointDTO | null; places: PlaceDTO[]; sharingOn: boolean; loading: boolean }) {
+function PersonMap({ points, lastSeen, sharingOn, loading }: { points: LocationPointDTO[]; lastSeen: LocationPointDTO | null; sharingOn: boolean; loading: boolean }) {
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -409,7 +419,7 @@ function PersonMap({ points, lastSeen, places, sharingOn, loading }: { points: L
       </div>
 
       {/* Only where you are now; the day's history is the log underneath. */}
-      <LocationMapLazy points={lastSeen ? [lastSeen] : []} places={places} height={280} />
+      <LocationMapLazy points={lastSeen ? [lastSeen] : []} height={280} />
 
       <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">Today&rsquo;s log</h3>
       <LocationLog points={points} loading={loading} emptyText="Nothing yet today." />

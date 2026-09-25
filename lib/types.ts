@@ -781,8 +781,7 @@ export type CalendarMonthDTO = {
 /** CHECKIN = his tap; APP = the app noted it when he opened it or on the hour while
     open; OWNTRACKS / OVERLAND = a location app on his phone, through the sharing link. */
 export type LocationSource = "CHECKIN" | "APP" | "OWNTRACKS" | "OVERLAND";
-/** A spot the parent named once; positions within radiusM read as "near <name>". */
-export type PlaceDTO = { id: string; name: string; lat: number; lng: number; radiusM: number };
+
 export type LocationPointDTO = {
   id: string;
   /** ISO instant. */
@@ -794,8 +793,6 @@ export type LocationPointDTO = {
   source: LocationSource;
   place: string | null;
   note: string | null;
-  /** The named place this position is within, if any ("School"). */
-  near: string | null;
   /** The place as the map knows it ("Mindspace, Madhapur"); "" = nothing there; null = not looked up yet. */
   placeName: string | null;
 };
@@ -808,8 +805,6 @@ export type LocationDayDTO = {
   lastSeen: LocationPointDTO | null;
   /** Phone sharing: on when a link exists; the link itself only for the owner. */
   sharing: { on: boolean; url: string | null };
-  /** The named places, for the map and the day's log. */
-  places: PlaceDTO[];
 };
 
 /** Who a walled (PERSON-role) login is: the tracked person, a co-parent, or a tutor. */

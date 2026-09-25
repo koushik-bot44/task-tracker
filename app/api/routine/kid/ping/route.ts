@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requirePerson, route } from "@/lib/session";
 import { parseBody, pingSchema } from "@/lib/validation";
-import { listPlaces, serializeLocation } from "@/lib/routine";
+import { serializeLocation } from "@/lib/routine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,15 +23,14 @@ export const POST = route(async (req: Request) => {
   const { lat, lng, accuracy } = parsed.data;
   if (lat === 0 && lng === 0) return NextResponse.json({ error: "That is not a position." }, { status: 400 });
 
-  const places = await listPlaces(person.id);
   const recent = await prisma.locationPoint.findFirst({
     where: { personId: person.id, source: "APP", at: { gte: new Date(Date.now() - PING_GAP_MS) } },
     orderBy: { at: "desc" },
   });
-  if (recent) return NextResponse.json(serializeLocation(recent, places));
+  if (recent) return NextResponse.json(serializeLocation(recent));
 
   const point = await prisma.locationPoint.create({
     data: { personId: person.id, at: new Date(), lat, lng, accuracy: typeof accuracy === "number" ? accuracy : null, battery: null, source: "APP", place: null, note: null },
   });
-  return NextResponse.json(serializeLocation(point, places), { status: 201 });
+  return NextResponse.json(serializeLocation(point), { status: 201 });
 });

@@ -820,9 +820,6 @@ model Person {
   /// posts by itself. `feedToken` is the secret in that app's link; null = off.
   feedToken      String?         @unique
   locations      LocationPoint[]
-  /// 2026-09-25 (maps): the spots the parent named once — Home, School, Tennis —
-  /// so a position near one reads as a place, not a dot.
-  places         Place[]
 }
 
 /// Phase 39: another MANAGER invited to monitor a person's routine, mirroring the
@@ -1018,21 +1015,6 @@ model LocationPoint {
   createdAt DateTime @default(now())
 
   @@index([personId, at])
-}
-
-/// 2026-09-25 (maps): a named spot. Any position within `radiusM` of it is
-/// shown as "near <name>". Made by the parent from a point on the map.
-model Place {
-  id        String   @id @default(cuid())
-  personId  String
-  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  name      String
-  lat       Float
-  lng       Float
-  radiusM   Int      @default(150)
-  createdAt DateTime @default(now())
-
-  @@index([personId])
 }
 
 /// 2026-09-25: the map's name for a spot, cached by position rounded to ~100 m,

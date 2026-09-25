@@ -10,6 +10,9 @@ import { useMe } from "@/lib/hooks/use-users";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCalendar, useReports, useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
 import { TutorsSection } from "./tutors-section";
+import { WAVES_BACKGROUND } from "./background";
+import { WavesBackground } from "./waves-background";
+
 import { useUsers } from "@/lib/hooks/use-users";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import { useToast } from "@/components/toast";
@@ -68,7 +71,8 @@ function AppRoutinePage() {
   const { data, isLoading } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
   // Shared scene (same source as the person screen). The scene class (pk-day / pk-night)
   // on this page root supplies the glass CSS vars to every .pk-* descendant.
-  const { mounted, night, overNight, floatText } = useTimeScene();
+  const timeScene = useTimeScene();
+  const { mounted, night, overNight, floatText } = WAVES_BACKGROUND ? { ...timeScene, night: false, overNight: false, floatText: "text-ink" as const } : timeScene;
   const sceneClass = overNight ? "pk-night" : "pk-day";
 
   // Full-screen: the manager can send just the Well Being scene edge-to-edge (browser
@@ -107,8 +111,7 @@ function AppRoutinePage() {
     // relative root — the sidebar/header + other tabs keep their normal light look).
     <div ref={rootRef} className={cn("wb-fs relative min-h-[calc(100dvh-4rem)]", sceneClass)}>
       <div aria-hidden className="wb-scene wb-scene-app">
-        {mounted ? <WellBeingScene night={night} /> : null}
-        <SceneBackdrop night={night} />
+        {WAVES_BACKGROUND ? <WavesBackground /> : (<>{mounted ? <WellBeingScene night={night} /> : null}<SceneBackdrop night={night} /></>)}
       </div>
       {/* z-[1] sits above the z-0 scene but BELOW the app header (z-sticky = 10), so the
           content slides cleanly under the chrome instead of painting over it when scrolled. */}
@@ -156,7 +159,8 @@ function StandaloneRoutinePage() {
   const router = useRouter();
   const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState();
   const { data, isLoading, isError } = useRoutine(week, selectedPerson, true);
-  const { mounted, night, overNight, floatText } = useTimeScene();
+  const timeScene = useTimeScene();
+  const { mounted, night, overNight, floatText } = WAVES_BACKGROUND ? { ...timeScene, night: false, overNight: false, floatText: "text-ink" as const } : timeScene;
   const sceneClass = overNight ? "pk-night" : "pk-day";
   const qc = useQueryClient();
 
@@ -170,8 +174,7 @@ function StandaloneRoutinePage() {
   return (
     <div className={cn("relative min-h-dvh bg-bg", sceneClass)}>
       <div aria-hidden className="wb-scene wb-scene-full">
-        {mounted ? <WellBeingScene night={night} /> : null}
-        <SceneBackdrop night={night} />
+        {WAVES_BACKGROUND ? <WavesBackground /> : (<>{mounted ? <WellBeingScene night={night} /> : null}<SceneBackdrop night={night} /></>)}
       </div>
       <div
         className="relative z-10 mx-auto flex min-h-dvh max-w-2xl flex-col"
@@ -393,7 +396,7 @@ function RoutineDashboard({
       ) : active === "calendar" ? (
         <ParentCalendar personId={routineId} today={today} month={calMonth ?? monthOf(today)} selected={calSelected ?? today} onMonth={pickMonth} onSelect={setCalSelected} />
       ) : active === "map" ? (
-        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} canWrite={canWrite} today={today} />
+        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} today={today} />
       ) : active === "tutors" ? (
         <ParentTutors personId={routineId} today={today} />
       ) : active === "circle" ? (

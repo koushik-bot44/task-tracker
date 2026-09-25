@@ -373,12 +373,6 @@ export const pingSchema = z.object({
   lng: z.number().min(-180).max(180),
   accuracy: z.number().min(0).max(100000).optional(),
 });
-export const placeCreateSchema = z.object({
-  name: z.string().trim().min(1).max(40),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  radiusM: z.number().int().min(50).max(2000).optional(),
-});
 export const mentorReportCreateSchema = z.object({
   collaboratorId: z.string().min(1),
   date: dayKey,

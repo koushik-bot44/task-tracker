@@ -11,7 +11,6 @@ import type {
   CircleMemberDTO,
   LocationDayDTO,
   LocationPointDTO,
-  PlaceDTO,
   HabitMarkValue,
   HabitSegmentDTO,
   MentorReportDTO,
@@ -34,7 +33,6 @@ export type {
   LocationDayDTO,
   LocationPointDTO,
   LocationSource,
-  PlaceDTO,
   CircleMemberDTO,
   HabitDTO,
   HabitMarkValue,
@@ -573,31 +571,9 @@ export async function buildCalendarMonth(personId: string, monthKey: string, opt
 export const CHECKIN_PLACES = ["Home", "School", "Tutor", "Tennis", "Other"] as const;
 
 const LOCATION_SELECT = { id: true, at: true, lat: true, lng: true, accuracy: true, battery: true, source: true, place: true, note: true, placeName: true } as const;
-const PLACE_SELECT = { id: true, name: true, lat: true, lng: true, radiusM: true } as const;
 
-/** Metres between two positions (haversine) — plenty for "is he near School". */
-export function metresBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(bLat - aLat);
-  const dLng = toRad(bLng - aLng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-/** The named place a position falls within (the nearest when several), else null.
-    A position at 0,0 (a check-in the phone could not place) is never near anything. */
-export function nearestPlace(places: PlaceDTO[], lat: number, lng: number): string | null {
-  if (lat === 0 && lng === 0) return null;
-  let best: { name: string; d: number } | null = null;
-  for (const pl of places) {
-    const d = metresBetween(lat, lng, pl.lat, pl.lng);
-    if (d <= pl.radiusM && (!best || d < best.d)) best = { name: pl.name, d };
-  }
-  return best?.name ?? null;
-}
 export function serializeLocation(
   p: { id: string; at: Date; lat: number; lng: number; accuracy: number | null; battery: number | null; source: string; place: string | null; note: string | null; placeName: string | null },
-  places: PlaceDTO[] = [],
 ): LocationPointDTO {
   return {
     id: p.id,
@@ -609,24 +585,17 @@ export function serializeLocation(
     source: p.source === "OWNTRACKS" ? "OWNTRACKS" : p.source === "OVERLAND" ? "OVERLAND" : p.source === "APP" ? "APP" : "CHECKIN",
     place: p.place,
     note: p.note,
-    near: nearestPlace(places, p.lat, p.lng),
     placeName: p.placeName,
   };
 }
-/** The person's named places, oldest first. */
-export async function listPlaces(personId: string): Promise<PlaceDTO[]> {
-  return prisma.place.findMany({ where: { personId }, orderBy: { createdAt: "asc" }, select: PLACE_SELECT });
-}
-
 /** One IST day of positions (newest first), the latest point ever, and whether
     phone sharing is on — with the sharing link only when `withUrl` (the owner). */
 export async function buildLocationDay(personId: string, dayKey: string, opts: { withUrl: boolean }): Promise<LocationDayDTO> {
   const { start, end } = istDayRange(dayKey);
-  const [points, last, person, places] = await Promise.all([
+  const [points, last, person] = await Promise.all([
     prisma.locationPoint.findMany({ where: { personId, at: { gte: start, lte: end } }, orderBy: { at: "desc" }, take: 2000, select: LOCATION_SELECT }),
     prisma.locationPoint.findFirst({ where: { personId }, orderBy: { at: "desc" }, select: LOCATION_SELECT }),
     prisma.person.findUnique({ where: { id: personId }, select: { feedToken: true } }),
-    listPlaces(personId),
   ]);
   const token = person?.feedToken ?? null;
   // The map's names arrive a few at a time (the free lookup is one a second): the
@@ -635,10 +604,9 @@ export async function buildLocationDay(personId: string, dayKey: string, opts: {
   const withName = <T extends { id: string; placeName: string | null }>(p: T): T => (named.has(p.id) ? { ...p, placeName: named.get(p.id)! } : p);
   return {
     day: dayKey,
-    points: points.map((p) => serializeLocation(withName(p), places)),
-    lastSeen: last ? serializeLocation(withName(last), places) : null,
+    points: points.map((p) => serializeLocation(withName(p))),
+    lastSeen: last ? serializeLocation(withName(last)) : null,
     sharing: { on: Boolean(token), url: token && opts.withUrl ? `${getBaseUrl()}/api/routine/feed/${token}` : null },
-    places,
   };
 }
 

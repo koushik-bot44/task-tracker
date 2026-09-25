@@ -6,7 +6,6 @@ import type {
   CalendarMonthDTO,
   LocationDayDTO,
   LocationPointDTO,
-  PlaceDTO,
   CircleKind,
   CircleMemberDTO,
   HabitMarkValue,
@@ -243,19 +242,8 @@ export function useRoutineMutations(week: string | null, personId: string | null
     onSettled: () => void qc.invalidateQueries({ queryKey: ["routine-location"] }),
   });
 
-  // Named places (write access): "this is School", and forget one.
-  const refreshLocation = () => void qc.invalidateQueries({ queryKey: ["routine-location"] });
-  const addPlace = useMutation({
-    mutationFn: (input: { name: string; lat: number; lng: number; radiusM?: number }) => apiPost<PlaceDTO>(p("/api/routine/places"), input),
-    onSettled: refreshLocation,
-  });
-  const deletePlace = useMutation({
-    mutationFn: (id: string) => apiDelete<{ ok: true }>(p(`/api/routine/places/${id}`)),
-    onSettled: refreshLocation,
-  });
-
   return {
-    setSharing, addPlace, deletePlace,
+    setSharing,
     createPerson, updatePerson, deletePerson,
     addSegment, renameSegment, deleteSegment,
     addHabit, updateHabit, deleteHabit, markHabit,

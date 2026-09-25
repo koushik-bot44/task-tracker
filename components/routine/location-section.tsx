@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Copy, Loader2, MapPin, Smartphone, Tag, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Loader2, MapPin, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useLocationDay, useRoutineMutations } from "@/lib/hooks/use-routine";
@@ -27,13 +27,13 @@ function ago(iso: string, now: number): string {
  * the day's check-ins, and — for the owner only — the switch that lets the
  * phone send its position on its own.
  */
-export function LocationSection({ personId, personName, isOwner, canWrite = isOwner, today }: { personId: string | null; personName: string; isOwner: boolean; canWrite?: boolean; today: string }) {
+export function LocationSection({ personId, personName, isOwner, today }: { personId: string | null; personName: string; isOwner: boolean; today: string }) {
   // null = today (the server picks); "YYYY-MM-DD" = a specific day.
   const [day, setDay] = useState<string | null>(null);
   const shown = day ?? today;
   const atToday = shown >= today;
   const { data, isLoading } = useLocationDay(day, personId);
-  const { setSharing, addPlace, deletePlace } = useRoutineMutations(null, personId);
+  const { setSharing } = useRoutineMutations(null, personId);
   const { show: toast } = useToast();
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
@@ -54,19 +54,7 @@ export function LocationSection({ personId, personName, isOwner, canWrite = isOw
   };
 
   const points: LocationPointDTO[] = data?.points ?? [];
-  const places = data?.places ?? [];
   const last = data?.lastSeen ?? null;
-
-  // "Name this spot": a position nobody named yet becomes Home / School / Tennis.
-  const namePlace = (p: LocationPointDTO) => {
-    const name = window.prompt("What is this place called? (Home, School, Tennis…)")?.trim();
-    if (!name) return;
-    addPlace.mutate({ name: name.slice(0, 40), lat: p.lat, lng: p.lng }, { onSuccess: () => toast({ message: `Saved ${name}` }), onError: err });
-  };
-  const forgetPlace = (id: string, name: string) => {
-    if (!window.confirm(`Forget ${name}?`)) return;
-    deletePlace.mutate(id, { onError: err });
-  };
   const sharingOn = data?.sharing.on ?? false;
   const url = data?.sharing.url ?? freshUrl;
 
@@ -126,39 +114,11 @@ export function LocationSection({ personId, personName, isOwner, canWrite = isOw
         </p>
 
         {/* The map is only where he is NOW; the day's history is the log underneath (developer, 2026-09-25). */}
-        <LocationMapLazy points={last ? [last] : []} places={places} height={280} />
+        <LocationMapLazy points={last ? [last] : []} height={280} />
 
         {/* The day's log: every position in the order it happened. */}
         <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">{atToday ? "Today's log" : "That day's log"}</h3>
-        <LocationLog points={points} loading={isLoading && !data} emptyText={atToday ? "Nothing yet today." : "Nothing that day."} onNamePlace={canWrite ? namePlace : undefined} />
-      </section>
-
-      <section className="rounded-sheet pk-glass p-4 sm:p-5">
-        <div className="mb-1 flex items-center gap-2">
-          <Tag className="h-5 w-5 shrink-0 pk-fg-soft" strokeWidth={2} aria-hidden />
-          <h2 className="font-display text-lg font-semibold pk-fg">Places</h2>
-        </div>
-        <p className="mb-3 text-micro pk-fg-soft">
-          {canWrite ? "Tap Name on a line of the log to call that spot Home, School or Tennis. From then on a position near it reads by name." : "The spots the parents named."}
-        </p>
-        {places.length === 0 ? (
-          <p className="py-2 text-sm pk-fg-soft">No places named yet.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {places.map((pl) => (
-              <li key={pl.id} className="flex items-center gap-3 rounded-card pk-cell px-3 py-2">
-                <MapPin className="h-4 w-4 shrink-0 text-[#7c3aed]" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-sm pk-fg">{pl.name}</span>
-                <span className="shrink-0 text-micro pk-fg-soft">{pl.radiusM} m</span>
-                {canWrite ? (
-                  <button type="button" onClick={() => forgetPlace(pl.id, pl.name)} aria-label={`Forget ${pl.name}`} className="press grid h-11 w-11 shrink-0 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink">
-                    <X className="h-4 w-4" aria-hidden />
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
+        <LocationLog points={points} loading={isLoading && !data} emptyText={atToday ? "Nothing yet today." : "Nothing that day."} />
       </section>
 
       {isOwner ? (

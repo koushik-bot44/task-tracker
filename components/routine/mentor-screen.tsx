@@ -11,6 +11,9 @@ import { useMentor, useMentorReportAdd, useMentorReportDelete, useWho } from "@/
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import type { MentorReportDTO, MentorViewDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
+import { WAVES_BACKGROUND } from "./background";
+import { WavesBackground } from "./waves-background";
+
 import { Labeled, inputCls, prettyDate, weekdayShort } from "./shared";
 
 /**
@@ -225,7 +228,8 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
 function Shell({ name, children }: { name?: string; children: ReactNode }) {
   const router = useRouter();
   const qc = useQueryClient();
-  const { mounted, night, overNight, floatText, scene } = useTimeScene();
+  const timeScene = useTimeScene();
+  const { mounted, night, overNight, floatText, scene } = WAVES_BACKGROUND ? { ...timeScene, night: false, overNight: false, floatText: "text-ink" as const, scene: "pk-day" as const } : timeScene;
 
   const signOut = async () => {
     await apiDelete("/api/auth").catch(() => {});
@@ -237,6 +241,10 @@ function Shell({ name, children }: { name?: string; children: ReactNode }) {
   return (
     <div className="relative min-h-dvh bg-bg">
       <div aria-hidden className="wb-scene wb-scene-full">
+{WAVES_BACKGROUND ? (
+          <WavesBackground />
+        ) : (
+          <>
         {mounted ? <WellBeingScene night={night} /> : null}
         <div
           className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
@@ -253,6 +261,8 @@ function Shell({ name, children }: { name?: string; children: ReactNode }) {
               : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
           }}
         />
+          </>
+        )}
       </div>
       {/* The scene class sits on the whole column so every glass piece below reads
           the same day/night tints. */}
