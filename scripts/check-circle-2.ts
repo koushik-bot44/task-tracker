@@ -213,7 +213,6 @@ async function main() {
   const lastSeenWords = lastSeen ? (lastSeen.source === "CHECKIN" && lastSeen.place ? lastSeen.place : "on the map") : "";
   const lastSeenRe = new RegExp(`^Last seen: ${lastSeenWords} · `);
   const lastCheckin = points.find((p) => p.source === "CHECKIN") ?? null;
-  const lastCheckinRe = new RegExp(`^Last check-in: ${lastCheckin?.place ?? ""} · `);
   info(`last seen today: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}); last check-in: ${lastCheckin?.place ?? "none"}`);
   const phonePoint = phone.find((p) => p.source === "OVERLAND");
   record("a phone point keeps its battery and accuracy", phonePoint?.battery === 61 && phonePoint?.accuracy === 25, `battery ${phonePoint?.battery}, accuracy ${phonePoint?.accuracy}`);
@@ -332,7 +331,8 @@ async function main() {
   const arjunTabs = await arjunPage.getByRole("tablist", { name: "Your day" }).getByRole("tab").allInnerTexts();
   info(`${ARJUN.name}'s tabs: ${arjunTabs.join(" · ")}`);
   record(`${ARJUN.name} is offered ${arjunTabsWanted.replace(/\|/g, ", ")} — Calendar and Map among them`, arjunTabs.join("|") === arjunTabsWanted, arjunTabs.join(", "));
-  record("his Today asks where he is and remembers his last check-in", (await seen(arjunPage, "Where are you?")) && (await seen(arjunPage, lastCheckinRe)) && (await seen(arjunPage, "Call grandma")), `wanted "Last check-in: ${lastCheckin?.place} · …"`);
+  // With his phone sharing on its own, the Check in card gives way to one line (2026-09-25).
+  record("his Today says his phone is sharing, and keeps his own extra", (await seen(arjunPage, "Sharing your location with your parents: on")) && !(await seen(arjunPage, "Where are you?")) && (await seen(arjunPage, "Call grandma")));
   await photograph(arjunPage, "arjun-1-today.png", `${ARJUN.name}'s Today`, SCOPE, true);
 
   await openTab(arjunPage, "Calendar");

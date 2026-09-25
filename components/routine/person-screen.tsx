@@ -246,8 +246,19 @@ export function PersonScreen() {
                     </div>
                   ) : null}
 
-                  {/* Where he is comes first: one tap, before the day's list. */}
-                  <CheckInCard lastSeen={lastCheckIn} />
+                  {/* While his phone shares on its own, asking him to tap is noise: one line says
+                      sharing is on. The Check in card is the fallback for when it is off (owner's
+                      developer, 2026-09-25). */}
+                  {location.data?.sharing.on ? (
+                    <div className="pk-glass mb-4 flex items-center gap-3 rounded-card px-4 py-3">
+                      <MapPin className="h-5 w-5 shrink-0 text-ok-ink" strokeWidth={2} aria-hidden />
+                      <p className="pk-fg min-w-0 text-sm">
+                        Sharing your location with your parents: <span className="font-semibold">on</span>
+                      </p>
+                    </div>
+                  ) : location.data ? (
+                    <CheckInCard lastSeen={lastCheckIn} />
+                  ) : null}
 
                   {forYou.length > 0 ? (
                     <div>
