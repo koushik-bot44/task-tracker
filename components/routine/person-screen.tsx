@@ -13,8 +13,6 @@ import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO }
 import { WellBeingScene } from "./well-being-scene";
 import { SegmentGrid } from "./weekly-grid";
 import { CalendarView, monthOf } from "./calendar-view";
-import { WAVES_BACKGROUND } from "./background";
-import { WavesBackground } from "./waves-background";
 import { CheckInCard } from "./checkin-card";
 import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
@@ -103,9 +101,7 @@ export function PersonScreen() {
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
   // Shared time-of-day scene (person + manager Well Being use the same source).
-  const timeScene = useTimeScene();
-  // Under the Waves backdrop the top is light, so the day tints hold all day.
-  const { mounted, night, overNight, floatText, scene } = WAVES_BACKGROUND ? { ...timeScene, night: false, overNight: false, floatText: "text-ink" as const, scene: "pk-day" as const } : timeScene;
+  const { mounted, night, overNight, floatText, scene } = useTimeScene();
   const qc = useQueryClient();
 
   const signOut = async () => {
@@ -165,10 +161,6 @@ export function PersonScreen() {
   return (
     <div className="relative min-h-dvh bg-bg">
       <div aria-hidden className="wb-scene wb-scene-full">
-{WAVES_BACKGROUND ? (
-          <WavesBackground />
-        ) : (
-          <>
         {mounted ? <WellBeingScene night={night} /> : null}
         {/* The same picture the CEO's Well Being wears — the person's screen is the
             other half of the same room (owner, 2026-09-08). */}
@@ -187,8 +179,6 @@ export function PersonScreen() {
               : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
           }}
         />
-          </>
-        )}
       </div>
       <div
         className="relative z-10 mx-auto flex min-h-dvh max-w-2xl flex-col"
