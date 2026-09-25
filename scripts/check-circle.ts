@@ -1,9 +1,8 @@
 /* The circle around the person (2026-09-25).
  *   npx tsx --env-file=.env.local scripts/check-circle.ts   (dev server on :3010; after .localdb/seed-circle-demo.ts)
  *
- * The CEO's Well Being carries the month's money, the tutors' reports and the
- * people around Arjun. Arjun adds and removes his own extras and his own money
- * lines, and can touch nothing the parent set. Priya, the co-parent, opens the
+ * The CEO's Well Being carries the tutors' reports and the people around Arjun.
+ * Arjun adds and removes his own extras, and can touch nothing the parent set. Priya, the co-parent, opens the
  * same Well Being from her own walled login and can set a task Arjun sees, but
  * cannot invite anyone and reaches nothing of the work app. Dr Rao, the tutor,
  * sees one screen with Arjun and his reports and nothing of the Well Being; a
@@ -11,14 +10,14 @@
  * of department is still kept out of all of it. Then every screen is photographed
  * at phone size, and each photo is checked for sideways overflow and small taps.
  *
- * Leaves no trace: the check's own task and money lines are removed and Priya's
+ * Leaves no trace: the check's own task lines are removed and Priya's
  * permission put back before anything is photographed.
  * Evidence: records/evidence/circle/ (addresses are never printed).
  */
 import { chromium, type Page } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import type { CircleMemberDTO, MentorReportDTO, MentorViewDTO, MoneyEntryDTO, MoneyMonthDTO, PersonViewDTO, RoutineOverviewDTO, RoutineTaskDTO, WhoDTO } from "../lib/types";
+import type { CircleMemberDTO, MentorReportDTO, MentorViewDTO, PersonViewDTO, RoutineOverviewDTO, RoutineTaskDTO, WhoDTO } from "../lib/types";
 
 const BASE = process.env.SCREEN_BASE ?? "http://localhost:3010";
 const DIR = "records/evidence/circle";
@@ -92,7 +91,6 @@ let arjunCookie: string | null = null;
 let ceoCookie: string | null = null;
 let priyaCookie: string | null = null;
 let madeKidTask: string | null = null;
-let madeKidMoney: string | null = null;
 let madePriyaTask: string | null = null;
 let priyaRow: CircleMemberDTO | null = null;
 let priyaChanged = false;
@@ -100,8 +98,6 @@ let priyaChanged = false;
 async function cleanUp() {
   if (madeKidTask && arjunCookie) await call(arjunCookie, "DELETE", `/api/routine/kid/tasks/${madeKidTask}`);
   madeKidTask = null;
-  if (madeKidMoney && arjunCookie) await call(arjunCookie, "DELETE", `/api/routine/kid/money/${madeKidMoney}`);
-  madeKidMoney = null;
   if (madePriyaTask && ceoCookie) await call(ceoCookie, "DELETE", `/api/routine/tasks/${madePriyaTask}`);
   madePriyaTask = null;
   if (priyaChanged && priyaRow && ceoCookie) await call(ceoCookie, "PATCH", `/api/routine/circle/${priyaRow.id}`, { permission: "EDITABLE" });
@@ -109,7 +105,6 @@ async function cleanUp() {
   // The safety net: anything of the check's that an earlier failure left behind.
   if (prisma && personId) {
     await prisma.routineTask.deleteMany({ where: { personId, title: { startsWith: "Check:" } } });
-    await prisma.moneyEntry.deleteMany({ where: { personId, note: { startsWith: "Check:" } } });
     await prisma.mentorReport.deleteMany({ where: { personId, covered: { startsWith: "Check:" } } });
   }
 }
@@ -175,10 +170,8 @@ async function main() {
   const today = ov.json?.today ?? "";
   record(`the CEO's Well Being is ${ARJUN.name}'s, as its owner`, ov.status === 200 && person?.name === ARJUN.name && ov.json?.role === "OWNER", `status ${ov.status}, person ${person?.name}, role ${ov.json?.role}`);
   if (!personId || !today) return;
-  const money = ov.json?.money;
-  record("…and carries this month's pocket money", (money?.given ?? 0) >= 2500 && (money?.entries.length ?? 0) >= 4, `given ${money?.given}, spent ${money?.spent}, ${money?.entries.length} lines`);
   const reports = ov.json?.reports ?? [];
-  record("…the tutors' reports for this week", reports.length >= 3 && reports.some((r) => r.subject === "Maths" && r.mentorName === RAO.name) && reports.some((r) => r.subject === "Tennis"), reports.map((r) => `${r.date} ${r.subject} · ${r.mentorName}`).join(", "));
+  record("…and carries the tutors' reports for this week", reports.length >= 3 && reports.some((r) => r.subject === "Maths" && r.mentorName === RAO.name) && reports.some((r) => r.subject === "Tennis"), reports.map((r) => `${r.date} ${r.subject} · ${r.mentorName}`).join(", "));
   const circle = ov.json?.circle ?? [];
   priyaRow = circle.find((c) => c.name === PRIYA.name) ?? null;
   const rao = circle.find((c) => c.name === RAO.name);
@@ -200,7 +193,7 @@ async function main() {
   const who = await call<WhoDTO>(arjunCookie, "GET", "/api/routine/who");
   record(`the app knows ${ARJUN.name} is the person himself`, who.json?.kind === "SON" && who.json?.name === ARJUN.name, `${who.json?.kind} ${who.json?.name}`);
   const kid = await call<PersonViewDTO>(arjunCookie, "GET", "/api/routine/kid");
-  record("his screen carries this month's money and the latest reports", kid.status === 200 && (kid.json?.money.given ?? 0) >= 2500 && (kid.json?.reports.length ?? 0) >= 3, `given ${kid.json?.money.given}, ${kid.json?.reports.length} reports`);
+  record("his screen carries the latest reports", kid.status === 200 && (kid.json?.reports.length ?? 0) >= 3, `status ${kid.status}, ${kid.json?.reports.length} reports`);
   const own = (kid.json?.tasks ?? []).filter((t) => t.addedBy === "PERSON");
   const parentTask = (kid.json?.tasks ?? []).find((t) => t.addedBy === "MANAGER");
   record("his own extra is tagged as his, the parent's as theirs", own.some((t) => t.title === "Call grandma") && Boolean(parentTask), `${own.map((t) => t.title).join(", ")} | parent: ${parentTask?.title}`);
@@ -219,27 +212,6 @@ async function main() {
   }
   const gone = await call(arjunCookie, "DELETE", "/api/routine/kid/tasks/nope");
   record("a task that does not exist is a plain not-found", gone.status === 404, `status ${gone.status}`);
-
-  const spent = await call<MoneyEntryDTO>(arjunCookie, "POST", "/api/routine/kid/money", { date: today, amount: 35, kind: "SPENT", note: "Check: bus fare" });
-  madeKidMoney = spent.json?.id ?? null;
-  record(`${ARJUN.name} writes down what he spent`, spent.status === 201 && spent.json?.side === "PERSON" && spent.json?.addedByName === ARJUN.name && spent.json?.amount === 35, `status ${spent.status}, side ${spent.json?.side}, by ${spent.json?.addedByName}`);
-  const given = (kid.json?.money.entries ?? []).find((e) => e.side === "PARENT" && e.kind === "GIVEN");
-  if (given) {
-    const no = await call(arjunCookie, "DELETE", `/api/routine/kid/money/${given.id}`);
-    record("…cannot remove what the parent gave", no.status === 403, `status ${no.status}: ${no.json?.error}`);
-  }
-  if (madeKidMoney) {
-    const off = await call(arjunCookie, "DELETE", `/api/routine/kid/money/${madeKidMoney}`);
-    record("…and can remove his own line", off.status === 200, `status ${off.status}`);
-    if (off.status === 200) madeKidMoney = null;
-  }
-  const ahead = await call<MoneyEntryDTO>(arjunCookie, "POST", "/api/routine/kid/money", { date: addDays(today, 1), amount: 10, kind: "SPENT", note: "Check: tomorrow" });
-  record("…and cannot write a line for a day that has not come", ahead.status === 400, `status ${ahead.status}: ${ahead.json?.error}`);
-  if (ahead.status === 201 && ahead.json?.id) await call(arjunCookie, "DELETE", `/api/routine/kid/money/${ahead.json.id}`);
-  const badMonth = await call<MoneyMonthDTO>(arjunCookie, "GET", "/api/routine/kid/money?month=2026-13");
-  record("a month that is not a month is refused", badMonth.status === 400, `status ${badMonth.status}: ${badMonth.json?.error}`);
-  const thisMonth = await call<MoneyMonthDTO>(arjunCookie, "GET", "/api/routine/kid/money");
-  record("his money page opens on this month by itself", thisMonth.status === 200 && thisMonth.json?.month === today.slice(0, 7), `${thisMonth.json?.month}`);
 
   /* ---- Priya, the co-parent ---- */
   priyaCookie = await signIn(PRIYA.email, PRIYA.password);
@@ -298,8 +270,9 @@ async function main() {
     priyaChanged = true;
     record(`the CEO makes ${PRIYA.name} view-only`, ro.status === 200 && ro.json?.permission === "READ_ONLY", `status ${ro.status}, ${ro.json?.permission}`);
     const pOv2 = await call<RoutineOverviewDTO>(priyaCookie, "GET", "/api/routine");
-    const pWrite = await call(priyaCookie, "POST", "/api/routine/money", { date: today, amount: 10, kind: "GIVEN", note: "Check: read-only" });
-    record(`…and ${PRIYA.name} can then only look`, pOv2.json?.role === "READ_ONLY" && pWrite.status === 403, `role ${pOv2.json?.role}, money write ${pWrite.status}: ${pWrite.json?.error}`);
+    const pWrite = await call<RoutineTaskDTO>(priyaCookie, "POST", "/api/routine/tasks", { title: "Check: read-only", dueDate: today });
+    record(`…and ${PRIYA.name} can then only look`, pOv2.json?.role === "READ_ONLY" && pWrite.status === 403, `role ${pOv2.json?.role}, task write ${pWrite.status}: ${pWrite.json?.error}`);
+    if (pWrite.status === 201 && pWrite.json?.id) await call(ceoCookie, "DELETE", `/api/routine/tasks/${pWrite.json.id}`);
     const back = await call<CircleMemberDTO>(ceoCookie, "PATCH", `/api/routine/circle/${priyaRow.id}`, { permission: "EDITABLE" });
     const pOv3 = await call<RoutineOverviewDTO>(priyaCookie, "GET", "/api/routine");
     record("…and back to editing", back.json?.permission === "EDITABLE" && pOv3.json?.role === "EDITABLE", `${back.json?.permission}, role ${pOv3.json?.role}`);
@@ -338,11 +311,8 @@ async function main() {
   info(`${ARJUN.name}'s greeting: ${(await arjunPage.locator("h1").first().innerText()).trim()}`);
   record("his Today shows his own extra and his tutors' homework", (await seen(arjunPage, "Call grandma")) && (await seen(arjunPage, "Worksheet 3")));
   await photograph(arjunPage, "arjun-1-today.png", `${ARJUN.name}'s Today`, "[role=tablist], main", true);
-  await openTab(arjunPage, "Money");
-  record("his Money tab shows what he got and what he spent", (await seen(arjunPage, "₹2,500")) && (await seen(arjunPage, "₹370")) && (await seen(arjunPage, "Snacks")));
-  await photograph(arjunPage, "arjun-2-money.png", `${ARJUN.name}'s Money`, "[role=tablist], main", true);
   await openTab(arjunPage, "Habits");
-  await photograph(arjunPage, "arjun-3-habits.png", `${ARJUN.name}'s Habits`, "[role=tablist], main", false);
+  await photograph(arjunPage, "arjun-2-habits.png", `${ARJUN.name}'s Habits`, "[role=tablist], main", false);
   await arjunCtx.close();
 
   const ceoCtx = await browser.newContext(PHONE);
@@ -353,18 +323,15 @@ async function main() {
   await ceoPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const ceoTabs = await ceoPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`the CEO's tabs: ${ceoTabs.join(" · ")}`);
-  record("the CEO is offered Summary, Tracker, Calendar, Map, Money and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Map|Money|Circle", ceoTabs.join(", "));
-  record("his Summary shows today's list, the tutors' reports and the month's money", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, "Backhand drills and footwork")) && (await seen(ceoPage, "Open Money")));
+  record("the CEO is offered Summary, Tracker, Calendar, Map, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors|Circle", ceoTabs.join(", "));
+  record("his Summary shows today's list and only today's tutor report", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, "From tutors today")) && (await seen(ceoPage, "Word problems on quadratics")));
   const SCOPE = "[role=tablist], section, .rounded-sheet";
   await photograph(ceoPage, "ceo-1-summary.png", "the CEO's Summary", SCOPE, true);
-  await openTab(ceoPage, "Money");
-  record("his Money tab shows the month with both totals", (await seen(ceoPage, "₹2,500")) && (await seen(ceoPage, "Monthly pocket money")));
-  await photograph(ceoPage, "ceo-2-money.png", "the CEO's Money", SCOPE, true);
   await openTab(ceoPage, "Circle");
   record(`his Circle names the people around ${ARJUN.name}`, (await seen(ceoPage, `People around ${ARJUN.name}`)) && (await seen(ceoPage, PRIYA.name)) && (await seen(ceoPage, `Tutor or coach · Maths`)));
-  await photograph(ceoPage, "ceo-3-circle.png", "the CEO's Circle", SCOPE, true);
+  await photograph(ceoPage, "ceo-2-circle.png", "the CEO's Circle", SCOPE, true);
   await openTab(ceoPage, "Tracker");
-  await photograph(ceoPage, "ceo-4-tracker.png", "the CEO's Tracker", SCOPE, false);
+  await photograph(ceoPage, "ceo-3-tracker.png", "the CEO's Tracker", SCOPE, false);
   await ceoCtx.close();
 
   const priyaCtx = await browser.newContext(PHONE);
@@ -376,7 +343,7 @@ async function main() {
   await priyaPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const priyaTabs = await priyaPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`${PRIYA.name}'s tabs: ${priyaTabs.join(" · ")}`);
-  record(`${PRIYA.name} sees Well Being for ${ARJUN.name} with Summary, Tracker, Calendar, Map and Money — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Map|Money" && (await seen(priyaPage, "Well Being")) && (await seen(priyaPage, ARJUN.name)), priyaTabs.join(", "));
+  record(`${PRIYA.name} sees Well Being for ${ARJUN.name} with Summary, Tracker, Calendar, Map and Tutors — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors" && (await seen(priyaPage, "Well Being")) && (await seen(priyaPage, ARJUN.name)), priyaTabs.join(", "));
   await photograph(priyaPage, "priya-1-family.png", `${PRIYA.name}'s Well Being`, SCOPE, true);
   await priyaCtx.close();
 
@@ -391,7 +358,7 @@ async function main() {
   await raoCtx.close();
 
   await browser.close();
-  info("screens: arjun-1-today, arjun-2-money, arjun-3-habits, ceo-1-summary, ceo-2-money, ceo-3-circle, ceo-4-tracker, priya-1-family, rao-1-mentor");
+  info("screens: arjun-1-today, arjun-2-habits, ceo-1-summary, ceo-2-circle, ceo-3-tracker, priya-1-family, rao-1-mentor");
 }
 
 main()

@@ -721,33 +721,13 @@ export type RoutineTaskDTO = {
   doneAt: string | null;
   /** 2026-09-25: "MANAGER" = set by the parent side; "PERSON" = the person's own extra. */
   addedBy: "MANAGER" | "PERSON";
+  /** 2026-09-25: set when the task runs from this day to dueDate; null = one day (or any day). */
+  startDate: string | null;
 };
 
-/* 2026-09-25 — the circle around the tracked person: pocket money by hand, the
+/* 2026-09-25 — the circle around the tracked person: the
    tutors' day reports, and the people invited in (a co-parent with the same Well
    Being on their own login, or a tutor/coach with one report screen). */
-
-export type MoneyKind = "GIVEN" | "SPENT";
-export type MoneyEntryDTO = {
-  id: string;
-  /** "YYYY-MM-DD" (IST). */
-  date: string;
-  /** Whole rupees, positive; `kind` is the direction. */
-  amount: number;
-  kind: MoneyKind;
-  note: string;
-  /** Who wrote the line: the parent side or the person themself. */
-  side: "PARENT" | "PERSON";
-  addedByName: string;
-};
-/** One calendar month of the ledger, newest entry first, with its two totals. */
-export type MoneyMonthDTO = {
-  /** "YYYY-MM" (IST). */
-  month: string;
-  given: number;
-  spent: number;
-  entries: MoneyEntryDTO[];
-};
 
 export type MentorReportDTO = {
   id: string;
@@ -779,7 +759,6 @@ export type CircleMemberDTO = {
 export type CalendarDayDTO = {
   tasks: { id: string; title: string; done: boolean; addedBy: "MANAGER" | "PERSON" }[];
   reports: { id: string; subject: string; mentorName: string; covered: string; homework: string | null }[];
-  money: { given: number; spent: number; entries: { id: string; kind: MoneyKind; amount: number; note: string }[] };
   /** Non-negotiables logged as crossed that day. */
   rules: { id: string; name: string; crossed: true }[];
   /** Habit marks that day — parent side only (the person never sees a rollup). */
@@ -796,7 +775,11 @@ export type CalendarMonthDTO = {
 /* 2026-09-25 — maps: where the person was. A CHECKIN is their own tap (place,
    note, the phone's position if allowed); OWNTRACKS / OVERLAND are positions a
    location app on their phone posts by itself through the sharing link. */
-export type LocationSource = "CHECKIN" | "OWNTRACKS" | "OVERLAND";
+/** CHECKIN = his tap; APP = the app noted it when he opened it or on the hour while
+    open; OWNTRACKS / OVERLAND = a location app on his phone, through the sharing link. */
+export type LocationSource = "CHECKIN" | "APP" | "OWNTRACKS" | "OVERLAND";
+/** A spot the parent named once; positions within radiusM read as "near <name>". */
+export type PlaceDTO = { id: string; name: string; lat: number; lng: number; radiusM: number };
 export type LocationPointDTO = {
   id: string;
   /** ISO instant. */
@@ -808,6 +791,10 @@ export type LocationPointDTO = {
   source: LocationSource;
   place: string | null;
   note: string | null;
+  /** The named place this position is within, if any ("School"). */
+  near: string | null;
+  /** The place as the map knows it ("Mindspace, Madhapur"); "" = nothing there; null = not looked up yet. */
+  placeName: string | null;
 };
 export type LocationDayDTO = {
   /** "YYYY-MM-DD" (IST). */
@@ -818,6 +805,8 @@ export type LocationDayDTO = {
   lastSeen: LocationPointDTO | null;
   /** Phone sharing: on when a link exists; the link itself only for the owner. */
   sharing: { on: boolean; url: string | null };
+  /** The named places, for the map and the day's log. */
+  places: PlaceDTO[];
 };
 
 /** Who a walled (PERSON-role) login is: the tracked person, a co-parent, or a tutor. */
@@ -896,8 +885,6 @@ export type RoutineOverviewDTO = {
   collaborators: RoutineCollaboratorDTO[];
   /** 2026-09-25: today's tasks (due today or undated) whatever week is shown — the Today card. */
   todayTasks: RoutineTaskDTO[];
-  /** 2026-09-25: this calendar month's pocket money (always the current month). */
-  money: MoneyMonthDTO;
   /** 2026-09-25: the tutors' reports dated inside the shown week, newest first. */
   reports: MentorReportDTO[];
   /** 2026-09-25: the people around the person — OWNER only, else []. */
@@ -924,8 +911,7 @@ export type PersonViewDTO = {
   nonNegotiables: { id: string; name: string; days: Record<string, boolean> }[];
   /** The latest unread task reminder (phase 39), shown once then marked read. */
   reminder: { title: string; body: string } | null;
-  /** 2026-09-25: this month's pocket money, and the latest tutor reports (homework). */
-  money: MoneyMonthDTO;
+  /** 2026-09-25: the latest tutor reports (homework). */
   reports: MentorReportDTO[];
 };
 

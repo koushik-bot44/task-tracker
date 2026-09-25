@@ -135,7 +135,50 @@ a future date; bells + push to the CEO, co-parents and the son) · `DELETE mento
   later". The screens keep today's glass look; the plain Spire look is specified in
   the second-pass workflow script and is one scoped CSS block + a root class away.
 
-## 9. Evidence and demo
+## 9. Third pass (same evening): the log, places, the app's own notes, screen time, task spans
+
+- **The day's log** under the map on both sides (`components/routine/location-log.tsx`):
+  every position in the order it happened — time, where, how (check-in / app /
+  phone). **Named places** (`Place`, migration `20260925190000`): the parent taps
+  "Name" on a line of the log; a position within 150 m then reads "near School",
+  and the map shows the ring. Time labels sit on every pin.
+- **The app notes where he is** (`components/routine/use-app-ping.tsx`,
+  `POST /api/routine/kid/ping`, source APP): once when he opens the app and on the
+  hour while it stays open, after one "Allow" tap; ten minutes between notes. A
+  browser cannot do this closed — phone sharing covers that. While sharing is on
+  the "Where are you?" card gives way to one line saying so.
+- **Screen time** (`ScreenTimeEntry`, `Person.screenLimitMin`, migration
+  `20260925210000`; `components/routine/screen-section.tsx`): typed in from the
+  phone's own Screen Time page — the day's total and the top apps — against a
+  daily limit the parent sets (90, the agreement's number). Seven-day bars; a saved
+  day marks the grid's "screen time" line MET or MISSED by itself. No web app can
+  read another app's usage, so this is the honest shape.
+- **Tasks** take a day, a from–to span (`RoutineTask.startDate`, migration
+  `20260925200000`; the task stands on every day between) or any day; "This week /
+  Any day" is gone. The **money note is optional** ("Money given" / "Money spent"
+  when empty) — a parent logging ₹300 was being refused for a missing word.
+- Tested the way a person uses it: `.localdb/human-pass.mjs` taps through every
+  screen at phone size (23 steps) → `records/evidence/circle-3/`.
+
+## 10. Late evening: money out, screen time only seen, a Tutors tab
+
+- **Pocket money is gone completely** (developer: "remove the money management too,
+  completely"): no tab on either side, no routes, no MoneyEntry table (migration
+  `20260925230000` drops it), no money on the calendar or the Summary.
+- **Screen time was built as a typed-in window, then removed** the same evening:
+  no web app can read another app's usage, and typed numbers from a teenager are
+  worth nothing ("remove screen time"). Migrations `20260925230000` and
+  `20260925235000` drop the limit and the table. The honest automatic paths are
+  Apple Screen Time through Family Sharing (iPhone; nobody else can export it) or
+  Google Family Link, or on Android a native companion app reading usage stats —
+  a separate build.
+- **The map shows only where he is now** (the latest position); the day's history
+  is the punch log under it. Place names are unique per person (409 on a repeat).
+- **Tutors tab** on the parent side (`GET /api/routine/reports`, latest 100,
+  `components/routine/tutors-section.tsx`): everything the tutors punched in,
+  organised by day. The Summary now shows only today's under "From tutors today".
+
+## 11. Evidence and demo
 
 `scripts/check-circle.ts` and `scripts/check-circle-2.ts` (API walls + browser,
 phone-size screenshots) → `records/evidence/circle/` and `records/evidence/circle-2/`. Demo on the clone, invented: Arjun (arjun.wb@orbit.local /

@@ -8,15 +8,11 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: { id: string } };
 
-/** The parent side removes any ledger line of this person — theirs or the
-    person's own (a write; read-only co-parents cannot). Not this person's -> 404. */
+/** Forget a named place. Write access; another person's place is a 404. */
 export const DELETE = route(async (req: Request, { params }: Params) => {
   const actor = await requireManager();
   const { person } = await requireRoutineAccess(actor.id, personParam(req), { write: true });
-
-  const entry = await prisma.moneyEntry.findFirst({ where: { id: params.id, personId: person.id }, select: { id: true } });
-  if (!entry) return NextResponse.json({ error: "Not found." }, { status: 404 });
-
-  await prisma.moneyEntry.delete({ where: { id: entry.id } });
+  const gone = await prisma.place.deleteMany({ where: { id: params.id, personId: person.id } });
+  if (gone.count === 0) return NextResponse.json({ error: "Not found." }, { status: 404 });
   return NextResponse.json({ ok: true });
 });

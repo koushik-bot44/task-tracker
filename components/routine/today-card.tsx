@@ -3,6 +3,7 @@
 import { Check, Sun } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useLocationDay } from "@/lib/hooks/use-routine";
+import { whereLabel } from "./location-log";
 import type { RoutineTaskDTO } from "@/lib/types";
 import { prettyDate, weekdayShort } from "./shared";
 
@@ -27,7 +28,7 @@ export function TodayCard({ tasks, today, personId }: { tasks: RoutineTaskDTO[];
   // A check-in says its place; a phone position just says it is on the map. An
   // older position carries its date so "2:42 pm" is never read as today's.
   const lastLine = last
-    ? `Last seen: ${last.source === "CHECKIN" && last.place ? last.place : "on the map"} · ${istDay(last.at) === today ? "" : `${prettyDate(istDay(last.at))} `}${clockTime(last.at)}`
+    ? `Last seen: ${whereLabel(last)} · ${istDay(last.at) === today ? "" : `${prettyDate(istDay(last.at))} `}${clockTime(last.at)}`
     : null;
 
   return (

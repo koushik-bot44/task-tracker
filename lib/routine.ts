@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { HttpError } from "@/lib/session";
 import { istDayKey, istDayRange } from "@/lib/timezone";
 import { getBaseUrl } from "@/lib/base-url";
+import { namePoints } from "@/lib/geocode";
 import { notifyUsers } from "@/lib/notify";
 import type {
   CalendarDayDTO,
@@ -10,10 +11,10 @@ import type {
   CircleMemberDTO,
   LocationDayDTO,
   LocationPointDTO,
+  PlaceDTO,
   HabitMarkValue,
   HabitSegmentDTO,
   MentorReportDTO,
-  MoneyMonthDTO,
   MonthlyWeightDTO,
   NonNegotiableDTO,
   PersonHabitSegmentDTO,
@@ -33,14 +34,12 @@ export type {
   LocationDayDTO,
   LocationPointDTO,
   LocationSource,
+  PlaceDTO,
   CircleMemberDTO,
   HabitDTO,
   HabitMarkValue,
   MentorReportDTO,
   MentorViewDTO,
-  MoneyEntryDTO,
-  MoneyKind,
-  MoneyMonthDTO,
   WhoDTO,
   HabitSegmentDTO,
   MonthlyWeightDTO,
@@ -350,7 +349,7 @@ export type RemindResult =
 export async function remindPerson(person: { id: string; userId: string }): Promise<RemindResult> {
   const today = dayKeyToDate(todayKey());
   const undone = await prisma.routineTask.findMany({
-    where: { personId: person.id, done: false, OR: [{ dueDate: null }, { dueDate: today }] },
+    where: { personId: person.id, done: false, ...tasksOnDay(today) },
     orderBy: { createdAt: "asc" },
     select: { title: true },
   });
@@ -376,20 +375,31 @@ export async function remindPerson(person: { id: string; userId: string }): Prom
 }
 
 /** The columns every task read selects — keep the reads and this DTO in step. */
-export const TASK_SELECT = { id: true, title: true, dueDate: true, done: true, doneAt: true, addedBy: true } as const;
+export const TASK_SELECT = { id: true, title: true, dueDate: true, startDate: true, done: true, doneAt: true, addedBy: true } as const;
 
-export function serializeTask(t: { id: string; title: string; dueDate: Date | null; done: boolean; doneAt: Date | null; addedBy: string }): RoutineTaskDTO {
+export function serializeTask(t: { id: string; title: string; dueDate: Date | null; startDate: Date | null; done: boolean; doneAt: Date | null; addedBy: string }): RoutineTaskDTO {
   return {
     id: t.id,
     title: t.title,
     dueDate: t.dueDate ? dateToKey(t.dueDate) : null,
+    startDate: t.startDate ? dateToKey(t.startDate) : null,
     done: t.done,
     doneAt: t.doneAt ? t.doneAt.toISOString() : null,
     addedBy: t.addedBy === "PERSON" ? "PERSON" : "MANAGER",
   };
 }
 
-/* ── 2026-09-25 — the circle: pocket money by month, the tutors' reports, and
+/** The tasks that stand on one day: any-day ones, the ones due that day, and the
+    ones running from a start day to a due day across it (2026-09-25). */
+export function tasksOnDay(day: Date) {
+  return { OR: [{ dueDate: null }, { dueDate: day }, { startDate: { lte: day }, dueDate: { gte: day } }] };
+}
+/** The tasks that touch a span of days: any-day ones, due inside it, or running across it. */
+export function tasksInSpan(start: Date, end: Date) {
+  return { OR: [{ dueDate: null }, { dueDate: { gte: start, lte: end } }, { startDate: { lte: end }, dueDate: { gte: start } }] };
+}
+
+/* ── 2026-09-25 — the circle: the tutors' reports, and
       the people around the person. Read-only builders; the routes write. ───── */
 
 /** "YYYY-MM-DD" -> "YYYY-MM". */
@@ -407,36 +417,6 @@ export function monthDays(monthKey: string): { first: string; last: string } {
 /** A "YYYY-MM" month key, or null when the string is not one. */
 export function parseMonthKey(v: string | null): string | null {
   return v && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : null;
-}
-
-const MONEY_SELECT = { id: true, date: true, amount: true, kind: true, note: true, side: true, addedByName: true } as const;
-export function serializeMoney(m: { id: string; date: Date; amount: number; kind: string; note: string; side: string; addedByName: string }) {
-  return {
-    id: m.id,
-    date: dateToKey(m.date),
-    amount: m.amount,
-    kind: m.kind === "SPENT" ? ("SPENT" as const) : ("GIVEN" as const),
-    note: m.note,
-    side: m.side === "PERSON" ? ("PERSON" as const) : ("PARENT" as const),
-    addedByName: m.addedByName,
-  };
-}
-
-/** One month of the ledger: entries newest first, plus the two totals. */
-export async function buildMoneyMonth(personId: string, monthKey: string): Promise<MoneyMonthDTO> {
-  const { first, last } = monthDays(monthKey);
-  const rows = await prisma.moneyEntry.findMany({
-    where: { personId, date: { gte: dayKeyToDate(first), lte: dayKeyToDate(last) } },
-    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    select: MONEY_SELECT,
-  });
-  const entries = rows.map(serializeMoney);
-  return {
-    month: monthKey,
-    given: entries.filter((e) => e.kind === "GIVEN").reduce((a, e) => a + e.amount, 0),
-    spent: entries.filter((e) => e.kind === "SPENT").reduce((a, e) => a + e.amount, 0),
-    entries,
-  };
 }
 
 const REPORT_SELECT = {
@@ -530,28 +510,23 @@ export async function listCircle(personId: string): Promise<CircleMemberDTO[]> {
   return rows.map(serializeCircleMember);
 }
 /** The month calendar (2026-09-25): every dated thing about the person in one
-    "YYYY-MM" month, keyed by day — tasks by due day, tutor reports, money, the
+    "YYYY-MM" month, keyed by day — tasks by due day, tutor reports, the
     rules scheduled that day, and (parent side only) the day's habit marks. Days
     with nothing on them are left out so the grid can dot only what matters. */
 export async function buildCalendarMonth(personId: string, monthKey: string, opts: { withHabits: boolean }): Promise<CalendarMonthDTO> {
   const { first, last } = monthDays(monthKey);
   const start = dayKeyToDate(first);
   const end = dayKeyToDate(last);
-  const [tasks, reports, money, ruleMarks, habitMarks] = await Promise.all([
+  const [tasks, reports, ruleMarks, habitMarks] = await Promise.all([
     prisma.routineTask.findMany({
-      where: { personId, dueDate: { gte: start, lte: end } },
+      where: { personId, OR: [{ dueDate: { gte: start, lte: end } }, { startDate: { lte: end }, dueDate: { gte: start } }] },
       orderBy: [{ done: "asc" }, { createdAt: "asc" }],
-      select: { id: true, title: true, done: true, addedBy: true, dueDate: true },
+      select: { id: true, title: true, done: true, addedBy: true, dueDate: true, startDate: true },
     }),
     prisma.mentorReport.findMany({
       where: { personId, date: { gte: start, lte: end } },
       orderBy: { createdAt: "asc" },
       select: { id: true, date: true, subject: true, covered: true, homework: true, collaborator: { select: { manager: { select: { name: true } } } } },
-    }),
-    prisma.moneyEntry.findMany({
-      where: { personId, date: { gte: start, lte: end } },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, date: true, kind: true, amount: true, note: true },
     }),
     prisma.nonNegotiableMark.findMany({
       where: { nonNegotiable: { personId, active: true }, crossed: true, date: { gte: start, lte: end } },
@@ -568,17 +543,17 @@ export async function buildCalendarMonth(personId: string, monthKey: string, opt
   const days: Record<string, CalendarDayDTO> = {};
   const day = (d: Date): CalendarDayDTO => {
     const k = dateToKey(d);
-    return (days[k] ??= { tasks: [], reports: [], money: { given: 0, spent: 0, entries: [] }, rules: [], habits: null });
+    return (days[k] ??= { tasks: [], reports: [], rules: [], habits: null });
   };
-  for (const t of tasks) if (t.dueDate) day(t.dueDate).tasks.push({ id: t.id, title: t.title, done: t.done, addedBy: t.addedBy === "PERSON" ? "PERSON" : "MANAGER" });
-  for (const r of reports) day(r.date).reports.push({ id: r.id, subject: r.subject, mentorName: r.collaborator.manager.name, covered: r.covered, homework: r.homework });
-  for (const m of money) {
-    const d = day(m.date);
-    const kind = m.kind === "SPENT" ? ("SPENT" as const) : ("GIVEN" as const);
-    if (kind === "GIVEN") d.money.given += m.amount;
-    else d.money.spent += m.amount;
-    d.money.entries.push({ id: m.id, kind, amount: m.amount, note: m.note });
+  for (const t of tasks) {
+    if (!t.dueDate) continue;
+    const row = { id: t.id, title: t.title, done: t.done, addedBy: t.addedBy === "PERSON" ? ("PERSON" as const) : ("MANAGER" as const) };
+    // A task that runs over several days stands on each of them (inside this month).
+    const from = t.startDate && t.startDate < t.dueDate ? (t.startDate > start ? t.startDate : start) : t.dueDate;
+    const to = t.dueDate < end ? t.dueDate : end;
+    for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) day(d).tasks.push(row);
   }
+  for (const r of reports) day(r.date).reports.push({ id: r.id, subject: r.subject, mentorName: r.collaborator.manager.name, covered: r.covered, homework: r.homework });
   for (const r of ruleMarks) day(r.date).rules.push({ id: r.nonNegotiable.id, name: r.nonNegotiable.name, crossed: true });
   if (opts.withHabits) {
     for (const h of habitMarks) {
@@ -597,8 +572,33 @@ export async function buildCalendarMonth(personId: string, monthKey: string, opt
 /** The places offered on the person's Check in card. "Other" opens a free text. */
 export const CHECKIN_PLACES = ["Home", "School", "Tutor", "Tennis", "Other"] as const;
 
-const LOCATION_SELECT = { id: true, at: true, lat: true, lng: true, accuracy: true, battery: true, source: true, place: true, note: true } as const;
-export function serializeLocation(p: { id: string; at: Date; lat: number; lng: number; accuracy: number | null; battery: number | null; source: string; place: string | null; note: string | null }): LocationPointDTO {
+const LOCATION_SELECT = { id: true, at: true, lat: true, lng: true, accuracy: true, battery: true, source: true, place: true, note: true, placeName: true } as const;
+const PLACE_SELECT = { id: true, name: true, lat: true, lng: true, radiusM: true } as const;
+
+/** Metres between two positions (haversine) — plenty for "is he near School". */
+export function metresBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+/** The named place a position falls within (the nearest when several), else null.
+    A position at 0,0 (a check-in the phone could not place) is never near anything. */
+export function nearestPlace(places: PlaceDTO[], lat: number, lng: number): string | null {
+  if (lat === 0 && lng === 0) return null;
+  let best: { name: string; d: number } | null = null;
+  for (const pl of places) {
+    const d = metresBetween(lat, lng, pl.lat, pl.lng);
+    if (d <= pl.radiusM && (!best || d < best.d)) best = { name: pl.name, d };
+  }
+  return best?.name ?? null;
+}
+export function serializeLocation(
+  p: { id: string; at: Date; lat: number; lng: number; accuracy: number | null; battery: number | null; source: string; place: string | null; note: string | null; placeName: string | null },
+  places: PlaceDTO[] = [],
+): LocationPointDTO {
   return {
     id: p.id,
     at: p.at.toISOString(),
@@ -606,27 +606,39 @@ export function serializeLocation(p: { id: string; at: Date; lat: number; lng: n
     lng: p.lng,
     accuracy: p.accuracy,
     battery: p.battery,
-    source: p.source === "OWNTRACKS" ? "OWNTRACKS" : p.source === "OVERLAND" ? "OVERLAND" : "CHECKIN",
+    source: p.source === "OWNTRACKS" ? "OWNTRACKS" : p.source === "OVERLAND" ? "OVERLAND" : p.source === "APP" ? "APP" : "CHECKIN",
     place: p.place,
     note: p.note,
+    near: nearestPlace(places, p.lat, p.lng),
+    placeName: p.placeName,
   };
+}
+/** The person's named places, oldest first. */
+export async function listPlaces(personId: string): Promise<PlaceDTO[]> {
+  return prisma.place.findMany({ where: { personId }, orderBy: { createdAt: "asc" }, select: PLACE_SELECT });
 }
 
 /** One IST day of positions (newest first), the latest point ever, and whether
     phone sharing is on — with the sharing link only when `withUrl` (the owner). */
 export async function buildLocationDay(personId: string, dayKey: string, opts: { withUrl: boolean }): Promise<LocationDayDTO> {
   const { start, end } = istDayRange(dayKey);
-  const [points, last, person] = await Promise.all([
+  const [points, last, person, places] = await Promise.all([
     prisma.locationPoint.findMany({ where: { personId, at: { gte: start, lte: end } }, orderBy: { at: "desc" }, take: 2000, select: LOCATION_SELECT }),
     prisma.locationPoint.findFirst({ where: { personId }, orderBy: { at: "desc" }, select: LOCATION_SELECT }),
     prisma.person.findUnique({ where: { id: personId }, select: { feedToken: true } }),
+    listPlaces(personId),
   ]);
   const token = person?.feedToken ?? null;
+  // The map's names arrive a few at a time (the free lookup is one a second): the
+  // latest point first, then the day's newest, so the log fills in from the top.
+  const named = await namePoints([...(last ? [last] : []), ...points], 3);
+  const withName = <T extends { id: string; placeName: string | null }>(p: T): T => (named.has(p.id) ? { ...p, placeName: named.get(p.id)! } : p);
   return {
     day: dayKey,
-    points: points.map(serializeLocation),
-    lastSeen: last ? serializeLocation(last) : null,
+    points: points.map((p) => serializeLocation(withName(p), places)),
+    lastSeen: last ? serializeLocation(withName(last), places) : null,
     sharing: { on: Boolean(token), url: token && opts.withUrl ? `${getBaseUrl()}/api/routine/feed/${token}` : null },
+    places,
   };
 }
 
@@ -721,7 +733,7 @@ export async function buildOverview(
   const startDate = dayKeyToDate(days[0]);
   const endDate = dayKeyToDate(days[6]);
 
-  const [segmentsDto, nonNegotiables, tasks, weights, money, reports, todayTasks] = await Promise.all([
+  const [segmentsDto, nonNegotiables, tasks, weights, reports, todayTasks] = await Promise.all([
     buildHabitGrid(person.id, mondayKey),
     prisma.nonNegotiable.findMany({
       where: { personId: person.id, active: true },
@@ -731,7 +743,7 @@ export async function buildOverview(
     // Phase 42: tasks are week-scoped — only those due in the viewed week, plus the
     // undated "any day" ones. Navigating weeks shows that week's tasks only.
     prisma.routineTask.findMany({
-      where: { personId: person.id, OR: [{ dueDate: null }, { dueDate: { gte: startDate, lte: endDate } }] },
+      where: { personId: person.id, ...tasksInSpan(startDate, endDate) },
       orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
       select: TASK_SELECT,
     }),
@@ -740,13 +752,11 @@ export async function buildOverview(
       orderBy: [{ date: "asc" }, { createdAt: "asc" }],
       select: { id: true, date: true, weightKg: true },
     }),
-    // Money is by calendar month and always THIS month here; the Money tab browses others.
-    buildMoneyMonth(person.id, monthKeyOf(todayKey())),
     // The tutors' reports dated inside the shown week.
     listReportsBetween(person.id, days[0], days[6]),
     // Today's list, whatever week is being browsed (the Today card; review 2026-09-25).
     prisma.routineTask.findMany({
-      where: { personId: person.id, OR: [{ dueDate: null }, { dueDate: dayKeyToDate(todayKey()) }] },
+      where: { personId: person.id, ...tasksOnDay(dayKeyToDate(todayKey())) },
       orderBy: [{ done: "asc" }, { createdAt: "asc" }],
       select: TASK_SELECT,
     }),
@@ -780,7 +790,6 @@ export async function buildOverview(
     monthlyWeights,
     summary,
     todayTasks: todayTasks.map(serializeTask),
-    money,
     reports,
   };
 }

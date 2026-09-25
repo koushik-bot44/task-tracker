@@ -67,7 +67,7 @@ export function SummaryView({ summary, weekLabel }: { summary: RoutineSummaryDTO
         <ShieldAlert className={cn("mt-0.5 h-5 w-5 shrink-0", summary.violations > 0 ? "text-warn-ink" : "pk-fg-soft")} strokeWidth={2} aria-hidden />
         <div className="min-w-0">
           <p className="text-sm pk-fg">
-            Non-negotiables:{" "}
+            Rules:{" "}
             <span className={cn("font-semibold", summary.violations > 0 ? "text-warn-ink" : "text-ok-ink")}>
               {summary.violations === 0 ? "0 crossed this week" : `${summary.violations} crossed this week`}
             </span>

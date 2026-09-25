@@ -10,7 +10,7 @@ import { prettyDate } from "./shared";
  * finds it fast); a note when there is one. Read-only on the parent's side — the
  * tutor writes these from their own screen.
  */
-export function ReportsSection({ reports, title }: { reports: MentorReportDTO[]; title: string }) {
+export function ReportsSection({ reports, title, emptyText = "No reports this week." }: { reports: MentorReportDTO[]; title: string; emptyText?: string }) {
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -18,7 +18,7 @@ export function ReportsSection({ reports, title }: { reports: MentorReportDTO[];
         <h2 className="font-display text-lg font-semibold pk-fg">{title}</h2>
       </div>
       {reports.length === 0 ? (
-        <p className="py-3 text-center text-sm pk-fg-soft">No reports this week.</p>
+        <p className="py-3 text-center text-sm pk-fg-soft">{emptyText}</p>
       ) : (
         <ul className="space-y-2">
           {reports.map((r) => (

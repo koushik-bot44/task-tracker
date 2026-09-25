@@ -2,9 +2,11 @@
  *   npx tsx --env-file=.env.local scripts/check-circle-2.ts   (dev server on :3010; after .localdb/seed-circle-demo.ts and .localdb/seed-location-demo.ts)
  *
  * The CEO's month calendar carries today's tasks and the son's habit rollups; the
- * son's own calendar never carries a rollup. Today's map lists Arjun's check-ins
- * and the phone's points for the CEO (with the sharing link), for Priya (same day,
- * no link) and for Arjun himself (no link). The sharing link refuses a wrong secret
+ * son's own calendar never carries a rollup. The map shows only where Arjun is NOW
+ * (his latest point ever, "last seen": a check-in's place, else "near <named place>",
+ * else "on the map"); the day's history is the log under it, every check-in, app
+ * note and phone point with its time — for the CEO (with the sharing link), for
+ * Priya (same day, no link) and for Arjun himself (no link). The sharing link refuses a wrong secret
  * and a body that is not a location; Priya cannot turn sharing on or off; Dr Rao
  * and a head of department reach neither the map nor the calendar. Arjun can check
  * in without a position. The CEO turning sharing off kills the old link; turning
@@ -172,6 +174,19 @@ async function tapToday(page: Page, today: string) {
   return label;
 }
 const bySource = (points: LocationPointDTO[]) => `${points.filter((p) => p.source === "CHECKIN").length} check-ins, ${points.filter((p) => p.source !== "CHECKIN").length} from the phone`;
+/** What every screen says a point is — the app's own whereLabel (components/routine/location-log.tsx):
+    a check-in's place ("Home"), else "near <named place>" when one covers it, else "on the map". */
+function whereWords(p: LocationPointDTO | null): string {
+  if (!p) return "";
+  if (p.placeName) return p.placeName;
+  if (p.source === "CHECKIN" && p.place) return p.place;
+  if (p.near) return `near ${p.near}`;
+  if (p.lat === 0 && p.lng === 0) return "no position";
+  return "on the map";
+}
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** The rows of the day's log under the map: the list right after its "Today’s log" / "That day’s log" heading. */
+const logRows = (page: Page) => page.getByRole("heading", { name: /(Today|That day).s log/ }).first().locator("xpath=following-sibling::ol[1]/li");
 
 async function main() {
   /* ---- the CEO: the calendar and the map ---- */
@@ -189,7 +204,7 @@ async function main() {
   const habitDays = Object.entries(cal.json?.days ?? {}).filter(([, d]) => d.habits && d.habits.total > 0);
   record("the CEO's calendar opens on this month with today's tasks", cal.status === 200 && cal.json?.month === today.slice(0, 7) && cal.json?.today === today && (todayCal?.tasks.length ?? 0) >= 2 && Boolean(todayCal?.tasks.some((t) => t.title === "Physics assignment")), `status ${cal.status}, month ${cal.json?.month}, today: ${todayCal?.tasks.map((t) => t.title).join(", ")}`);
   record(`…and ${ARJUN.name}'s habits on the days he was marked`, habitDays.length >= 3 && habitDays.every(([, d]) => d.habits!.met + d.habits!.missed <= d.habits!.total), habitDays.map(([k, d]) => `${k} ${d.habits!.met} of ${d.habits!.total}`).join(", "));
-  record("…the tutors' reports and the money on their days", Boolean(todayCal?.reports.some((r) => r.mentorName === RAO.name && r.homework === "Worksheet 3")) && (todayCal?.money.spent ?? 0) === 250 && Object.values(cal.json?.days ?? {}).some((d) => d.money.given > 0), `today: ${todayCal?.reports.length} report, ${todayCal?.rules.length} rules scheduled, spent ₹${todayCal?.money.spent}`);
+  record("…the tutors' reports and the rules on their days", Boolean(todayCal?.reports.some((r) => r.mentorName === RAO.name && r.homework === "Worksheet 3")), `today: ${todayCal?.reports.length} report, ${todayCal?.rules.length} rules scheduled`);
   const badMonth = await call<CalendarMonthDTO>(ceoCookie, "GET", "/api/routine/calendar?month=2026-13");
   record("a month that is not a month is refused", badMonth.status === 400, `status ${badMonth.status}: ${badMonth.json?.error}`);
 
@@ -208,12 +223,12 @@ async function main() {
   record("…newest first, with the latest point as last seen", points.every((p, i, a) => i === 0 || a[i - 1].at >= p.at) && loc.json?.lastSeen?.id === points[0]?.id, `last seen ${loc.json?.lastSeen?.place ?? loc.json?.lastSeen?.source} at ${loc.json?.lastSeen?.at}`);
   record("…and phone sharing on, with the link for the owner", loc.json?.sharing.on === true && typeof loc.json?.sharing.url === "string" && loc.json.sharing.url.includes("/api/routine/feed/"), `on ${loc.json?.sharing.on}, link of ${secretOf(loc.json?.sharing.url).length} letters`);
   const oldSecret = secretOf(loc.json?.sharing.url);
-  /** What every screen should say Arjun's latest point is: its place for a check-in, else "on the map". */
+  /** What every screen should say Arjun's latest point is — never hard-coded: the same words the app makes of lastSeen. */
   const lastSeen = loc.json?.lastSeen ?? null;
-  const lastSeenWords = lastSeen ? (lastSeen.source === "CHECKIN" && lastSeen.place ? lastSeen.place : "on the map") : "";
-  const lastSeenRe = new RegExp(`^Last seen: ${lastSeenWords} · `);
+  const lastSeenWords = whereWords(lastSeen);
+  const lastSeenRe = new RegExp(`^Last seen: ${escapeRe(lastSeenWords)} · `);
   const lastCheckin = points.find((p) => p.source === "CHECKIN") ?? null;
-  info(`last seen today: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}); last check-in: ${lastCheckin?.place ?? "none"}`);
+  info(`last seen: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}${lastSeen?.near ? `, near ${lastSeen.near}` : ""}); last check-in today: ${lastCheckin?.place ?? "none"}`);
   const phonePoint = phone.find((p) => p.source === "OVERLAND");
   record("a phone point keeps its battery and accuracy", phonePoint?.battery === 61 && phonePoint?.accuracy === 25, `battery ${phonePoint?.battery}, accuracy ${phonePoint?.accuracy}`);
   const badDay = await call<LocationDayDTO>(ceoCookie, "GET", "/api/routine/location?day=bad");
@@ -235,10 +250,10 @@ async function main() {
   /* ---- Arjun's side: his own calendar and map ---- */
   const arjunCookie = await signIn(ARJUN.email, ARJUN.password);
   record(`${ARJUN.name} signs in`, Boolean(arjunCookie));
-  let arjunTabsWanted = "Today|Habits|Rules|Calendar|Money|Map";
+  let arjunTabsWanted = "Today|Habits|Rules|Calendar|Map";
   if (arjunCookie) {
     const kView = await call<{ segments: unknown[]; nonNegotiables: unknown[] }>(arjunCookie, "GET", "/api/routine/kid");
-    arjunTabsWanted = ["Today", ...(kView.json?.segments.length ? ["Habits"] : []), ...(kView.json?.nonNegotiables.length ? ["Rules"] : []), "Calendar", "Money", "Map"].join("|");
+    arjunTabsWanted = ["Today", ...(kView.json?.segments.length ? ["Habits"] : []), ...(kView.json?.nonNegotiables.length ? ["Rules"] : []), "Calendar", "Map"].join("|");
     info(`${ARJUN.name}'s side has ${kView.json?.segments.length ?? 0} habit groups and ${kView.json?.nonNegotiables.length ?? 0} rules this week, so his tabs should read ${arjunTabsWanted.replace(/\|/g, " · ")}`);
     const kCal = await call<CalendarMonthDTO>(arjunCookie, "GET", "/api/routine/kid/calendar");
     const kDays = Object.entries(kCal.json?.days ?? {});
@@ -346,15 +361,12 @@ async function main() {
   await openTab(arjunPage, "Map");
   record("his Map draws today", await mapReady(arjunPage));
   const arjunSharing = (await arjunPage.getByText("Sharing with your parents").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
-  record("…lists his check-ins and says sharing with his parents is on", (await seen(arjunPage, "Check-ins")) && (await seen(arjunPage, "Tutor")) && (await seen(arjunPage, "Maths")) && arjunSharing === "Sharing with your parents: on", `"${arjunSharing}"`);
+  record("…shows today's log and says sharing with his parents is on", (await seen(arjunPage, /Today.s log/)) && (await seen(arjunPage, "Tutor")) && (await seen(arjunPage, "Maths")) && arjunSharing === "Sharing with your parents: on", `"${arjunSharing}"`);
   record("…and never shows him the link", (await arjunPage.getByText("Phone sharing").count()) === 0 && (await arjunPage.locator("code").count()) === 0);
   await photograph(arjunPage, "arjun-3-map.png", `${ARJUN.name}'s Map`, SCOPE, true);
 
-  await openTab(arjunPage, "Money");
-  record("his Money tab shows what he got and what he spent", (await seen(arjunPage, "₹2,500")) && (await seen(arjunPage, "Snacks")));
-  await photograph(arjunPage, "arjun-4-money.png", `${ARJUN.name}'s Money`, SCOPE, true);
   await openTab(arjunPage, "Habits");
-  await photograph(arjunPage, "arjun-5-habits.png", `${ARJUN.name}'s Habits`, SCOPE, false);
+  await photograph(arjunPage, "arjun-4-habits.png", `${ARJUN.name}'s Habits`, SCOPE, false);
   await arjunCtx.close();
 
   const ceoCtx = await browser.newContext(PHONE);
@@ -365,7 +377,7 @@ async function main() {
   await ceoPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const ceoTabs = await ceoPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`the CEO's tabs: ${ceoTabs.join(" · ")}`);
-  record("the CEO is offered Summary, Tracker, Calendar, Map, Money and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Map|Money|Circle", ceoTabs.join(", "));
+  record("the CEO is offered Summary, Tracker, Calendar, Map, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors|Circle", ceoTabs.join(", "));
   record("his Summary shows today's list and where Arjun was last seen", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, lastSeenRe)), `wanted "Last seen: ${lastSeenWords} · …"`);
   await photograph(ceoPage, "ceo-1-summary.png", "the CEO's Summary", SCOPE, true);
 
@@ -379,15 +391,19 @@ async function main() {
 
   await openTab(ceoPage, "Map");
   record("his Map draws today", await mapReady(ceoPage));
-  record(`…says where ${ARJUN.name} was last seen, lists the check-ins and counts the phone's points`, (await seen(ceoPage, lastSeenRe)) && (await seen(ceoPage, "Check-ins")) && (await seen(ceoPage, `${phone.length} phone points`)), `wanted "Last seen: ${lastSeenWords} · …" and "${phone.length} phone points"`);
+  const ceoPhoneRows = await logRows(ceoPage).filter({ hasText: /phone/ }).count();
+  record(`…says where ${ARJUN.name} was last seen, shows today's log with the phone's points in it`, (await seen(ceoPage, lastSeenRe)) && (await seen(ceoPage, /Today.s log/)) && ceoPhoneRows >= 1, `wanted "Last seen: ${lastSeenWords} · …"; ${await logRows(ceoPage).count()} log rows, ${ceoPhoneRows} from the phone`);
   const sw = ceoPage.getByRole("switch").first();
   const swOn = (await sw.count()) ? await sw.getAttribute("aria-checked") : null;
   record("…and, for the owner, phone sharing is on with a link to copy", (await seen(ceoPage, "Phone sharing")) && swOn === "true" && (await ceoPage.locator("code").count()) === 1 && (await seen(ceoPage, "Copy")) && (await seen(ceoPage, /install OwnTracks/)), `switch aria-checked ${swOn}`);
   await photograph(ceoPage, "ceo-3-map.png", "the CEO's Map", SCOPE, true);
 
-  await openTab(ceoPage, "Money");
-  record("his Money tab shows the month with both totals", (await seen(ceoPage, "₹2,500")) && (await seen(ceoPage, "Monthly pocket money")));
-  await photograph(ceoPage, "ceo-4-money.png", "the CEO's Money", SCOPE, true);
+  await openTab(ceoPage, "Tutors");
+  // The tab body renders <h2>Tutors’ reports</h2> and <h3>Today</h3>; read its text and accept either apostrophe.
+  await ceoPage.locator("section h3").first().waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
+  const tutorsText = (await ceoPage.locator("section").allInnerTexts()).join(" ").replace(/\s+/g, " ");
+  record("his Tutors tab lists the tutors’ reports by day, today's first, Maths among them", /Tutors['’] reports/.test(tutorsText) && /\bToday\b/.test(tutorsText) && /\bMaths\b/.test(tutorsText), `"${tutorsText.slice(tutorsText.search(/Tutors['’]/), tutorsText.search(/Tutors['’]/) + 80)}"`);
+  await photograph(ceoPage, "ceo-4-tutors.png", "the CEO's Tutors", SCOPE, true);
   await openTab(ceoPage, "Circle");
   record(`his Circle names the people around ${ARJUN.name}`, (await seen(ceoPage, `People around ${ARJUN.name}`)) && (await seen(ceoPage, PRIYA.name)));
   await photograph(ceoPage, "ceo-5-circle.png", "the CEO's Circle", SCOPE, true);
@@ -404,11 +420,12 @@ async function main() {
   await priyaPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const priyaTabs = await priyaPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`${PRIYA.name}'s tabs: ${priyaTabs.join(" · ")}`);
-  record(`${PRIYA.name} sees Summary, Tracker, Calendar, Map and Money — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Map|Money", priyaTabs.join(", "));
+  record(`${PRIYA.name} sees Summary, Tracker, Calendar, Map and Tutors — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors", priyaTabs.join(", "));
   await photograph(priyaPage, "priya-1-family.png", `${PRIYA.name}'s Well Being`, SCOPE, true);
   await openTab(priyaPage, "Map");
   record(`${PRIYA.name}'s Map draws today`, await mapReady(priyaPage));
-  record(`…shows the same day, and never the sharing switch or the link`, (await seen(priyaPage, lastSeenRe)) && (await seen(priyaPage, `${phone.length} phone points`)) && (await priyaPage.getByText("Phone sharing").count()) === 0 && (await priyaPage.getByRole("switch").count()) === 0 && (await priyaPage.locator("code").count()) === 0, `wanted "Last seen: ${lastSeenWords} · …"`);
+  const priyaPhoneRows = await logRows(priyaPage).filter({ hasText: /phone/ }).count();
+  record(`…shows the same day, and never the sharing switch or the link`, (await seen(priyaPage, lastSeenRe)) && (await seen(priyaPage, /Today.s log/)) && priyaPhoneRows >= 1 && (await priyaPage.getByText("Phone sharing").count()) === 0 && (await priyaPage.getByRole("switch").count()) === 0 && (await priyaPage.locator("code").count()) === 0, `wanted "Last seen: ${lastSeenWords} · …"; ${priyaPhoneRows} log rows from the phone`);
   await photograph(priyaPage, "priya-2-map.png", `${PRIYA.name}'s Map`, SCOPE, true);
   await priyaCtx.close();
 
@@ -423,7 +440,7 @@ async function main() {
   await raoCtx.close();
 
   await browser.close();
-  info("screens: arjun-1-today, arjun-2-calendar, arjun-3-map, arjun-4-money, arjun-5-habits, ceo-1-summary, ceo-2-calendar, ceo-3-map, ceo-4-money, ceo-5-circle, ceo-6-tracker, priya-1-family, priya-2-map, rao-1-mentor");
+  info("screens: arjun-1-today, arjun-2-calendar, arjun-3-map, arjun-4-habits, ceo-1-summary, ceo-2-calendar, ceo-3-map, ceo-4-tutors, ceo-5-circle, ceo-6-tracker, priya-1-family, priya-2-map, rao-1-mentor");
 }
 
 main()

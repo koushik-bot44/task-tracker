@@ -813,14 +813,16 @@ model Person {
   weightEntries  WeightEntry[]
   tasks          RoutineTask[]
   collaborators  RoutineCollaborator[]
-  /// 2026-09-25 (the circle): the pocket-money ledger and the tutors' day reports.
-  moneyEntries   MoneyEntry[]
+  /// 2026-09-25 (the circle): the tutors' day reports.
   mentorReports  MentorReport[]
   /// 2026-09-25 (maps): where the person was — check-ins from their own screen and,
   /// when the parent turns sharing on, positions a location app on their phone
   /// posts by itself. `feedToken` is the secret in that app's link; null = off.
   feedToken      String?         @unique
   locations      LocationPoint[]
+  /// 2026-09-25 (maps): the spots the parent named once — Home, School, Tennis —
+  /// so a position near one reads as a place, not a dot.
+  places         Place[]
 }
 
 /// Phase 39: another MANAGER invited to monitor a person's routine, mirroring the
@@ -953,6 +955,9 @@ model RoutineTask {
   person    Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
   title     String
   dueDate   DateTime? @db.Date
+  /// 2026-09-25: set when the task runs over several days ("from this day to that
+  /// day"); it then shows on every day from startDate to dueDate. Null = one day.
+  startDate DateTime? @db.Date
   done      Boolean   @default(false)
   doneAt    DateTime?
   createdAt DateTime  @default(now())
@@ -962,28 +967,6 @@ model RoutineTask {
   addedBy   String    @default("MANAGER")
 
   @@index([personId, dueDate])
-}
-
-/// 2026-09-25 (the circle): pocket money, by hand. No bank, no UPI — the parent
-/// logs what was GIVEN, the person logs what they SPENT, both with a short note;
-/// the month adds itself up. `side` + `addedByName` say who wrote the line, as a
-/// snapshot (no user relation — a removed co-parent's lines stay readable).
-model MoneyEntry {
-  id          String   @id @default(cuid())
-  personId    String
-  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  date        DateTime @db.Date
-  /// Whole rupees, always positive; `kind` gives the direction.
-  amount      Int
-  /// "GIVEN" | "SPENT"
-  kind        String
-  note        String
-  /// "PARENT" (the CEO or a co-parent) | "PERSON" (the tracked person).
-  side        String
-  addedByName String
-  createdAt   DateTime @default(now())
-
-  @@index([personId, date])
 }
 
 /// 2026-09-25 (the circle): a tutor's or coach's day report — the only thing a
@@ -1025,9 +1008,35 @@ model LocationPoint {
   source    String
   place     String?
   note      String?
+  /// 2026-09-25: the place as the map knows it ("Mindspace, Madhapur"), looked up
+  /// from the position (OpenStreetMap). Null = not looked up yet; "" = nothing there.
+  placeName String?
   createdAt DateTime @default(now())
 
   @@index([personId, at])
+}
+
+/// 2026-09-25 (maps): a named spot. Any position within `radiusM` of it is
+/// shown as "near <name>". Made by the parent from a point on the map.
+model Place {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  name      String
+  lat       Float
+  lng       Float
+  radiusM   Int      @default(150)
+  createdAt DateTime @default(now())
+
+  @@index([personId])
+}
+
+/// 2026-09-25: the map's name for a spot, cached by position rounded to ~100 m,
+/// so the free lookup (one request a second) is asked once per spot, not per point.
+model GeoName {
+  key       String   @id
+  label     String
+  createdAt DateTime @default(now())
 }
 
 /// Work model: a TEAM inside a department (ServiceNow's assignment group).

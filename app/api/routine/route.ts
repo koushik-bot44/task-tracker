@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { HttpError, requireManager, route } from "@/lib/session";
 import { parseBody, routinePersonCreateSchema } from "@/lib/validation";
-import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listCircle, listRoutineCollaborators, monthKeyOf, personParam, todayKey, weekStartKey } from "@/lib/routine";
+import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listCircle, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
 import type { RoutineOverviewDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -48,7 +48,6 @@ export const GET = route(async (req: Request) => {
       routines: switcher,
       collaborators: [],
       todayTasks: [],
-      money: { month: monthKeyOf(today), given: 0, spent: 0, entries: [] },
       reports: [],
       circle: [],
     };

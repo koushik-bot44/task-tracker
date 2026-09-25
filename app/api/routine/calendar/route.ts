@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** The parent side's month calendar (2026-09-25): tasks by due day, tutor reports,
-    money, scheduled rules and the day's habit marks. ?month=YYYY-MM, default now. */
+    scheduled rules and the day's habit marks. ?month=YYYY-MM, default now. */
 export const GET = route(async (req: Request) => {
   const actor = await requireManager();
   const { person } = await requireRoutineAccess(actor.id, personParam(req));

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requirePerson, route } from "@/lib/session";
-import { TASK_SELECT, buildHabitGrid, buildMoneyMonth, buildPersonNonNegotiables, dayKeyToDate, listLatestReports, monthKeyOf, serializeTask, todayKey, toPersonSegments, weekDays, weekStartKey } from "@/lib/routine";
+import { TASK_SELECT, buildHabitGrid, buildPersonNonNegotiables, dayKeyToDate, listLatestReports, serializeTask, tasksOnDay, todayKey, toPersonSegments, weekDays, weekStartKey } from "@/lib/routine";
 import type { PersonViewDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -25,10 +25,10 @@ export const GET = route(async () => {
 
   const today = todayKey();
   const mondayKey = weekStartKey(today); // the person sees the CURRENT week only
-  const [grid, tasks, houseRules, reminderNotif, money, reports] = await Promise.all([
+  const [grid, tasks, houseRules, reminderNotif, reports] = await Promise.all([
     buildHabitGrid(person.id, mondayKey),
     prisma.routineTask.findMany({
-      where: { personId: person.id, OR: [{ dueDate: null }, { dueDate: dayKeyToDate(today) }] },
+      where: { personId: person.id, ...tasksOnDay(dayKeyToDate(today)) },
       orderBy: [{ done: "asc" }, { createdAt: "asc" }],
       select: TASK_SELECT,
     }),
@@ -39,8 +39,7 @@ export const GET = route(async () => {
       orderBy: { createdAt: "desc" },
       select: { title: true, body: true },
     }),
-    // 2026-09-25: this month's pocket money and the latest tutor reports (homework).
-    buildMoneyMonth(person.id, monthKeyOf(today)),
+    // 2026-09-25: the latest tutor reports (homework).
     listLatestReports(person.id, 5),
   ]);
 
@@ -59,7 +58,6 @@ export const GET = route(async () => {
     tasks: tasks.map(serializeTask),
     nonNegotiables: houseRules,
     reminder,
-    money,
     // The tutor's "line for the parents" is theirs: it does not travel to this side.
     reports: reports.map((r) => ({ ...r, note: null })),
   };

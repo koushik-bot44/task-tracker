@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** The person's own month calendar (2026-09-25): their tasks, the tutors' reports,
-    money and the rules scheduled each day — never the habit rollup. */
+    and the rules scheduled each day — never the habit rollup. */
 export const GET = route(async (req: Request) => {
   const user = await requirePerson();
   const person = await prisma.person.findUnique({ where: { userId: user.id }, select: { id: true } });

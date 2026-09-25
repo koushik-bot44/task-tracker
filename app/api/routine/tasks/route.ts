@@ -14,10 +14,12 @@ export const POST = route(async (req: Request) => {
 
   const parsed = await parseBody(req, routineTaskCreateSchema);
   if (!parsed.ok) return parsed.response;
-  const { title, dueDate } = parsed.data;
+  const { title, dueDate, startDate } = parsed.data;
+  // "From this day to that day": the start is kept only when it is really before the due day.
+  const from = dueDate && startDate && startDate < dueDate ? dayKeyToDate(startDate) : null;
 
   const task = await prisma.routineTask.create({
-    data: { personId: person.id, title, dueDate: dueDate ? dayKeyToDate(dueDate) : null },
+    data: { personId: person.id, title, dueDate: dueDate ? dayKeyToDate(dueDate) : null, startDate: from },
     select: TASK_SELECT,
   });
   return NextResponse.json(serializeTask(task), { status: 201 });

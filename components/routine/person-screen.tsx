@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarDays, Check, ListChecks, Loader2, LogOut, MapPin, Plus, ShieldCheck, Star, Sun, Wallet, X } from "lucide-react";
+import { Bell, CalendarDays, Check, ListChecks, Loader2, LogOut, MapPin, Plus, ShieldCheck, Star, Sun, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
@@ -9,38 +9,36 @@ import { useToast } from "@/components/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
-import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO } from "@/lib/types";
+import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO, PlaceDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
 import { SegmentGrid } from "./weekly-grid";
-import { PersonMoney } from "./person-money";
 import { CalendarView, monthOf } from "./calendar-view";
 import { CheckInCard } from "./checkin-card";
+import { LocationLog } from "./location-log";
+import { useAppPing } from "./use-app-ping";
 import { LocationMapLazy } from "./location-map-lazy";
 import { inputCls, prettyDate, weekdayInitial } from "./shared";
 
 /**
  * The PERSON's whole app — one calm, friendly screen in TABS (Today / Habits /
- * Rules / Calendar / Money / Map). A PERSON reaches nothing else (middleware confines
+ * Rules / Calendar / Map). A PERSON reaches nothing else (middleware confines
  * them to the family area + /api/routine; every work API 403s them). They write only
  * their own habit marks, task checks, the `done` flag on scheduled rule days, their
- * OWN extras for the day, their OWN pocket-money lines and their own check-ins —
+ * OWN extras for the day and their own check-ins —
  * never the schedule itself.
  *
  * Phase 44–46: a code-rendered soft-3D scene (`WellBeingScene`) sits behind
  * everything and the working UI is FROSTED GLASS over it (shared with the
  * manager's Well Being tab). 2026-09-25 — the circle: the Today tab splits the
  * list into "For you" (parent-set) and "Your own" (the person's extras, removable,
- * with one add line), shows the tutors' reports, and a Money tab keeps the month's
- * pocket money by hand. Later that day: a "Where are you?" card on Today, a month
+ * with one add line) and shows the tutors' reports. Later that day: a "Where are you?" card on Today, a month
  * Calendar of his own days, and a Map of today's check-ins that also says whether
  * his phone is sharing its position with his parents — his view, for transparency.
  * Six pills no longer fit one row on a 390px phone, so the tab bar slides sideways
  * and the active pill scrolls itself into view.
  */
-type TabId = "today" | "habits" | "rules" | "calendar" | "money" | "map";
+type TabId = "today" | "habits" | "rules" | "calendar" | "map";
 
-/** "8:12 am" in IST — a clock reading of an instant, not a day key. */
-const clockTime = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 /**
  * Which walled login is this? The PERSON role covers three people: the son stays
@@ -95,6 +93,8 @@ export function PersonScreen() {
   // Today's positions: the "Where are you?" card's last check-in and the Map tab.
   const location = usePersonLocationDay(null);
   const lastSeen: LocationPointDTO | null = location.data?.lastSeen ?? null;
+  // The app notes where he is on open and on the hour; the phone asks its own question once.
+  useAppPing();
   // The card wants his last CHECK-IN, not the phone's last point (review, 2026-09-25).
   const lastCheckIn: LocationPointDTO | null =
     location.data?.points.find((p) => p.source === "CHECKIN") ?? (lastSeen?.source === "CHECKIN" ? lastSeen : null);
@@ -131,7 +131,6 @@ export function PersonScreen() {
     ...(segments.length > 0 ? [{ id: "habits" as const, label: "Habits", icon: Sun }] : []),
     ...(rules.length > 0 ? [{ id: "rules" as const, label: "Rules", icon: ShieldCheck }] : []),
     { id: "calendar", label: "Calendar", icon: CalendarDays },
-    { id: "money", label: "Money", icon: Wallet },
     { id: "map", label: "Map", icon: MapPin },
   ];
   const active = available.some((t) => t.id === tab) ? tab : "today";
@@ -334,10 +333,8 @@ export function PersonScreen() {
                 <PersonCalendar today={data.today} month={month ?? monthOf(data.today)} selected={selected ?? data.today} onMonth={pickMonth} onSelect={setSelected} />
               ) : null}
 
-              {active === "money" && data ? <PersonMoney today={data.today} /> : null}
-
               {active === "map" && data ? (
-                <PersonMap points={location.data?.points ?? []} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
+                <PersonMap points={location.data?.points ?? []} lastSeen={lastSeen} places={location.data?.places ?? []} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
               ) : null}
             </main>
           </div>
@@ -369,8 +366,7 @@ function PersonCalendar({ today, month, selected, onMonth, onSelect }: { today: 
 /** The Map tab — his own view of today: the map, the day's check-ins, and
     whether his phone is sharing its position with his parents. Nothing here is
     hidden from him: if sharing is on, this line says so. */
-function PersonMap({ points, sharingOn, loading }: { points: LocationPointDTO[]; sharingOn: boolean; loading: boolean }) {
-  const checkins = points.filter((p) => p.source === "CHECKIN");
+function PersonMap({ points, lastSeen, places, sharingOn, loading }: { points: LocationPointDTO[]; lastSeen: LocationPointDTO | null; places: PlaceDTO[]; sharingOn: boolean; loading: boolean }) {
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -379,30 +375,16 @@ function PersonMap({ points, sharingOn, loading }: { points: LocationPointDTO[];
         <span className="ml-auto shrink-0 text-sm pk-fg-soft">Today</span>
       </div>
 
-      <LocationMapLazy points={points} height={280} />
+      {/* Only where you are now; the day's history is the log underneath. */}
+      <LocationMapLazy points={lastSeen ? [lastSeen] : []} places={places} height={280} />
 
-      <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">Check-ins</h3>
-      {loading ? (
-        <p className="py-2 text-sm pk-fg-soft">Loading…</p>
-      ) : checkins.length === 0 ? (
-        <p className="py-2 text-sm pk-fg-soft">No check-in yet today.</p>
-      ) : (
-        <ul className="space-y-2">
-          {checkins.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 rounded-card pk-cell px-3 py-2.5">
-              <span className="shrink-0 text-sm font-semibold tabular-nums pk-fg">{clockTime(p.at)}</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm pk-fg">{p.place ?? "Check-in"}</p>
-                {p.note ? <p className="truncate text-micro pk-fg-soft">{p.note}</p> : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">Today&rsquo;s log</h3>
+      <LocationLog points={points} loading={loading} emptyText="Nothing yet today." />
 
       <p className="mt-4 text-sm pk-fg">
         Sharing with your parents: <span className="font-semibold">{loading ? "…" : sharingOn ? "on" : "off"}</span>
       </p>
+      <p className="mt-1 text-micro pk-fg-soft">The app notes where you are when you open it, and every hour while it stays open. Your parents see the same log you see here.</p>
     </section>
   );
 }

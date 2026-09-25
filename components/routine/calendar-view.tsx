@@ -9,7 +9,7 @@ import { addDays, asUTC, prettyDate, weekdayInitial, weekdayShort } from "./shar
  * The month calendar (2026-09-25): a phone-calendar grid over the glass, one
  * button per day, and under the grid the day that is picked. A day carries up
  * to three 6px dots — teal for tasks, purple for a tutor's report, green for
- * money — and, on the parent's side, a thin green bar for how many habits were
+ * and, on the parent's side, a thin green bar for how many habits were
  * met. Rules show only in the day's panel: most rules are daily, and a dot on
  * every day says nothing. Days after today are muted and cannot be picked; the
  * "Next month" button never goes past this month.
@@ -36,8 +36,6 @@ const monthLabel = (month: string) =>
   asUTC(`${month}-01`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 const monthName = (month: string) => asUTC(`${month}-01`).toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
 
-/** Whole rupees with Indian grouping: 2450 -> "₹2,450". */
-const rupees = (n: number) => `₹${Math.round(Math.abs(n)).toLocaleString("en-IN")}`;
 
 /**
  * The grid's cells, Monday first: `null` for a leading/trailing cell that
@@ -57,7 +55,7 @@ function monthCells(month: string): (string | null)[] {
 }
 
 const countThings = (day: CalendarDayDTO | undefined) =>
-  day ? day.tasks.length + day.reports.length + day.money.entries.length + day.rules.length : 0;
+  day ? day.tasks.length + day.reports.length + day.rules.length : 0;
 
 export function CalendarView({
   data,
@@ -158,12 +156,11 @@ export function CalendarView({
               >
                 {Number(key.slice(8))}
               </span>
-              {/* Dots: teal = tasks, purple = a tutor's report, green = money. Kept at
+              {/* Dots: teal = tasks, purple = a tutor's report. Kept at
                   a fixed height so a day with nothing sits level with its neighbours. */}
               <span className="flex h-1.5 items-center gap-0.5" aria-hidden>
                 {day && day.tasks.length > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-primary" /> : null}
                 {day && day.reports.length > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-[#7C3AED]" /> : null}
-                {day && day.money.entries.length > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-ok" /> : null}
               </span>
               {habits ? (
                 <span className="h-[3px] w-6 overflow-hidden rounded-full bg-[color:var(--pk-cell-bd)]" aria-hidden>
@@ -205,7 +202,7 @@ function DayPanel({
   showHabits: boolean;
 }) {
   const habits = showHabits && day?.habits && day.habits.total > 0 ? day.habits : null;
-  const empty = !day || (day.tasks.length === 0 && day.reports.length === 0 && day.money.entries.length === 0 && day.rules.length === 0 && !habits);
+  const empty = !day || (day.tasks.length === 0 && day.reports.length === 0 && day.rules.length === 0 && !habits);
 
   return (
     <div>
@@ -266,29 +263,6 @@ function DayPanel({
                   </li>
                 ))}
               </ul>
-            </div>
-          ) : null}
-
-          {day!.money.entries.length > 0 ? (
-            <div>
-              <p className="mb-1 text-micro font-medium pk-fg-soft">Money</p>
-              <ul className="space-y-1.5">
-                {day!.money.entries.map((e) => (
-                  <li key={e.id} className="flex items-center justify-between gap-3 rounded-card pk-cell px-3 py-2.5">
-                    <span className="min-w-0 flex-1 break-words text-sm pk-fg">{e.note}</span>
-                    <span className={cn("shrink-0 text-sm font-semibold tabular-nums", e.kind === "GIVEN" ? "text-ok-ink" : "pk-fg")}>
-                      {e.kind === "GIVEN" ? "+" : "−"}
-                      {rupees(e.amount)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {day!.money.given > 0 && day!.money.spent > 0 ? (
-                <p className="mt-1.5 text-sm pk-fg-soft">
-                  Given <span className="font-semibold text-ok-ink">{rupees(day!.money.given)}</span> · Spent{" "}
-                  <span className="font-semibold pk-fg">{rupees(day!.money.spent)}</span>
-                </p>
-              ) : null}
             </div>
           ) : null}
 

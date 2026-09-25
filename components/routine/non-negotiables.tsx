@@ -9,7 +9,7 @@ import type { NonNegotiableDTO, RoutineWeekDTO } from "@/lib/types";
 import { inputCls, weekdayInitial } from "./shared";
 
 /**
- * Non-negotiables, as the Family Routine Agreement keeps them (2026-09-25): fixed
+ * The rules (the agreement's non-negotiables), as the Family Routine Agreement keeps them (2026-09-25): fixed
  * lines that hold every day, logged ONLY on a day they were crossed. The parent
  * taps a day to log a crossing (and taps again to take it back); the person sees
  * the same log from their side. Nothing here is a chore to tick: the count should
@@ -48,7 +48,7 @@ export function NonNegotiables({
         <div className="flex min-w-0 items-center gap-2">
           <ShieldAlert className={cn("h-5 w-5 shrink-0", crossed > 0 ? "text-warn-ink" : "pk-fg-soft")} strokeWidth={2} aria-hidden />
           <div className="min-w-0">
-            <h2 className="font-display text-lg font-semibold pk-fg">Non-negotiables</h2>
+            <h2 className="font-display text-lg font-semibold pk-fg">Rules</h2>
             <p className="mt-0.5 text-micro pk-fg-soft">
               {crossed === 0 ? "Nothing crossed this week." : `${crossed} crossed this week — dealt with the same day, not scored.`}
               {readOnly ? "" : " Tap a day only when a line was crossed."}
@@ -64,13 +64,13 @@ export function NonNegotiables({
 
       {adding && !readOnly ? (
         <div className="mb-4 flex items-center gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} aria-label="New non-negotiable" placeholder="A line that holds every day" className={cn(inputCls, "h-11 flex-1")} />
-          <button type="button" onClick={add} aria-label="Add non-negotiable" className="press grid h-11 w-11 shrink-0 place-items-center rounded-card bg-primary text-on-primary"><Plus className="h-4 w-4" aria-hidden /></button>
+          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} aria-label="New rule" placeholder="A line that holds every day" className={cn(inputCls, "h-11 flex-1")} />
+          <button type="button" onClick={add} aria-label="Add rule" className="press grid h-11 w-11 shrink-0 place-items-center rounded-card bg-primary text-on-primary"><Plus className="h-4 w-4" aria-hidden /></button>
         </div>
       ) : null}
 
       {items.length === 0 ? (
-        <p className="py-4 text-center text-sm pk-fg-soft">None set. These are the fixed lines — add one if it helps.</p>
+        <p className="py-4 text-center text-sm pk-fg-soft">No rules yet. These are the fixed lines — add one if it helps.</p>
       ) : (
         <div className="space-y-3">
           {items.map((n) => (

@@ -316,10 +316,14 @@ export const nonNegotiableCrossSchema = z.object({
   crossed: z.boolean(),
 });
 
-export const routineTaskCreateSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  dueDate: z.union([dayKey, z.literal(""), z.null()]).transform((v) => (v ? (v as string) : null)).optional(),
-});
+export const routineTaskCreateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200),
+    dueDate: z.union([dayKey, z.literal(""), z.null()]).transform((v) => (v ? (v as string) : null)).optional(),
+    /** 2026-09-25: "from this day to that day" — needs a dueDate, and must not be after it. */
+    startDate: z.union([dayKey, z.literal(""), z.null()]).transform((v) => (v ? (v as string) : null)).optional(),
+  })
+  .refine((t) => !t.startDate || (t.dueDate && t.startDate <= t.dueDate), { message: "The first day must be on or before the last day.", path: ["startDate"] });
 export const routineTaskDoneSchema = z.object({ done: z.boolean() });
 
 export const weightCreateSchema = z.object({
@@ -338,15 +342,9 @@ export const routineInviteSchema = z.object({
 });
 export const routineCollaboratorUpdateSchema = z.object({ permission: routinePermission });
 
-/* 2026-09-25 — the circle: the person's own extras, pocket money, the invited
+/* 2026-09-25 — the circle: the person's own extras, the invited
    people, and the tutors' day reports. */
 export const kidTaskCreateSchema = z.object({ title: z.string().trim().min(1).max(200) });
-export const moneyEntryCreateSchema = z.object({
-  date: dayKey,
-  amount: z.number().int().positive().max(10_000_000),
-  kind: z.enum(["GIVEN", "SPENT"]),
-  note: z.string().trim().min(1).max(120),
-});
 export const circleInviteSchema = z.object({
   name: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(320),
@@ -368,6 +366,18 @@ export const checkinSchema = z.object({
   accuracy: z.number().min(0).max(100000).optional(),
 });
 export const sharingSchema = z.object({ on: z.boolean() });
+/** The app noting where he is on its own (open / hourly): a position, nothing else. */
+export const pingSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  accuracy: z.number().min(0).max(100000).optional(),
+});
+export const placeCreateSchema = z.object({
+  name: z.string().trim().min(1).max(40),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  radiusM: z.number().int().min(50).max(2000).optional(),
+});
 export const mentorReportCreateSchema = z.object({
   collaboratorId: z.string().min(1),
   date: dayKey,

@@ -8,7 +8,8 @@ import { apiDelete } from "@/lib/api";
 import { isFounderRole } from "@/lib/roles";
 import { useMe } from "@/lib/hooks/use-users";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCalendar, useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
+import { useCalendar, useReports, useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
+import { TutorsSection } from "./tutors-section";
 import { useUsers } from "@/lib/hooks/use-users";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import { useToast } from "@/components/toast";
@@ -21,15 +22,14 @@ import { WeightMonitor } from "./weight-monitor";
 import { SummaryView } from "./summary-view";
 import { TodayCard } from "./today-card";
 import { ReportsSection } from "./reports-section";
-import { MoneyCard, MoneySection } from "./money-section";
 import { CircleSection } from "./circle-section";
 import { CalendarView, monthOf } from "./calendar-view";
 import { LocationSection } from "./location-section";
 import { addDays, inputCls, Labeled, weekLabel } from "./shared";
 
 /** The six views (2026-09-25: Calendar and Map join). Circle is the owner's alone. */
-type View = "summary" | "tracker" | "calendar" | "map" | "money" | "circle";
-const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Map", money: "Money", circle: "Circle" };
+type View = "summary" | "tracker" | "calendar" | "map" | "tutors" | "circle";
+const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Map", tutors: "Tutors", circle: "Circle" };
 
 /**
  * The Well Being tab (was "Routine", phase 35) — MANAGER only. A calm family corner
@@ -302,7 +302,7 @@ function RoutineDashboard({
   selectedPerson: string | null;
   setSelectedPerson: (id: string | null) => void;
 }) {
-  const { today, person, week: weekMeta, segments, nonNegotiables, tasks, weights, monthlyWeights, summary, role, routines, collaborators, money, reports, circle, todayTasks } = data;
+  const { today, person, week: weekMeta, segments, nonNegotiables, tasks, weights, monthlyWeights, summary, role, routines, collaborators, reports, circle, todayTasks } = data;
   // The RESOLVED id — for the switcher highlight only.
   const personId = person!.id;
   // The routine IDENTITY the query is keyed by (null = the caller's default routine).
@@ -317,9 +317,9 @@ function RoutineDashboard({
   const label = isCurrent ? "This week" : weekLabel(weekMeta.days);
   const undoneToday = tasks.filter((t) => !t.done && (t.dueDate === null || t.dueDate === today)).length;
   // Circle is the owner's alone. A stale choice (another routine picked) falls back.
-  const views: View[] = isOwner ? ["summary", "tracker", "calendar", "map", "money", "circle"] : ["summary", "tracker", "calendar", "map", "money"];
+  const views: View[] = isOwner ? ["summary", "tracker", "calendar", "map", "tutors", "circle"] : ["summary", "tracker", "calendar", "map", "tutors"];
   const active: View = views.includes(view) ? view : "summary";
-  // The week selector belongs to Summary and Tracker; Calendar, Map and Money keep their own days.
+  // The week selector belongs to Summary and Tracker; Calendar and Map keep their own days.
   const withWeek = active === "summary" || active === "tracker";
 
   // The calendar's month ("YYYY-MM", null = this month) and picked day (null = today).
@@ -379,7 +379,7 @@ function RoutineDashboard({
 
       {active === "summary" ? (
         // Today first, then the week's habits, then what the tutors sent and the
-        // month's money — two columns on a wide screen, one on a phone.
+        // two columns on a wide screen, one on a phone.
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
           <div className="min-w-0 space-y-5">
             {/* todayTasks, not the browsed week's list: Today stays today (review, 2026-09-25). */}
@@ -387,16 +387,15 @@ function RoutineDashboard({
             <SummaryView summary={summary} weekLabel={label} />
           </div>
           <div className="min-w-0 space-y-5">
-            <ReportsSection reports={reports} title="From tutors" />
-            <MoneyCard money={money} onOpen={() => setView("money")} />
+            <ReportsSection reports={reports.filter((r) => r.date === today)} title="From tutors today" emptyText="No report today." />
           </div>
         </div>
       ) : active === "calendar" ? (
         <ParentCalendar personId={routineId} today={today} month={calMonth ?? monthOf(today)} selected={calSelected ?? today} onMonth={pickMonth} onSelect={setCalSelected} />
       ) : active === "map" ? (
-        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} today={today} />
-      ) : active === "money" ? (
-        <MoneySection personId={routineId} weekParam={week} readOnly={readOnly} today={today} />
+        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} canWrite={canWrite} today={today} />
+      ) : active === "tutors" ? (
+        <ParentTutors personId={routineId} today={today} />
       ) : active === "circle" ? (
         <CircleSection circle={circle} weekParam={week} personId={routineId} personName={person!.name} />
       ) : (
@@ -428,6 +427,12 @@ function RoutineDashboard({
     sees the habit bar under each day (showHabits); the routine identity is the
     same key the overview uses, so a co-parent's or a second routine's month lands
     on its own cache entry. */
+/** The Tutors tab: all their reports, by day. */
+function ParentTutors({ personId, today }: { personId: string | null; today: string }) {
+  const { data, isLoading } = useReports(personId);
+  return <TutorsSection reports={data?.reports ?? []} loading={isLoading && !data} today={today} />;
+}
+
 function ParentCalendar({ personId, today, month, selected, onMonth, onSelect }: { personId: string | null; today: string; month: string; selected: string; onMonth: (m: string) => void; onSelect: (d: string) => void }) {
   const { data, isError, refetch } = useCalendar(month, personId);
   return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits failed={isError} onRetry={() => void refetch()} />;
@@ -606,7 +611,7 @@ function PersonBar({ person, weekParam, personId, isOwner }: { person: NonNullab
     });
   };
   const remove = () => {
-    if (!window.confirm(`Remove ${person.name}? This deletes their login and ALL Well Being history — habits, marks, non-negotiables, weight and tasks. This can't be undone.`)) return;
+    if (!window.confirm(`Remove ${person.name}? This deletes their login and ALL Well Being history — habits, marks, rules, weight and tasks. This can't be undone.`)) return;
     deletePerson.mutate(undefined, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) });
   };
 

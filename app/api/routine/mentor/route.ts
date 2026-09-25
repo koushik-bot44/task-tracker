@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * 2026-09-25 (the circle): the tutor's or coach's one screen. Each person they
  * were invited around, with what they teach and their own past reports (newest
  * first, the latest 30). Nothing of the Well Being itself reaches this side —
- * no habits, no rules, no money — only what the tutor wrote.
+ * no habits, no rules — only what the tutor wrote.
  */
 export const GET = route(async () => {
   const user = await requireMentor();
