@@ -218,14 +218,14 @@ async function crossedDaysByRule(ruleIds: string[], mondayKey: string): Promise<
 export async function buildPersonNonNegotiables(
   personId: string,
   mondayKey: string,
-): Promise<{ id: string; name: string; days: Record<string, boolean> }[]> {
+): Promise<{ id: string; name: string; days: Record<string, boolean>; addedBy: "MANAGER" | "PERSON" }[]> {
   const rules = await prisma.nonNegotiable.findMany({
     where: { personId, active: true },
     orderBy: { orderKey: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, addedBy: true },
   });
   const crossed = await crossedDaysByRule(rules.map((r) => r.id), mondayKey);
-  return rules.map((r) => ({ id: r.id, name: r.name, days: crossed.get(r.id) ?? {} }));
+  return rules.map((r) => ({ id: r.id, name: r.name, days: crossed.get(r.id) ?? {}, addedBy: r.addedBy === "PERSON" ? "PERSON" : "MANAGER" }));
 }
 /** A weight entry that belongs to the manager's own person, or 404. */
 export async function requireOwnWeight(personId: string, id: string) {
@@ -385,7 +385,7 @@ export function serializeTask(t: { id: string; title: string; dueDate: Date | nu
     startDate: t.startDate ? dateToKey(t.startDate) : null,
     done: t.done,
     doneAt: t.doneAt ? t.doneAt.toISOString() : null,
-    addedBy: t.addedBy === "PERSON" ? "PERSON" : "MANAGER",
+    addedBy: t.addedBy === "PERSON" ? "PERSON" : t.addedBy === "MENTOR" ? "MENTOR" : "MANAGER",
   };
 }
 
@@ -547,7 +547,7 @@ export async function buildCalendarMonth(personId: string, monthKey: string, opt
   };
   for (const t of tasks) {
     if (!t.dueDate) continue;
-    const row = { id: t.id, title: t.title, done: t.done, addedBy: t.addedBy === "PERSON" ? ("PERSON" as const) : ("MANAGER" as const) };
+    const row = { id: t.id, title: t.title, done: t.done, addedBy: t.addedBy === "PERSON" ? ("PERSON" as const) : t.addedBy === "MENTOR" ? ("MENTOR" as const) : ("MANAGER" as const) };
     // A task that runs over several days stands on each of them (inside this month).
     const from = t.startDate && t.startDate < t.dueDate ? (t.startDate > start ? t.startDate : start) : t.dueDate;
     const to = t.dueDate < end ? t.dueDate : end;
@@ -738,7 +738,7 @@ export async function buildOverview(
     prisma.nonNegotiable.findMany({
       where: { personId: person.id, active: true },
       orderBy: { orderKey: "asc" },
-      select: { id: true, name: true, orderKey: true, active: true },
+      select: { id: true, name: true, orderKey: true, active: true, addedBy: true },
     }),
     // Phase 42: tasks are week-scoped — only those due in the viewed week, plus the
     // undated "any day" ones. Navigating weeks shows that week's tasks only.
@@ -766,7 +766,7 @@ export async function buildOverview(
   const crossedByNn = await crossedDaysByRule(nonNegotiables.map((n) => n.id), mondayKey);
   const nonNegotiablesDto: NonNegotiableDTO[] = nonNegotiables.map((n) => {
     const dayMap = crossedByNn.get(n.id) ?? {};
-    return { id: n.id, name: n.name, orderKey: n.orderKey, active: n.active, days: dayMap, crossedThisWeek: Object.keys(dayMap).length };
+    return { id: n.id, name: n.name, orderKey: n.orderKey, active: n.active, days: dayMap, crossedThisWeek: Object.keys(dayMap).length, addedBy: n.addedBy === "PERSON" ? "PERSON" : "MANAGER" };
   });
 
   // `weights` is already ordered ascending by date (the query), so the monthly

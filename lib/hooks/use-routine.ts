@@ -397,6 +397,22 @@ export function usePersonCalendar(month: string | null) {
   });
 }
 
+/** The person sets a rule of their own, and removes only their own. */
+export function usePersonAddRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string }) => apiPost<{ id: string }>("/api/routine/kid/rules", input),
+    onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
+  });
+}
+export function usePersonDeleteRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/routine/kid/rules/${id}`),
+    onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
+  });
+}
+
 /** The person's own positions for a day (null = today), for their Map tab. */
 export function usePersonLocationDay(day: string | null) {
   return useQuery({
@@ -434,7 +450,7 @@ export function useMentor() {
 export function useMentorReportAdd() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { collaboratorId: string; date: string; covered: string; homework?: string; note?: string }) => apiPost<MentorReportDTO>("/api/routine/mentor/reports", input),
+    mutationFn: (input: { collaboratorId: string; date: string; covered: string; homework?: string; homeworkDue?: string; note?: string }) => apiPost<MentorReportDTO>("/api/routine/mentor/reports", input),
     onSettled: () => void qc.invalidateQueries({ queryKey: mentorKey }),
   });
 }

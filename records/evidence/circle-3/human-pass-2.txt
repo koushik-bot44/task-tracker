@@ -1,0 +1,10 @@
+PASS  Dr Rao sends a report with homework for tomorrow
+PASS  …and the CEO's Tasks list carries it as Maths homework tagged tutor, for Sat 26 Sep  (Maths: Exercise 6.1, questions 1–8 tutor Sat 26 Sep Exam prep 26 Sep – 29 Sep R)
+PASS  Arjun adds a rule of his own and it shows tagged 'your own'
+PASS  …a parent's rule has no remove button for him
+PASS  …and the CEO sees the rule tagged 'his own' on his Tracker
+PASS  …and Arjun can remove his own rule
+PASS  Arjun's calendar shows tomorrow's homework from Dr Rao as a task
+PASS  no page errors
+
+8 passed, 0 failed

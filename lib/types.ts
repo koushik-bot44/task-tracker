@@ -711,6 +711,8 @@ export type NonNegotiableDTO = {
   days: Record<string, boolean>;
   /** Crossings logged this week. Should be 0. */
   crossedThisWeek: number;
+  /** "MANAGER" = the parent side set it; "PERSON" = the person's own line. */
+  addedBy: "MANAGER" | "PERSON";
 };
 
 export type RoutineTaskDTO = {
@@ -719,8 +721,9 @@ export type RoutineTaskDTO = {
   dueDate: string | null;
   done: boolean;
   doneAt: string | null;
-  /** 2026-09-25: "MANAGER" = set by the parent side; "PERSON" = the person's own extra. */
-  addedBy: "MANAGER" | "PERSON";
+  /** 2026-09-25: "MANAGER" = set by the parent side; "PERSON" = the person's own extra;
+      "MENTOR" = homework a tutor set, due the day the tutor said. */
+  addedBy: "MANAGER" | "PERSON" | "MENTOR";
   /** 2026-09-25: set when the task runs from this day to dueDate; null = one day (or any day). */
   startDate: string | null;
 };
@@ -757,7 +760,7 @@ export type CircleMemberDTO = {
 };
 /** 2026-09-25 — the month calendar: one entry per day that has anything on it. */
 export type CalendarDayDTO = {
-  tasks: { id: string; title: string; done: boolean; addedBy: "MANAGER" | "PERSON" }[];
+  tasks: { id: string; title: string; done: boolean; addedBy: "MANAGER" | "PERSON" | "MENTOR" }[];
   reports: { id: string; subject: string; mentorName: string; covered: string; homework: string | null }[];
   /** Non-negotiables logged as crossed that day. */
   rules: { id: string; name: string; crossed: true }[];
@@ -908,7 +911,7 @@ export type PersonViewDTO = {
   segments: PersonHabitSegmentDTO[];
   tasks: RoutineTaskDTO[];
   /** The non-negotiables, read-only: dayKey -> true on days logged as crossed (2026-09-25). */
-  nonNegotiables: { id: string; name: string; days: Record<string, boolean> }[];
+  nonNegotiables: { id: string; name: string; days: Record<string, boolean>; addedBy: "MANAGER" | "PERSON" }[];
   /** The latest unread task reminder (phase 39), shown once then marked read. */
   reminder: { title: string; body: string } | null;
   /** 2026-09-25: the latest tutor reports (homework). */

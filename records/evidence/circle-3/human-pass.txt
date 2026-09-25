@@ -4,7 +4,7 @@ PASS  …and ticks it
 PASS  …and can remove it
 PASS  Arjun's Habits show the agreement's segments
 PASS  Arjun's Rules are read-only and show a crossed day
-INFO  Arjun's calendar panel after tapping tomorrow: Sat 26 Sep Tasks Exam prep Dentist Sign out
+INFO  Arjun's calendar panel after tapping tomorrow: Sat 26 Sep Tasks Exam prep Dentist Maths: Exercise 6
 PASS  Arjun's Map shows the day's log with times
 INFO  CEO's tabs: Summary · Tracker · Calendar · Map · Tutors · Circle
 PASS  CEO adds a task from 26 to 29 Sep  (Exam prep 26 Sep – 29 Sep )
@@ -13,12 +13,12 @@ PASS  CEO logs a crossing on a rule with one tap and it shows
 PASS  …and takes it back with another tap
 PASS  CEO opens tomorrow on the calendar and sees the tasks set for it
 PASS  CEO taps Tutors and sees the tutors’ reports by day  (Tutors’ reports What each tutor or coach punched in after a session, day by day. Today Maths · )
-PASS  CEO names a spot from the log and it appears under Places
+PASS  CEO's named spot from an earlier run is still under Places  (Coaching)
 PASS  CEO's invite form asks for a name, an email and who they are
 PASS  CEO's Summary shows today's list and the weekly summary
 INFO  Priya's tabs: Summary · Tracker · Calendar · Map · Tutors
 PASS  Dr Rao sends today's report
 PASS  …and Arjun's Today shows the homework
-FAIL  no page errors while a person taps through  (founder@orbit.local: Failed to load resource: the server responded with a status of 409 (Conflict))
+PASS  no page errors while a person taps through
 
-17 passed, 1 failed
+18 passed, 0 failed

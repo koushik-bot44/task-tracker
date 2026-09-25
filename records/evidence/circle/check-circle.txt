@@ -1,13 +1,13 @@
 PASS  the CEO signs in
 PASS  the CEO's Well Being is Arjun's, as its owner  (status 200, person Arjun, role OWNER)
-PASS  …and carries the tutors' reports for this week  (2026-09-25 Maths · Dr Rao, 2026-09-25 Maths · Dr Rao, 2026-09-25 Maths · Dr Rao, 2026-09-25 Maths · Dr Rao, 2026-09-24 Maths · Dr Rao, 2026-09-23 Tennis · Rahul Sharma)
+PASS  …and carries the tutors' reports for this week  (2026-09-25 Maths · Dr Rao, 2026-09-24 Maths · Dr Rao, 2026-09-23 Tennis · Rahul Sharma)
 PASS  …and the people around him: a co-parent who can edit, a Maths tutor and a tennis coach, all active  (Priya FAMILY ACTIVE, Dr Rao MENTOR Maths ACTIVE, Rahul Sharma MENTOR Tennis ACTIVE)
 PASS  the CEO's own login is not one of the walled ones  (status 403)
 PASS  nobody from the family corner shows up in People  (11 people)
 PASS  a fresh link for someone who already set a password is refused  (status 400: They have already set a password.)
 PASS  Arjun signs in
 PASS  the app knows Arjun is the person himself  (SON Arjun)
-PASS  his screen carries the latest reports  (status 200, 5 reports)
+PASS  his screen carries the latest reports  (status 200, 3 reports)
 PASS  his own extra is tagged as his, the parent's as theirs  (Call grandma | parent: Physics assignment)
 PASS  Arjun adds an extra of his own for today  (status 201, due 2026-09-25, PERSON)
 PASS  …and can take it off again  (status 200)
@@ -22,7 +22,7 @@ PASS  Priya cannot invite anyone — only the owner can  (status 403: Only the W
 PASS  Priya's login reaches nothing of the work app  (tasks, People, projects, me: all 403)
 PASS  Dr Rao signs in
 PASS  the app knows Dr Rao is a tutor  (MENTOR)
-PASS  Dr Rao's screen lists Arjun for Maths with his past reports, newest first  (5 reports: 2026-09-25, 2026-09-25, 2026-09-25, 2026-09-25, 2026-09-24)
+PASS  Dr Rao's screen lists Arjun for Maths with his past reports, newest first  (2 reports: 2026-09-25, 2026-09-24)
 PASS  Dr Rao never sees the Well Being itself, from either side  (parent view 403, person view 403)
 PASS  …nor the work app  (status 403)
 PASS  a report dated tomorrow is refused  (status 400: That day has not come yet.)
@@ -60,7 +60,7 @@ PASS  Priya's Well Being: every tap on the new sections is at least 36px tall  (
 PASS  Dr Rao stays on the tutor's page  (/mentor)
 PASS  Dr Rao's screen shows Arjun · Maths, today's report form and his past reports
 PASS  Dr Rao's screen fits a phone with no sideways scroll  (page width 390px)
-PASS  Dr Rao's screen: every tap on the new sections is at least 36px tall  (11 controls)
+PASS  Dr Rao's screen: every tap on the new sections is at least 36px tall  (8 controls)
 INFO  screens: arjun-1-today, arjun-2-habits, ceo-1-summary, ceo-2-circle, ceo-3-tracker, priya-1-family, rao-1-mentor
 
 55 passed, 0 failed

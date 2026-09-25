@@ -907,6 +907,9 @@ model NonNegotiable {
   name     String
   orderKey String
   active   Boolean             @default(true)
+  /// 2026-09-25: "MANAGER" = set by the parent side; "PERSON" = a line the person
+  /// set for themself (only they remove it). The parent sees both, tagged.
+  addedBy  String              @default("MANAGER")
   marks    NonNegotiableMark[]
 
   @@index([personId])
@@ -963,7 +966,8 @@ model RoutineTask {
   createdAt DateTime  @default(now())
   /// 2026-09-25: "MANAGER" = set by the parent side (the CEO or a co-parent);
   /// "PERSON" = the tracked person's own extra for the day, which only they add
-  /// and remove. The parent sees both, tagged.
+  /// and remove; "MENTOR" = homework a tutor set, due the day the tutor said.
+  /// The parent sees all three, tagged.
   addedBy   String    @default("MANAGER")
 
   @@index([personId, dueDate])

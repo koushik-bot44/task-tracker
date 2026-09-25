@@ -103,6 +103,7 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
   const [date, setDate] = useState(today);
   const [covered, setCovered] = useState("");
   const [homework, setHomework] = useState("");
+  const [homeworkDue, setHomeworkDue] = useState("");
   const [note, setNote] = useState("");
   // The line for the parents is the truly optional one — folded away until wanted.
   const [noteOpen, setNoteOpen] = useState(false);
@@ -119,6 +120,7 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
         date,
         covered: covered.trim(),
         homework: homework.trim() || undefined,
+        homeworkDue: homework.trim() && homeworkDue ? homeworkDue : undefined,
         note: note.trim() || undefined,
       },
       {
@@ -127,6 +129,7 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
           // The date stays: a tutor often sends two in a row for the same day.
           setCovered("");
           setHomework("");
+          setHomeworkDue("");
           setNote("");
           setNoteOpen(false);
         },
@@ -160,8 +163,14 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
           <textarea value={covered} onChange={(e) => setCovered(e.target.value)} rows={3} required placeholder="What you did together today" className={areaCls} />
         </Labeled>
         <Labeled label="Homework">
-          <textarea value={homework} onChange={(e) => setHomework(e.target.value)} rows={2} placeholder="Optional" className={areaCls} />
+          <textarea value={homework} onChange={(e) => setHomework(e.target.value)} rows={2} placeholder="Optional — it lands on the student's list as a task" className={areaCls} />
         </Labeled>
+        {homework.trim() ? (
+          <Labeled label="Homework is for">
+            <input type="date" value={homeworkDue} min={date} onChange={(e) => setHomeworkDue(e.target.value)} aria-label="Homework is for" className={cn(inputCls, "min-w-0")} />
+            <p className="pk-fg-soft mt-1 text-micro">Leave it empty for the day after this session.</p>
+          </Labeled>
+        ) : null}
         {noteOpen ? (
           <Labeled label="A line for the parents">
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" autoFocus className={cn(inputCls, "min-w-0")} />

@@ -345,6 +345,7 @@ export const routineCollaboratorUpdateSchema = z.object({ permission: routinePer
 /* 2026-09-25 — the circle: the person's own extras, the invited
    people, and the tutors' day reports. */
 export const kidTaskCreateSchema = z.object({ title: z.string().trim().min(1).max(200) });
+export const kidRuleCreateSchema = z.object({ name: z.string().trim().min(1).max(160) });
 export const circleInviteSchema = z.object({
   name: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(320),
@@ -383,6 +384,8 @@ export const mentorReportCreateSchema = z.object({
   date: dayKey,
   covered: z.string().trim().min(1).max(1000),
   homework: z.string().trim().max(1000).optional(),
+  /** The day the homework is for; the report's next day when left out. */
+  homeworkDue: dayKey.optional(),
   note: z.string().trim().max(1000).optional(),
 });
 

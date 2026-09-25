@@ -56,7 +56,9 @@ export function TodayCard({ tasks, today, personId }: { tasks: RoutineTaskDTO[];
                 {t.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : null}
               </span>
               <span className={cn("min-w-0 flex-1 truncate text-sm", t.done ? "pk-fg-soft line-through" : "pk-fg")}>{t.title}</span>
-              {t.addedBy === "PERSON" ? (
+              {t.addedBy === "MENTOR" ? (
+                <span className="pk-chip shrink-0 rounded-card px-2 py-0.5 text-micro font-medium" title="Homework a tutor set">tutor</span>
+              ) : t.addedBy === "PERSON" ? (
                 <span className="pk-chip shrink-0 rounded-card px-2 py-0.5 text-micro font-medium" title="Something they added for themselves">his own</span>
               ) : null}
             </li>

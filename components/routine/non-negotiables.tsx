@@ -76,7 +76,10 @@ export function NonNegotiables({
           {items.map((n) => (
             <div key={n.id}>
               <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                <span className="min-w-0 text-sm font-medium pk-fg">{n.name}</span>
+                <span className="min-w-0 text-sm font-medium pk-fg">
+                  {n.name}
+                  {n.addedBy === "PERSON" ? <span className="pk-chip ml-2 rounded-card px-2 py-0.5 align-middle text-micro font-medium">his own</span> : null}
+                </span>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className={cn("text-micro", n.crossedThisWeek > 0 ? "font-semibold text-warn-ink" : "pk-fg-soft")}>
                     {n.crossedThisWeek === 0 ? "0 crossed" : `${n.crossedThisWeek} crossed`}

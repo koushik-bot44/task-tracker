@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { ApiError, apiDelete } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
+import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO, PlaceDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
@@ -114,6 +114,14 @@ export function PersonScreen() {
   const tasks = data?.tasks ?? [];
   const forYou = tasks.filter((t) => t.addedBy === "MANAGER");
   const own = tasks.filter((t) => t.addedBy === "PERSON");
+  const homework = tasks.filter((t) => t.addedBy === "MENTOR");
+  const [ruleName, setRuleName] = useState("");
+  const addRule = usePersonAddRule();
+  const deleteRule = usePersonDeleteRule();
+  const addOwnRule = () => {
+    if (!ruleName.trim()) return;
+    addRule.mutate({ name: ruleName.trim() }, { onSuccess: () => setRuleName(""), onError: err });
+  };
   const segments = data?.segments ?? [];
   const rules = data?.nonNegotiables ?? [];
   // Latest report first (date, then when it was written).
@@ -270,6 +278,17 @@ export function PersonScreen() {
                     </div>
                   ) : null}
 
+                  {homework.length > 0 ? (
+                    <div>
+                      <SubHeading>Homework from your tutors</SubHeading>
+                      <ul className="space-y-2.5">
+                        {homework.map((t) => (
+                          <TaskRow key={t.id} task={t} onToggle={() => toggle.mutate({ id: t.id, done: !t.done })} />
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
                   <div>
                     <SubHeading>Your own</SubHeading>
                     {own.length > 0 ? (
@@ -320,11 +339,25 @@ export function PersonScreen() {
 
               {active === "rules" && data ? (
                 <div>
-                  <p className="pk-fg-soft mb-4 text-sm">These hold every day. A day is marked only if a line was crossed.</p>
+                  <p className="pk-fg-soft mb-4 text-sm">These hold every day. A day is marked only if a line was crossed. Add a line of your own below.</p>
                   <div className="space-y-5">
                     {rules.map((r) => (
-                      <RuleRow key={r.id} rule={r} week={data.week} today={data.today} />
+                      <RuleRow key={r.id} rule={r} week={data.week} today={data.today} onRemove={r.addedBy === "PERSON" ? () => { if (window.confirm(`Remove your rule “${r.name}”?`)) deleteRule.mutate(r.id, { onError: err }); } : undefined} />
                     ))}
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <input
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") addOwnRule(); }}
+                      placeholder="A rule of your own…"
+                      aria-label="A rule of your own"
+                      maxLength={160}
+                      className={cn(inputCls, "min-w-0 flex-1")}
+                    />
+                    <button type="button" onClick={addOwnRule} disabled={!ruleName.trim() || addRule.isPending} aria-label="Add rule" className="press grid h-11 w-11 shrink-0 place-items-center rounded-card bg-primary text-on-primary disabled:opacity-40">
+                      <Plus className="h-5 w-5" aria-hidden />
+                    </button>
                   </div>
                 </div>
               ) : null}
@@ -437,17 +470,29 @@ function RuleRow({
   rule,
   week,
   today,
+  onRemove,
 }: {
   rule: PersonViewDTO["nonNegotiables"][number];
   week: PersonViewDTO["week"];
   today: string;
+  onRemove?: () => void;
 }) {
   const crossed = Object.keys(rule.days).length;
   return (
     <div>
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <p className="pk-fg min-w-0 text-base font-medium">{rule.name}</p>
-        <span className={cn("shrink-0 text-micro", crossed > 0 ? "font-semibold text-warn-ink" : "pk-fg-soft")}>{crossed === 0 ? "held all week" : `${crossed} crossed`}</span>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="pk-fg min-w-0 text-base font-medium">
+          {rule.name}
+          {rule.addedBy === "PERSON" ? <span className="pk-chip ml-2 rounded-card px-2 py-0.5 align-middle text-micro font-medium">your own</span> : null}
+        </p>
+        <span className="flex shrink-0 items-center gap-1">
+          <span className={cn("text-micro", crossed > 0 ? "font-semibold text-warn-ink" : "pk-fg-soft")}>{crossed === 0 ? "held all week" : `${crossed} crossed`}</span>
+          {onRemove ? (
+            <button type="button" onClick={onRemove} aria-label={`Remove your rule ${rule.name}`} className="press grid h-11 w-11 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink">
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
+        </span>
       </div>
       <div className="grid grid-cols-7 gap-1.5">
         {week.days.map((d) => {

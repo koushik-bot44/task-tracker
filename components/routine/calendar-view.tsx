@@ -242,6 +242,8 @@ function DayPanel({
                       <span className="pk-chip shrink-0 rounded-card px-2 py-0.5 text-micro font-medium" title="Something they added for themselves">
                         his own
                       </span>
+                    ) : t.addedBy === "MENTOR" ? (
+                      <span className="pk-chip shrink-0 rounded-card px-2 py-0.5 text-micro font-medium" title="Homework a tutor set">tutor</span>
                     ) : null}
                   </li>
                 ))}

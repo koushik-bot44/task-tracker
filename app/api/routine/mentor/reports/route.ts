@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyUsers } from "@/lib/notify";
 import { requireMentor, route } from "@/lib/session";
 import { mentorReportCreateSchema, parseBody } from "@/lib/validation";
-import { dayKeyToDate, serializeReport, todayKey } from "@/lib/routine";
+import { dateToKey, dayKeyToDate, serializeReport, todayKey } from "@/lib/routine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export const POST = route(async (req: Request) => {
 
   const parsed = await parseBody(req, mentorReportCreateSchema);
   if (!parsed.ok) return parsed.response;
-  const { collaboratorId, date, covered, homework, note } = parsed.data;
+  const { collaboratorId, date, covered, homework, homeworkDue, note } = parsed.data;
 
   const row = await prisma.routineCollaborator.findFirst({
     where: { id: collaboratorId, managerId: user.id, status: "ACCEPTED", kind: "MENTOR" },
@@ -42,6 +42,13 @@ export const POST = route(async (req: Request) => {
     data: { personId: row.personId, collaboratorId: row.id, date: dayKeyToDate(date), subject, covered, homework: homework || null, note: note || null },
     select: { id: true, date: true, subject: true, covered: true, homework: true, note: true, createdAt: true },
   });
+  // Homework is a real task on the son's list, for the day the tutor said (the day
+  // after the session when not said), tagged as the tutor's (developer, 2026-09-25).
+  if (homework) {
+    const next = new Date(dayKeyToDate(date)); next.setUTCDate(next.getUTCDate() + 1);
+    const due = homeworkDue ?? dateToKey(next);
+    await prisma.routineTask.create({ data: { personId: row.personId, title: `${subject}: ${homework}`, dueDate: dayKeyToDate(due), addedBy: "MENTOR" } });
+  }
 
   const manager = await prisma.user.findUnique({ where: { id: row.person.managerId }, select: { id: true, role: true } });
   const owners = manager?.role === "FOUNDER"

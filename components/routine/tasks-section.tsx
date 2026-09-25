@@ -79,7 +79,7 @@ export function TasksSection({ tasks, today, weekParam, personId, readOnly = fal
                 {t.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : null}
               </span>
               <span className={cn("min-w-0 flex-1 truncate text-sm", t.done ? "pk-fg-soft line-through" : "pk-fg")}>{t.title}</span>
-              {t.addedBy === "PERSON" ? <span className="shrink-0 rounded-chip pk-chip px-2 py-0.5 text-micro">his own</span> : null}
+              {t.addedBy === "PERSON" ? <span className="shrink-0 rounded-chip pk-chip px-2 py-0.5 text-micro">his own</span> : t.addedBy === "MENTOR" ? <span className="shrink-0 rounded-chip pk-chip px-2 py-0.5 text-micro">tutor</span> : null}
               <span className="shrink-0 text-micro pk-fg-soft">{dueLabel(t)}</span>
               {readOnly ? null : (
                 <button type="button" onClick={() => deleteTask.mutate(t.id, { onError: err })} aria-label={`Remove ${t.title}`} className="press grid h-11 w-11 shrink-0 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink"><X className="h-4 w-4" aria-hidden /></button>
