@@ -70,13 +70,15 @@ function fromOverland(item: unknown): Incoming | null {
 /** A phone's clock can be a little off; a position "from the future" beyond that
     is a bad payload and would sit as "last seen" forever (rig, 2026-09-25). */
 const FUTURE_GRACE_MS = 10 * 60_000;
-/** Nothing before this is a phone position; it also catches a `tst` sent in
-    milliseconds or a timestamp that did not parse (review, 2026-09-25). */
-const OLDEST_MS = Date.UTC(2020, 0, 1);
+/** A phone's offline queue is days old at most; anything older (or a `tst` sent
+    in milliseconds, or a timestamp that did not parse) is not a position (review, 2026-09-25). */
+const OLDEST_AGE_MS = 30 * 86_400_000;
 
 async function store(personId: string, incoming: Incoming[]) {
-  const limit = Date.now() + FUTURE_GRACE_MS;
-  const points = incoming.filter((p) => Number.isFinite(p.at.getTime()) && p.at.getTime() >= OLDEST_MS && p.at.getTime() <= limit);
+  const now = Date.now();
+  const limit = now + FUTURE_GRACE_MS;
+  const oldest = now - OLDEST_AGE_MS;
+  const points = incoming.filter((p) => Number.isFinite(p.at.getTime()) && p.at.getTime() >= oldest && p.at.getTime() <= limit);
   if (points.length === 0) return;
   const { start, end } = istDayRange(todayKey());
   const already = await prisma.locationPoint.count({ where: { personId, source: { in: ["OWNTRACKS", "OVERLAND"] }, at: { gte: start, lte: end } } });

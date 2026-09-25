@@ -351,8 +351,8 @@ function SubHeading({ children }: { children: ReactNode }) {
 /** The Calendar tab: the month loads only while this tab is open. No habit
     rollup on the person's side — the server sends habits as null anyway. */
 function PersonCalendar({ today, month, selected, onMonth, onSelect }: { today: string; month: string; selected: string; onMonth: (m: string) => void; onSelect: (d: string) => void }) {
-  const { data } = usePersonCalendar(month);
-  return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits={false} />;
+  const { data, isError, refetch } = usePersonCalendar(month);
+  return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits={false} failed={isError} onRetry={() => void refetch()} />;
 }
 
 /** The Map tab — his own view of today: the map, the day's check-ins, and

@@ -1,0 +1,101 @@
+PASS  the CEO signs in
+PASS  the CEO's Well Being is Arjun's  (status 200, Arjun, today 2026-09-25)
+PASS  the CEO's calendar opens on this month with today's tasks  (status 200, month 2026-09, today: Physics assignment, Pack tennis kit, Call grandma)
+PASS  …and Arjun's habits on the days he was marked  (2026-09-24 10 of 15, 2026-09-23 11 of 15, 2026-09-22 11 of 15, 2026-09-21 12 of 15)
+PASS  …the tutors' reports and the money on their days  (today: 1 report, 0 rules scheduled, spent ₹250)
+PASS  a month that is not a month is refused  (status 400: That is not a month.)
+PASS  the CEO's map for today lists Arjun's check-ins and the phone's points  (status 200, 3 check-ins, 3 from the phone: Home, Tutor, School)
+PASS  …newest first, with the latest point as last seen  (last seen Home at 2026-09-25T11:45:56.984Z)
+PASS  …and phone sharing on, with the link for the owner  (on true, link of 32 letters)
+INFO  last seen today: Home (CHECKIN); last check-in: Home
+PASS  a phone point keeps its battery and accuracy  (battery 61, accuracy 25)
+PASS  a day that is not a day is refused  (status 400: That is not a day.)
+PASS  Priya signs in
+PASS  Priya sees the same day on the map  (status 200, 3 check-ins, 3 from the phone)
+PASS  …knows sharing is on, but never gets the link  (on true, url null)
+PASS  Priya cannot turn sharing off or on — only the owner can  (status 403: Only the Well Being owner can do this.)
+PASS  Priya opens the same calendar  (status 200)
+PASS  Arjun signs in
+INFO  Arjun's side has 7 habit groups and 4 rules this week, so his tabs should read Today · Habits · Rules · Calendar · Money · Map
+PASS  Arjun's calendar has his days, and never a habit rollup  (status 200, 6 days, habits all null)
+PASS  Arjun's map shows his own points, with no link  (status 200, 3 check-ins, 3 from the phone, on true, url null)
+PASS  …and the parent's side of the map is not his  (status 403)
+PASS  Arjun checks in without a position  (status 201, CHECKIN Other at 0,0)
+PASS  …and it is now his latest point  (7 points, last seen Other)
+PASS  …and once removed the day is as it was  (6 points)
+PASS  a check-in with no place is refused  (status 400: Invalid request)
+PASS  a wrong sharing link is refused  (status 404: {"error":"Unknown link."})
+PASS  a body that is not a location is refused  (status 400: {"error":"Not a location."})
+PASS  …and so is something that is not even JSON  (status 400: {"error":"Not a location."})
+PASS  a position off the map is accepted and quietly skipped  (status 200 [], still 6 points)
+PASS  Dr Rao signs in
+PASS  Dr Rao reaches neither the map nor the calendar, from either side  (map 403, calendar 403, person's map 403)
+PASS  a head of department can't open the calendar or the map  (calendar 403, map 403)
+PASS  the CEO turns sharing off  (status 200, on false)
+PASS  …and the old link stops working, the map says off  (old link 404, on false)
+PASS  …then on again, with a NEW link  (status 200, 32 letters, different from before)
+PASS  …which the map now shows the owner, and the phone can use  (on true)
+PASS  Arjun lands on his own screen  (/person)
+INFO  Arjun's tabs: Today · Habits · Rules · Calendar · Money · Map
+PASS  Arjun is offered Today, Habits, Rules, Calendar, Money, Map — Calendar and Map among them  (Today, Habits, Rules, Calendar, Money, Map)
+PASS  his Today asks where he is and remembers his last check-in  (wanted "Last check-in: Home · …")
+PASS  Arjun's Today fits a phone with no sideways scroll  (page width 390px)
+PASS  Arjun's Today: every tap on the new sections is at least 36px tall  (19 controls)
+INFO  Arjun's calendar, today's cell: "25 September, 5 things", panel "Fri 25 Sep · Today"
+PASS  his Calendar opens on this month and today's panel lists his tasks and the tutor's homework  (panel "Fri 25 Sep · Today")
+PASS  …with no habit bars on his side  (0 bars)
+PASS  Arjun's Calendar fits a phone with no sideways scroll  (page width 390px)
+PASS  Arjun's Calendar: every tap on the new sections is at least 36px tall  (38 controls)
+PASS  his Map draws today
+PASS  …lists his check-ins and says sharing with his parents is on  ("Sharing with your parents: on")
+PASS  …and never shows him the link
+PASS  Arjun's Map fits a phone with no sideways scroll  (page width 390px)
+INFO  Arjun's Map: taps under 40px — a "Leaflet" 14px
+PASS  Arjun's Map: every tap on the new sections is at least 36px tall  (9 controls)
+PASS  his Money tab shows what he got and what he spent
+PASS  Arjun's Money fits a phone with no sideways scroll  (page width 390px)
+PASS  Arjun's Money: every tap on the new sections is at least 36px tall  (15 controls)
+PASS  Arjun's Habits fits a phone with no sideways scroll  (page width 390px)
+INFO  Arjun's Habits: taps under 40px — button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "No phone at the dinner table, M — met (t" 36px, button "No phone at the dinner table, T — met (t" 36px, button "No phone at the dinner table, W — met (t" 36px, button "No phone at the dinner table, T — missed" 36px, button "No phone at the dinner table, F — not ma" 36px, button "No phone at the dinner table, S — not ma" 36px, button "No phone at the dinner table, S — not ma" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No Diet Cokes, M — missed (tap to change" 36px, button "No Diet Cokes, T — met (tap to change)" 36px, button "No Diet Cokes, W — met (tap to change)" 36px, button "No Diet Cokes, T — met (tap to change)" 36px, button "No Diet Cokes, F — not marked (tap to ch" 36px, button "No Diet Cokes, S — not marked" 36px, button "No Diet Cokes, S — not marked" 36px, button "Worked out / gym session completed, M — " 36px, button "Worked out / gym session completed, T — " 36px, button "Worked out / gym session completed, W — " 36px, button "Worked out / gym session completed, T — " 36px, button "Worked out / gym session completed, F — " 36px, button "Worked out / gym session completed, S — " 36px, button "Worked out / gym session completed, S — " 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "No fights with his sister, M — met (tap " 36px, button "No fights with his sister, T — met (tap " 36px, button "No fights with his sister, W — missed (t" 36px, button "No fights with his sister, T — met (tap " 36px, button "No fights with his sister, F — not marke" 36px, button "No fights with his sister, S — not marke" 36px, button "No fights with his sister, S — not marke" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px
+INFO  Arjun's Habits: 111 controls, 0 under 36px (older sections, listed only)
+INFO  the CEO's tabs: Summary · Tracker · Calendar · Map · Money · Circle
+PASS  the CEO is offered Summary, Tracker, Calendar, Map, Money and Circle  (Summary, Tracker, Calendar, Map, Money, Circle)
+PASS  his Summary shows today's list and where Arjun was last seen  (wanted "Last seen: Home · …")
+PASS  the CEO's Summary fits a phone with no sideways scroll  (page width 390px)
+PASS  the CEO's Summary: every tap on the new sections is at least 36px tall  (7 controls)
+PASS  his Calendar shows today's panel and the habit bars under the marked days  (panel "Fri 25 Sep · Today", 4 habit bars)
+PASS  …the week nav stays out of the way
+PASS  the CEO's Calendar fits a phone with no sideways scroll  (page width 390px)
+PASS  the CEO's Calendar: every tap on the new sections is at least 36px tall  (38 controls)
+PASS  his Map draws today
+PASS  …says where Arjun was last seen, lists the check-ins and counts the phone's points  (wanted "Last seen: Home · …" and "3 phone points")
+PASS  …and, for the owner, phone sharing is on with a link to copy  (switch aria-checked true)
+PASS  the CEO's Map fits a phone with no sideways scroll  (page width 390px)
+INFO  the CEO's Map: taps under 40px — a "Leaflet" 14px
+PASS  the CEO's Map: every tap on the new sections is at least 36px tall  (13 controls)
+PASS  his Money tab shows the month with both totals
+PASS  the CEO's Money fits a phone with no sideways scroll  (page width 390px)
+PASS  the CEO's Money: every tap on the new sections is at least 36px tall  (13 controls)
+PASS  his Circle names the people around Arjun
+PASS  the CEO's Circle fits a phone with no sideways scroll  (page width 390px)
+PASS  the CEO's Circle: every tap on the new sections is at least 36px tall  (11 controls)
+PASS  the CEO's Tracker fits a phone with no sideways scroll  (page width 390px)
+INFO  the CEO's Tracker: taps under 40px — button "Edit" 30px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "In bed / phone away by 10:30 PM (school " 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Up by 6:15 AM without repeated wake-up c" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Leave the phone outside the bedroom over" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "Recreational screen time kept to 90 mins" 36px, button "No phone at the dinner table, M — met (t" 36px, button "No phone at the dinner table, T — met (t" 36px, button "No phone at the dinner table, W — met (t" 36px, button "No phone at the dinner table, T — missed" 36px, button "No phone at the dinner table, F — not ma" 36px, button "No phone at the dinner table, S — not ma" 36px, button "No phone at the dinner table, S — not ma" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Checked grade portal / knew what was due" 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "Completed the daily study block (min. 2 " 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No outside food ordered (or within the 2" 36px, button "No Diet Cokes, M — missed (tap to change" 36px, button "No Diet Cokes, T — met (tap to change)" 36px, button "No Diet Cokes, W — met (tap to change)" 36px, button "No Diet Cokes, T — met (tap to change)" 36px, button "No Diet Cokes, F — not marked (tap to ch" 36px, button "No Diet Cokes, S — not marked (tap to ch" 36px, button "No Diet Cokes, S — not marked (tap to ch" 36px, button "Worked out / gym session completed, M — " 36px, button "Worked out / gym session completed, T — " 36px, button "Worked out / gym session completed, W — " 36px, button "Worked out / gym session completed, T — " 36px, button "Worked out / gym session completed, F — " 36px, button "Worked out / gym session completed, S — " 36px, button "Worked out / gym session completed, S — " 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "2 Driving sessions over the weekend, not" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "Study block done before hanging out with" 36px, button "No fights with his sister, M — met (tap " 36px, button "No fights with his sister, T — met (tap " 36px, button "No fights with his sister, W — missed (t" 36px, button "No fights with his sister, T — met (tap " 36px, button "No fights with his sister, F — not marke" 36px, button "No fights with his sister, S — not marke" 36px, button "No fights with his sister, S — not marke" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Stayed rational / no yelling during disa" 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Gave advance notice for schedule-change " 36px, button "Remove Physics assignment" 28px, button "Remove Pack tennis kit" 28px, button "Remove Call grandma" 28px, button "Log" 30px, button "recent" 28px, button "monthly" 28px, button "Delete 71.2 kg on 18 Sep" 24px, button "Delete 71.8 kg on 11 Sep" 24px, button "Delete 71.6 kg on 4 Sep" 24px, button "Delete 71.9 kg on 28 Aug" 24px, button "Delete 72.4 kg on 14 Aug" 24px
+INFO  the CEO's Tracker: 160 controls, 12 under 36px (older sections, listed only)
+PASS  Priya stays on the co-parent's page  (/family)
+INFO  Priya's tabs: Summary · Tracker · Calendar · Map · Money
+PASS  Priya sees Summary, Tracker, Calendar, Map and Money — no Circle  (Summary, Tracker, Calendar, Map, Money)
+PASS  Priya's Well Being fits a phone with no sideways scroll  (page width 390px)
+PASS  Priya's Well Being: every tap on the new sections is at least 36px tall  (6 controls)
+PASS  Priya's Map draws today
+PASS  …shows the same day, and never the sharing switch or the link  (wanted "Last seen: Home · …")
+PASS  Priya's Map fits a phone with no sideways scroll  (page width 390px)
+INFO  Priya's Map: taps under 40px — a "Leaflet" 14px
+PASS  Priya's Map: every tap on the new sections is at least 36px tall  (10 controls)
+PASS  Dr Rao stays on the tutor's page  (/mentor)
+PASS  Dr Rao's screen shows Arjun · Maths and nothing of the map or the calendar
+PASS  Dr Rao's screen fits a phone with no sideways scroll  (page width 390px)
+PASS  Dr Rao's screen: every tap on the new sections is at least 36px tall  (8 controls)
+INFO  screens: arjun-1-today, arjun-2-calendar, arjun-3-map, arjun-4-money, arjun-5-habits, ceo-1-summary, ceo-2-calendar, ceo-3-map, ceo-4-money, ceo-5-circle, ceo-6-tracker, priya-1-family, priya-2-map, rao-1-mentor
+
+85 passed, 0 failed

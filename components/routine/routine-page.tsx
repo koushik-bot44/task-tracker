@@ -429,8 +429,8 @@ function RoutineDashboard({
     same key the overview uses, so a co-parent's or a second routine's month lands
     on its own cache entry. */
 function ParentCalendar({ personId, today, month, selected, onMonth, onSelect }: { personId: string | null; today: string; month: string; selected: string; onMonth: (m: string) => void; onSelect: (d: string) => void }) {
-  const { data } = useCalendar(month, personId);
-  return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits />;
+  const { data, isError, refetch } = useCalendar(month, personId);
+  return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits failed={isError} onRetry={() => void refetch()} />;
 }
 
 /** Switch between the routines the manager can open (own + accepted collaborations). */

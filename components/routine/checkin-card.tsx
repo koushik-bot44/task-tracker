@@ -96,12 +96,13 @@ export function CheckInCard({ lastSeen }: { lastSeen: LocationPointDTO | null })
 
       <div className="mb-3 space-y-2">
         {place === "Other" ? (
-          <input value={other} onChange={(e) => setOther(e.target.value)} maxLength={40} placeholder="Where?" aria-label="Where?" className={inputCls} />
+          <input value={other} onChange={(e) => setOther(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !busy) tap(); }} disabled={busy} maxLength={40} placeholder="Where?" aria-label="Where?" className={inputCls} />
         ) : null}
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !busy) tap(); }}
+          disabled={busy}
           maxLength={120}
           placeholder="Add a note (optional)"
           aria-label="Add a note (optional)"

@@ -67,6 +67,8 @@ export function CalendarView({
   selected,
   onSelect,
   showHabits,
+  failed = false,
+  onRetry,
 }: {
   data: CalendarMonthDTO | undefined;
   month: string;
@@ -75,6 +77,9 @@ export function CalendarView({
   selected: string;
   onSelect: (d: string) => void;
   showHabits: boolean;
+  /** The month could not be fetched: say so and offer another go (review, 2026-09-25). */
+  failed?: boolean;
+  onRetry?: () => void;
 }) {
   const cells = monthCells(month);
   // The Monday that starts the first row — the weekday initials read off it.
@@ -112,7 +117,7 @@ export function CalendarView({
       </div>
 
       {/* Weekday initials, Monday first */}
-      <div className="mb-1 grid grid-cols-7 gap-1" aria-hidden>
+      <div className="-mx-2 mb-1 grid grid-cols-7 gap-0.5 sm:mx-0 sm:gap-1" aria-hidden>
         {initials.map((ch, i) => (
           <div key={i} className="min-w-0 text-center text-micro font-medium pk-fg-soft">
             {ch}
@@ -121,7 +126,7 @@ export function CalendarView({
       </div>
 
       {/* The grid */}
-      <div className="grid grid-cols-7 gap-1" role="group" aria-label={monthLabel(month)}>
+      <div className="-mx-2 grid grid-cols-7 gap-0.5 sm:mx-0 sm:gap-1" role="group" aria-label={monthLabel(month)}>
         {cells.map((key, i) => {
           if (key === null) return <div key={`empty-${i}`} aria-hidden className="min-h-[48px] min-w-0" />;
           const day = days?.[key];
@@ -175,7 +180,7 @@ export function CalendarView({
         {!selectedInMonth ? (
           <p className="py-2 text-center text-sm pk-fg-soft">Pick a day.</p>
         ) : (
-          <DayPanel dayKey={selected} day={picked} today={today} loading={data === undefined} showHabits={showHabits} />
+          <DayPanel dayKey={selected} day={picked} today={today} loading={data === undefined && !failed} failed={failed} onRetry={onRetry} showHabits={showHabits} />
         )}
       </div>
     </section>
@@ -187,12 +192,16 @@ function DayPanel({
   day,
   today,
   loading,
+  failed = false,
+  onRetry,
   showHabits,
 }: {
   dayKey: string;
   day: CalendarDayDTO | undefined;
   today: string;
   loading: boolean;
+  failed?: boolean;
+  onRetry?: () => void;
   showHabits: boolean;
 }) {
   const habits = showHabits && day?.habits && day.habits.total > 0 ? day.habits : null;
@@ -205,7 +214,14 @@ function DayPanel({
         {dayKey === today ? <span className="pk-fg-soft"> · Today</span> : null}
       </h3>
 
-      {loading ? (
+      {failed ? (
+        <div className="py-2 text-center">
+          <p className="text-sm pk-fg-soft">Could not load this month.</p>
+          {onRetry ? (
+            <button type="button" onClick={onRetry} className="press mt-2 inline-flex h-11 items-center rounded-card bg-primary px-4 text-sm font-medium text-on-primary">Try again</button>
+          ) : null}
+        </div>
+      ) : loading ? (
         <p className="py-2 text-center text-sm pk-fg-soft">Loading…</p>
       ) : empty ? (
         <p className="py-2 text-center text-sm pk-fg-soft">Nothing on this day.</p>
