@@ -1,12 +1,14 @@
 "use client";
 
-import { Bell, ChevronLeft, ChevronRight, Eye, Loader2, Maximize2, Minimize2, Pencil, Plus, ShieldCheck, Sparkles, Sun, Trash2, Users, X } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Eye, Loader2, LogOut, Maximize2, Minimize2, Pencil, Plus, ShieldCheck, Sparkles, Sun, Trash2, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { apiDelete } from "@/lib/api";
 import { isFounderRole } from "@/lib/roles";
 import { useMe } from "@/lib/hooks/use-users";
-import { useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCalendar, useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
 import { useUsers } from "@/lib/hooks/use-users";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import { useToast } from "@/components/toast";
@@ -17,7 +19,17 @@ import { NonNegotiables } from "./non-negotiables";
 import { TasksSection } from "./tasks-section";
 import { WeightMonitor } from "./weight-monitor";
 import { SummaryView } from "./summary-view";
+import { TodayCard } from "./today-card";
+import { ReportsSection } from "./reports-section";
+import { MoneyCard, MoneySection } from "./money-section";
+import { CircleSection } from "./circle-section";
+import { CalendarView, monthOf } from "./calendar-view";
+import { LocationSection } from "./location-section";
 import { addDays, inputCls, Labeled, weekLabel } from "./shared";
+
+/** The six views (2026-09-25: Calendar and Map join). Circle is the owner's alone. */
+type View = "summary" | "tracker" | "calendar" | "map" | "money" | "circle";
+const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Map", money: "Money", circle: "Circle" };
 
 /**
  * The Well Being tab (was "Routine", phase 35) — MANAGER only. A calm family corner
@@ -28,9 +40,14 @@ import { addDays, inputCls, Labeled, weekLabel } from "./shared";
  * other tabs) and frosted-glass panels (the shared `.pk-*` classes) for every surface,
  * text adapting dark/light by scene. Styling only — all Well Being logic is unchanged.
  */
-export function RoutinePage() {
-  const router = useRouter();
-  const { data: me } = useMe();
+export function RoutinePage({ standalone = false }: { standalone?: boolean }) {
+  // 2026-09-25: a co-parent opens the SAME screens from their own walled login at
+  // /family — no app chrome, no founder guard, the person screen's full-page scene.
+  return standalone ? <StandaloneRoutinePage /> : <AppRoutinePage />;
+}
+
+/** The three choices held ABOVE the dashboard, shared by both wrappers. */
+function useViewState() {
   // null = the current week (server picks); a Monday key = a specific week.
   const [week, setWeek] = useState<string | null>(null);
   // null = the caller's default routine (own person, else first collaboration).
@@ -38,7 +55,15 @@ export function RoutinePage() {
   // Summary (the calm overview) first, Tracker one tap away. Held here beside the
   // week: the dashboard gives way to "Loading…" while another week loads, so held
   // inside it the choice snapped back to Summary on every arrow (review, 2026-09-10).
-  const [view, setView] = useState<"summary" | "tracker">("summary");
+  const [view, setView] = useState<View>("summary");
+  return { week, setWeek, selectedPerson, setSelectedPerson, view, setView };
+}
+
+/** The CEO's Well Being tab inside the app (sidebar + header around it). */
+function AppRoutinePage() {
+  const router = useRouter();
+  const { data: me } = useMe();
+  const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState();
   // Well Being is the CEO's alone (owner, 2026-09-04).
   const { data, isLoading } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
   // Shared scene (same source as the person screen). The scene class (pk-day / pk-night)
@@ -83,29 +108,7 @@ export function RoutinePage() {
     <div ref={rootRef} className={cn("wb-fs relative min-h-[calc(100dvh-4rem)]", sceneClass)}>
       <div aria-hidden className="wb-scene wb-scene-app">
         {mounted ? <WellBeingScene night={night} /> : null}
-        {/* The owner's picture over the scene: a calm hill under a wide sky
-            (owner, 2026-09-08). Dimmed at night so the glass panels keep their
-            contrast. */}
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
-          style={{
-            backgroundImage: "url('/well-being.jpg')",
-            opacity: 1,
-            // Softened the way a wallpaper sits behind glass: recognisable, never
-            // competing with the words on top. Scaled so the blur has no edge.
-            // Sharp: the picture is the point. The panels do the blurring —
-            // each one frosts whatever sits behind IT (owner, 2026-09-08).
-            filter: night ? "saturate(112%) brightness(0.9)" : "saturate(108%)",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: night
-              ? "linear-gradient(180deg, rgba(10,14,32,0.18) 0%, rgba(10,14,32,0.42) 100%)"
-              : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
-          }}
-        />
+        <SceneBackdrop night={night} />
       </div>
       {/* z-[1] sits above the z-0 scene but BELOW the app header (z-sticky = 10), so the
           content slides cleanly under the chrome instead of painting over it when scrolled. */}
@@ -140,6 +143,102 @@ export function RoutinePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The co-parent's Well Being (2026-09-25): the same dashboard on its own full page,
+ * the way the person's screen sits — no sidebar or header, so it wears the
+ * person screen's wrapper. No founder guard: the API decides what this login may
+ * see (its role is EDITABLE or READ_ONLY, never OWNER, so Circle never shows).
+ */
+function StandaloneRoutinePage() {
+  const router = useRouter();
+  const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState();
+  const { data, isLoading, isError } = useRoutine(week, selectedPerson, true);
+  const { mounted, night, overNight, floatText } = useTimeScene();
+  const sceneClass = overNight ? "pk-night" : "pk-day";
+  const qc = useQueryClient();
+
+  const signOut = async () => {
+    await apiDelete("/api/auth").catch(() => {});
+    // A shared phone: the next login must not see this one's cached screens (review, 2026-09-25).
+    qc.clear();
+    router.replace("/login");
+  };
+
+  return (
+    <div className={cn("relative min-h-dvh bg-bg", sceneClass)}>
+      <div aria-hidden className="wb-scene wb-scene-full">
+        {mounted ? <WellBeingScene night={night} /> : null}
+        <SceneBackdrop night={night} />
+      </div>
+      <div
+        className="relative z-10 mx-auto flex min-h-dvh max-w-2xl flex-col"
+        style={{
+          paddingTop: "max(1.5rem, env(safe-area-inset-top))",
+          paddingBottom: "max(2rem, env(safe-area-inset-bottom))",
+          paddingLeft: "max(1rem, env(safe-area-inset-left))",
+          paddingRight: "max(1rem, env(safe-area-inset-right))",
+        }}
+      >
+        <header className="mb-5 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className={cn("flex items-center gap-2 font-display text-page-lg font-bold", floatText)}>
+              <Sun className={cn("h-6 w-6", overNight ? "text-warn" : "text-warn-ink")} strokeWidth={2} aria-hidden />
+              Well Being
+            </h1>
+            {data?.person ? <p className={cn("mt-1 truncate text-sm", overNight ? "text-on-primary" : "pk-fg")}>{data.person.name}</p> : null}
+          </div>
+          <button type="button" onClick={signOut} className="pk-press pk-btn pk-glass pk-fg inline-flex h-11 shrink-0 items-center gap-1.5 rounded-card px-3 text-sm font-medium">
+            <LogOut className="h-4 w-4" aria-hidden /> Sign out
+          </button>
+        </header>
+
+        {isError ? (
+          <div className="rounded-sheet pk-glass p-6 text-center">
+            <p className="font-display text-lg pk-fg">Nothing shared with you yet</p>
+            <p className="mt-1 text-sm pk-fg-soft">Ask the parent who invited you to check the invite.</p>
+          </div>
+        ) : isLoading || !data ? (
+          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>Loading…</div>
+        ) : data.person ? (
+          <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
+        ) : (
+          <div className="rounded-sheet pk-glass p-6 text-center">
+            <p className="font-display text-lg pk-fg">Nothing shared with you yet</p>
+            <p className="mt-1 text-sm pk-fg-soft">Ask the parent who invited you to check the invite.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The owner's picture over the scene: a calm hill under a wide sky (owner,
+    2026-09-08). Dimmed at night so the glass panels keep their contrast. Sharp:
+    the picture is the point — the panels do the blurring, each one frosts whatever
+    sits behind IT. Shared by the in-app page and the co-parent's full page. */
+function SceneBackdrop({ night }: { night: boolean }) {
+  return (
+    <>
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
+        style={{
+          backgroundImage: "url('/well-being.jpg')",
+          opacity: 1,
+          filter: night ? "saturate(112%) brightness(0.9)" : "saturate(108%)",
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: night
+            ? "linear-gradient(180deg, rgba(10,14,32,0.18) 0%, rgba(10,14,32,0.42) 100%)"
+            : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
+        }}
+      />
+    </>
   );
 }
 
@@ -198,12 +297,12 @@ function RoutineDashboard({
   data: RoutineOverviewDTO;
   week: string | null;
   setWeek: (w: string | null) => void;
-  view: "summary" | "tracker";
-  setView: (v: "summary" | "tracker") => void;
+  view: View;
+  setView: (v: View) => void;
   selectedPerson: string | null;
   setSelectedPerson: (id: string | null) => void;
 }) {
-  const { today, person, week: weekMeta, segments, nonNegotiables, tasks, weights, monthlyWeights, summary, role, routines, collaborators } = data;
+  const { today, person, week: weekMeta, segments, nonNegotiables, tasks, weights, monthlyWeights, summary, role, routines, collaborators, money, reports, circle, todayTasks } = data;
   // The RESOLVED id — for the switcher highlight only.
   const personId = person!.id;
   // The routine IDENTITY the query is keyed by (null = the caller's default routine).
@@ -217,23 +316,47 @@ function RoutineDashboard({
   // The week selector is SHARED by Summary and Tracker.
   const label = isCurrent ? "This week" : weekLabel(weekMeta.days);
   const undoneToday = tasks.filter((t) => !t.done && (t.dueDate === null || t.dueDate === today)).length;
+  // Circle is the owner's alone. A stale choice (another routine picked) falls back.
+  const views: View[] = isOwner ? ["summary", "tracker", "calendar", "map", "money", "circle"] : ["summary", "tracker", "calendar", "map", "money"];
+  const active: View = views.includes(view) ? view : "summary";
+  // The week selector belongs to Summary and Tracker; Calendar, Map and Money keep their own days.
+  const withWeek = active === "summary" || active === "tracker";
+
+  // The calendar's month ("YYYY-MM", null = this month) and picked day (null = today).
+  const [calMonth, setCalMonth] = useState<string | null>(null);
+  const [calSelected, setCalSelected] = useState<string | null>(null);
+  const pickMonth = (m: string) => {
+    setCalMonth(m);
+    setCalSelected(m === monthOf(today) ? today : `${m}-01`);
+  };
+
+  // The pill row slides sideways; the active pill brings itself into view.
+  const tabBar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tabBar.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ inline: "nearest", block: "nearest" });
+  }, [active]);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="pk-glass inline-flex rounded-card p-1" role="tablist" aria-label="Well Being view">
-          {(["summary", "tracker"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              aria-selected={view === v}
-              onClick={() => setView(v)}
-              className={cn("pk-press rounded-card px-4 py-1.5 text-sm font-medium capitalize", view === v ? "pk-tab-active" : "pk-tab pk-tab-hover")}
-            >
-              {v}
-            </button>
-          ))}
+        {/* On a phone six pills outgrow the width: the row slides sideways (snap,
+            no wrap) rather than breaking a pill onto a second line. */}
+        <div ref={tabBar} className="no-scrollbar min-w-0 max-w-full snap-x overflow-x-auto">
+          <div className="pk-glass inline-flex whitespace-nowrap rounded-card p-1" role="tablist" aria-label="Well Being view">
+            {views.map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={active === v}
+                onClick={() => setView(v)}
+                className={cn("pk-press h-11 shrink-0 snap-start rounded-card px-3.5 text-sm font-medium", active === v ? "pk-tab-active" : "pk-tab pk-tab-hover")}
+              >
+                {VIEW_LABEL[v]}
+              </button>
+            ))}
+          </div>
         </div>
         {routines.length > 1 ? <RoutineSwitcher routines={routines} selectedId={personId} onSelect={setSelectedPerson} /> : null}
         {readOnly ? (
@@ -244,16 +367,38 @@ function RoutineDashboard({
       </div>
 
       <PersonBar person={person!} weekParam={week} personId={routineId} isOwner={isOwner} />
-      <WeekNav
-        label={label}
-        sub={isCurrent ? weekLabel(weekMeta.days) : ""}
-        onPrev={() => setWeek(addDays(weekMeta.weekStart, -7))}
-        onNext={() => setWeek(addDays(weekMeta.weekStart, 7))}
-        onToday={isCurrent ? null : () => setWeek(null)}
-      />
+      {withWeek ? (
+        <WeekNav
+          label={label}
+          sub={isCurrent ? weekLabel(weekMeta.days) : ""}
+          onPrev={() => setWeek(addDays(weekMeta.weekStart, -7))}
+          onNext={() => setWeek(addDays(weekMeta.weekStart, 7))}
+          onToday={isCurrent ? null : () => setWeek(null)}
+        />
+      ) : null}
 
-      {view === "summary" ? (
-        <SummaryView summary={summary} weekLabel={label} />
+      {active === "summary" ? (
+        // Today first, then the week's habits, then what the tutors sent and the
+        // month's money — two columns on a wide screen, one on a phone.
+        <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+          <div className="min-w-0 space-y-5">
+            {/* todayTasks, not the browsed week's list: Today stays today (review, 2026-09-25). */}
+            <TodayCard tasks={todayTasks} today={today} personId={routineId} />
+            <SummaryView summary={summary} weekLabel={label} />
+          </div>
+          <div className="min-w-0 space-y-5">
+            <ReportsSection reports={reports} title="From tutors" />
+            <MoneyCard money={money} onOpen={() => setView("money")} />
+          </div>
+        </div>
+      ) : active === "calendar" ? (
+        <ParentCalendar personId={routineId} today={today} month={calMonth ?? monthOf(today)} selected={calSelected ?? today} onMonth={pickMonth} onSelect={setCalSelected} />
+      ) : active === "map" ? (
+        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} today={today} />
+      ) : active === "money" ? (
+        <MoneySection personId={routineId} weekParam={week} readOnly={readOnly} today={today} />
+      ) : active === "circle" ? (
+        <CircleSection circle={circle} weekParam={week} personId={routineId} personName={person!.name} />
       ) : (
         // On wide screens the sections flow into two columns so the tab fills the
         // space. min-w-0 on each column: a grid item defaults to min-width:auto, so
@@ -277,6 +422,15 @@ function RoutineDashboard({
       {isOwner && false ? <MonitoringManagers collaborators={collaborators} week={week} personId={routineId} /> : null}
     </div>
   );
+}
+
+/** The Calendar tab: the month loads only while this tab is open. The parent
+    sees the habit bar under each day (showHabits); the routine identity is the
+    same key the overview uses, so a co-parent's or a second routine's month lands
+    on its own cache entry. */
+function ParentCalendar({ personId, today, month, selected, onMonth, onSelect }: { personId: string | null; today: string; month: string; selected: string; onMonth: (m: string) => void; onSelect: (d: string) => void }) {
+  const { data } = useCalendar(month, personId);
+  return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits />;
 }
 
 /** Switch between the routines the manager can open (own + accepted collaborations). */
@@ -464,7 +618,8 @@ function PersonBar({ person, weekParam, personId, isOwner }: { person: NonNullab
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold pk-fg">{person.name}</p>
-          <p className="truncate text-micro pk-fg-soft">Login: {person.loginEmail}</p>
+          {/* The login address is the owner's business, not a co-parent's (review, 2026-09-25). */}
+          {isOwner ? <p className="truncate text-micro pk-fg-soft">Login: {person.loginEmail}</p> : null}
         </div>
         {isOwner ? (
           <>

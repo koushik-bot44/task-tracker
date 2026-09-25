@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireManager, route } from "@/lib/session";
 import { parseBody, routineTaskCreateSchema } from "@/lib/validation";
-import { dayKeyToDate, personParam, requireRoutineAccess, serializeTask } from "@/lib/routine";
+import { TASK_SELECT, dayKeyToDate, personParam, requireRoutineAccess, serializeTask } from "@/lib/routine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export const POST = route(async (req: Request) => {
 
   const task = await prisma.routineTask.create({
     data: { personId: person.id, title, dueDate: dueDate ? dayKeyToDate(dueDate) : null },
-    select: { id: true, title: true, dueDate: true, done: true, doneAt: true },
+    select: TASK_SELECT,
   });
   return NextResponse.json(serializeTask(task), { status: 201 });
 });

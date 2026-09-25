@@ -7,7 +7,9 @@ import { SESSION_COOKIE, readSessionToken } from "@/lib/auth";
 // cookie). /invite + /api/invite are the set-password onboarding, reached by a
 // PENDING user who is not logged in yet. /r/<token> is the emailed meeting
 // reply link (restructure): the signed token in the URL is the authorisation.
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/cron", "/invite", "/api/invite", "/forgot", "/api/password-reset/request", "/r"];
+// /api/routine/feed/<token> (2026-09-25) is where a location app on the tracked
+// person's phone posts positions: no cookie, the secret in the path is the authorisation.
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/cron", "/invite", "/api/invite", "/forgot", "/api/password-reset/request", "/r", "/api/routine/feed"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -19,11 +21,15 @@ export async function middleware(req: NextRequest) {
 
   const claims = await readSessionToken(req.cookies.get(SESSION_COOKIE)?.value);
   if (claims) {
-    // Phase 35 — the PERSON wall at the edge. A PERSON login reaches ONLY its
-    // own routine screen (/person) and its own routine API (/api/routine/kid).
+    // Phase 35 — the PERSON wall at the edge. A PERSON login reaches ONLY the
+    // family area: its own screen (/person), and since 2026-09-25 the co-parent's
+    // (/family) and the tutor's (/mentor), plus the routine API. Which of the three
+    // it is — and so which routine endpoints answer — is settled by the handlers
+    // (requirePerson / requireManager / requireMentor read the data); the edge
+    // only keeps every one of them out of the work app.
     const isPerson = claims.role === "PERSON";
-    const personArea =
-      pathname === "/person" || pathname.startsWith("/person/") || pathname.startsWith("/api/routine/kid");
+    const walledScreen = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+    const personArea = walledScreen("/person") || walledScreen("/family") || walledScreen("/mentor") || pathname.startsWith("/api/routine");
     if (isPerson && !personArea) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Not available for this account." }, { status: 403 });
@@ -33,7 +39,7 @@ export async function middleware(req: NextRequest) {
       url.search = "";
       return NextResponse.redirect(url);
     }
-    if (!isPerson && (pathname === "/person" || pathname.startsWith("/person/"))) {
+    if (!isPerson && (walledScreen("/person") || walledScreen("/family") || walledScreen("/mentor"))) {
       const url = req.nextUrl.clone();
       url.pathname = "/";
       url.search = "";

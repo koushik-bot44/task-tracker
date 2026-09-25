@@ -49,6 +49,9 @@ export async function issueInvite(opts: {
   projectName?: string;
   /** false: only make the link, for the person inviting to send themselves (2026-09-10). */
   send?: boolean;
+  /** 2026-09-25: what the mail calls the invitee when the role word would mislead —
+      a co-parent or a tutor carries the walled PERSON role, but is not "a Person". */
+  roleLabel?: string;
 }): Promise<{ token: string; url: string; sent: boolean }> {
   const token = generateInviteToken();
   const tokenHash = hashInviteToken(token);
@@ -65,7 +68,7 @@ export async function issueInvite(opts: {
 
   const body = inviteEmail({
     name: opts.user.name,
-    roleLabel: ROLE_LABEL[opts.user.role],
+    roleLabel: opts.roleLabel ?? ROLE_LABEL[opts.user.role],
     inviterName: opts.inviterName,
     url,
     projectName: opts.projectName,

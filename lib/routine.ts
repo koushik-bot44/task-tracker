@@ -1,11 +1,19 @@
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
 import { HttpError } from "@/lib/session";
-import { istDayKey } from "@/lib/timezone";
+import { istDayKey, istDayRange } from "@/lib/timezone";
+import { getBaseUrl } from "@/lib/base-url";
 import { notifyUsers } from "@/lib/notify";
 import type {
+  CalendarDayDTO,
+  CalendarMonthDTO,
+  CircleMemberDTO,
+  LocationDayDTO,
+  LocationPointDTO,
   HabitMarkValue,
   HabitSegmentDTO,
+  MentorReportDTO,
+  MoneyMonthDTO,
   MonthlyWeightDTO,
   NonNegotiableDTO,
   PersonHabitSegmentDTO,
@@ -19,8 +27,21 @@ import type {
 } from "@/lib/types";
 
 export type {
+  CalendarDayDTO,
+  CalendarMonthDTO,
+  CircleKind,
+  LocationDayDTO,
+  LocationPointDTO,
+  LocationSource,
+  CircleMemberDTO,
   HabitDTO,
   HabitMarkValue,
+  MentorReportDTO,
+  MentorViewDTO,
+  MoneyEntryDTO,
+  MoneyKind,
+  MoneyMonthDTO,
+  WhoDTO,
   HabitSegmentDTO,
   MonthlyWeightDTO,
   NonNegotiableDTO,
@@ -95,37 +116,64 @@ export function appendOrderKey(keys: string[]): string {
 /* ── The default grid seeded on person-create (fully editable afterward). ──── */
 
 export const DEFAULT_SEGMENTS: { name: string; habits: { name: string; targetPerWeek: number }[] }[] = [
+  // The owner's Family Routine Agreement, as its Weekly Routine Tracker sheet reads (2026-09-25).
   {
     name: "Sleep & Wake",
     habits: [
-      { name: "In bed by target time", targetPerWeek: 7 },
-      { name: "Woke up on time", targetPerWeek: 7 },
+      { name: "In bed / phone away by 10:30 PM (school night)", targetPerWeek: 5 },
+      { name: "Up by 6:15 AM without repeated wake-up calls", targetPerWeek: 5 },
+      { name: "Leave the phone outside the bedroom overnight and do not access it while getting ready for school", targetPerWeek: 7 },
     ],
   },
   {
-    name: "Health & Body",
+    name: "Screen Time & Media",
     habits: [
-      { name: "Exercise / movement", targetPerWeek: 5 },
-      { name: "Ate well", targetPerWeek: 7 },
-      { name: "Water intake", targetPerWeek: 7 },
+      { name: "Recreational screen time kept to 90 mins or less", targetPerWeek: 7 },
+      { name: "No phone at the dinner table", targetPerWeek: 7 },
     ],
   },
   {
-    name: "Academics / Work",
+    name: "Academics",
     habits: [
-      { name: "Focused study / work", targetPerWeek: 6 },
-      { name: "Homework / tasks done", targetPerWeek: 7 },
+      { name: "Checked grade portal / knew what was due", targetPerWeek: 7 },
+      { name: "Completed the daily study block (min. 2 Hrs, school nights)", targetPerWeek: 5 },
     ],
   },
   {
-    name: "Mind & Screens",
+    name: "Diet",
     habits: [
-      { name: "Reading", targetPerWeek: 5 },
-      { name: "Screen-time limit kept", targetPerWeek: 7 },
-      { name: "Quiet / calm time", targetPerWeek: 5 },
+      { name: "No outside food ordered (or within the 2x/week plan)", targetPerWeek: 5 },
+      { name: "No Diet Cokes", targetPerWeek: 7 },
+    ],
+  },
+  {
+    name: "Fitness",
+    habits: [{ name: "Worked out / gym session completed", targetPerWeek: 4 }],
+  },
+  {
+    name: "Social & Driving",
+    habits: [
+      { name: "2 Driving sessions over the weekend, not during the school days", targetPerWeek: 7 },
+      { name: "Study block done before hanging out with friends", targetPerWeek: 7 },
+    ],
+  },
+  {
+    name: "Family Conduct",
+    habits: [
+      { name: "No fights with his sister", targetPerWeek: 7 },
+      { name: "Stayed rational / no yelling during disagreements", targetPerWeek: 7 },
+      { name: "Gave advance notice for schedule-change requests", targetPerWeek: 7 },
     ],
   },
 ];
+
+/** The agreement's non-negotiables (section 8): fixed lines, logged only when crossed. */
+export const DEFAULT_NON_NEGOTIABLES = [
+  "No fights with his sister, ever",
+  "Respectful language — no yelling, name-calling, slamming doors",
+  "Seatbelt and safe driving practices, always",
+  "Honesty about where he is and who he's with",
+] as const;
 
 /* ── Ownership guards: every mutation is scoped to the manager's OWN person. ─ */
 
@@ -149,35 +197,36 @@ export async function requireOwnNonNegotiable(personId: string, id: string) {
   return nn;
 }
 
-/** The person's own non-negotiables for one week (phase 42): ONLY the rules the
-    manager scheduled for this week, each with its required days -> done, so the
-    person can mark them done. A day is present only if the manager required it; the
-    value is whether it's done. Rules with nothing scheduled this week are omitted. */
+/** The days each non-negotiable was logged as crossed in one week: ruleId -> dayKey -> true. */
+async function crossedDaysByRule(ruleIds: string[], mondayKey: string): Promise<Map<string, Record<string, boolean>>> {
+  const out = new Map<string, Record<string, boolean>>();
+  if (ruleIds.length === 0) return out;
+  const days = weekDays(mondayKey);
+  const marks = await prisma.nonNegotiableMark.findMany({
+    where: { nonNegotiableId: { in: ruleIds }, crossed: true, date: { gte: dayKeyToDate(days[0]), lte: dayKeyToDate(days[6]) } },
+    select: { nonNegotiableId: true, date: true },
+  });
+  for (const m of marks) {
+    const rec = out.get(m.nonNegotiableId) ?? {};
+    rec[dateToKey(m.date)] = true;
+    out.set(m.nonNegotiableId, rec);
+  }
+  return out;
+}
+
+/** The person's own non-negotiables for one week (2026-09-25, the Family Routine
+    Agreement): every active line, read-only, with the days logged as crossed. */
 export async function buildPersonNonNegotiables(
   personId: string,
   mondayKey: string,
 ): Promise<{ id: string; name: string; days: Record<string, boolean> }[]> {
-  const days = weekDays(mondayKey);
   const rules = await prisma.nonNegotiable.findMany({
     where: { personId, active: true },
     orderBy: { orderKey: "asc" },
     select: { id: true, name: true },
   });
-  if (rules.length === 0) return [];
-  const marks = await prisma.nonNegotiableMark.findMany({
-    where: { nonNegotiableId: { in: rules.map((r) => r.id) }, date: { gte: dayKeyToDate(days[0]), lte: dayKeyToDate(days[6]) } },
-    select: { nonNegotiableId: true, date: true, done: true },
-  });
-  const daysByNn = new Map<string, Record<string, boolean>>();
-  for (const m of marks) {
-    const rec = daysByNn.get(m.nonNegotiableId) ?? {};
-    rec[dateToKey(m.date)] = m.done;
-    daysByNn.set(m.nonNegotiableId, rec);
-  }
-  // Only surface rules the manager actually scheduled this week.
-  return rules
-    .map((r) => ({ id: r.id, name: r.name, days: daysByNn.get(r.id) ?? {} }))
-    .filter((r) => Object.keys(r.days).length > 0);
+  const crossed = await crossedDaysByRule(rules.map((r) => r.id), mondayKey);
+  return rules.map((r) => ({ id: r.id, name: r.name, days: crossed.get(r.id) ?? {} }));
 }
 /** A weight entry that belongs to the manager's own person, or 404. */
 export async function requireOwnWeight(personId: string, id: string) {
@@ -222,8 +271,9 @@ export async function getOwnedPersons(callerId: string): Promise<PersonRef[]> {
 export async function getAccessibleRoutines(callerId: string): Promise<{ person: PersonRef; role: RoutineRole }[]> {
   const [owned, collabs] = await Promise.all([
     getOwnedPersons(callerId),
+    // A tutor's row (kind MENTOR) opens nothing here — only the one report screen.
     prisma.routineCollaborator.findMany({
-      where: { managerId: callerId, status: "ACCEPTED" },
+      where: { managerId: callerId, status: "ACCEPTED", kind: "FAMILY" },
       select: { permission: true, person: { select: PERSON_SELECT } },
       orderBy: { createdAt: "asc" },
     }),
@@ -325,14 +375,272 @@ export async function remindPerson(person: { id: string; userId: string }): Prom
   return { sent: true, count: undone.length };
 }
 
-export function serializeTask(t: { id: string; title: string; dueDate: Date | null; done: boolean; doneAt: Date | null }): RoutineTaskDTO {
+/** The columns every task read selects — keep the reads and this DTO in step. */
+export const TASK_SELECT = { id: true, title: true, dueDate: true, done: true, doneAt: true, addedBy: true } as const;
+
+export function serializeTask(t: { id: string; title: string; dueDate: Date | null; done: boolean; doneAt: Date | null; addedBy: string }): RoutineTaskDTO {
   return {
     id: t.id,
     title: t.title,
     dueDate: t.dueDate ? dateToKey(t.dueDate) : null,
     done: t.done,
     doneAt: t.doneAt ? t.doneAt.toISOString() : null,
+    addedBy: t.addedBy === "PERSON" ? "PERSON" : "MANAGER",
   };
+}
+
+/* ── 2026-09-25 — the circle: pocket money by month, the tutors' reports, and
+      the people around the person. Read-only builders; the routes write. ───── */
+
+/** "YYYY-MM-DD" -> "YYYY-MM". */
+export function monthKeyOf(dayKey: string): string {
+  return dayKey.slice(0, 7);
+}
+/** The first and last day-keys of a "YYYY-MM" month. */
+export function monthDays(monthKey: string): { first: string; last: string } {
+  const first = `${monthKey}-01`;
+  const d = dayKeyToDate(first);
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  d.setUTCDate(0); // the last day of monthKey
+  return { first, last: dateToKey(d) };
+}
+/** A "YYYY-MM" month key, or null when the string is not one. */
+export function parseMonthKey(v: string | null): string | null {
+  return v && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : null;
+}
+
+const MONEY_SELECT = { id: true, date: true, amount: true, kind: true, note: true, side: true, addedByName: true } as const;
+export function serializeMoney(m: { id: string; date: Date; amount: number; kind: string; note: string; side: string; addedByName: string }) {
+  return {
+    id: m.id,
+    date: dateToKey(m.date),
+    amount: m.amount,
+    kind: m.kind === "SPENT" ? ("SPENT" as const) : ("GIVEN" as const),
+    note: m.note,
+    side: m.side === "PERSON" ? ("PERSON" as const) : ("PARENT" as const),
+    addedByName: m.addedByName,
+  };
+}
+
+/** One month of the ledger: entries newest first, plus the two totals. */
+export async function buildMoneyMonth(personId: string, monthKey: string): Promise<MoneyMonthDTO> {
+  const { first, last } = monthDays(monthKey);
+  const rows = await prisma.moneyEntry.findMany({
+    where: { personId, date: { gte: dayKeyToDate(first), lte: dayKeyToDate(last) } },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    select: MONEY_SELECT,
+  });
+  const entries = rows.map(serializeMoney);
+  return {
+    month: monthKey,
+    given: entries.filter((e) => e.kind === "GIVEN").reduce((a, e) => a + e.amount, 0),
+    spent: entries.filter((e) => e.kind === "SPENT").reduce((a, e) => a + e.amount, 0),
+    entries,
+  };
+}
+
+const REPORT_SELECT = {
+  id: true,
+  date: true,
+  subject: true,
+  covered: true,
+  homework: true,
+  note: true,
+  createdAt: true,
+  collaborator: { select: { manager: { select: { name: true } } } },
+} as const;
+export function serializeReport(r: {
+  id: string;
+  date: Date;
+  subject: string;
+  covered: string;
+  homework: string | null;
+  note: string | null;
+  createdAt: Date;
+  collaborator: { manager: { name: string } };
+}): MentorReportDTO {
+  return {
+    id: r.id,
+    date: dateToKey(r.date),
+    subject: r.subject,
+    mentorName: r.collaborator.manager.name,
+    covered: r.covered,
+    homework: r.homework,
+    note: r.note,
+    createdAt: r.createdAt.toISOString(),
+  };
+}
+
+/** The reports dated inside [fromKey, toKey], newest first. */
+export async function listReportsBetween(personId: string, fromKey: string, toKey: string): Promise<MentorReportDTO[]> {
+  const rows = await prisma.mentorReport.findMany({
+    where: { personId, date: { gte: dayKeyToDate(fromKey), lte: dayKeyToDate(toKey) } },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    select: REPORT_SELECT,
+  });
+  return rows.map(serializeReport);
+}
+/** The latest `n` reports, newest first — the person's "from your tutors". */
+export async function listLatestReports(personId: string, n: number): Promise<MentorReportDTO[]> {
+  const rows = await prisma.mentorReport.findMany({
+    where: { personId },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    take: n,
+    select: REPORT_SELECT,
+  });
+  return rows.map(serializeReport);
+}
+
+const CIRCLE_SELECT = {
+  id: true,
+  managerId: true,
+  kind: true,
+  subject: true,
+  permission: true,
+  manager: { select: { name: true, email: true, status: true } },
+} as const;
+export function serializeCircleMember(c: {
+  id: string;
+  managerId: string;
+  kind: string;
+  subject: string | null;
+  permission: string;
+  manager: { name: string; email: string; status: string };
+}): CircleMemberDTO {
+  return {
+    id: c.id,
+    userId: c.managerId,
+    name: c.manager.name,
+    email: c.manager.email,
+    kind: c.kind === "MENTOR" ? "MENTOR" : "FAMILY",
+    subject: c.subject,
+    permission: c.permission === "EDITABLE" ? "EDITABLE" : "READ_ONLY",
+    status: c.manager.status === "PENDING" ? "PENDING" : "ACTIVE",
+  };
+}
+/** Everyone the owner invited around this person (co-parents and tutors), oldest first. */
+export async function listCircle(personId: string): Promise<CircleMemberDTO[]> {
+  // Only walled logins made from the Circle: a phase-39 monitoring MANAGER row
+  // (kind defaults to FAMILY) is not a co-parent and never shows here.
+  const rows = await prisma.routineCollaborator.findMany({
+    where: { personId, status: "ACCEPTED", manager: { role: "PERSON" } },
+    orderBy: { createdAt: "asc" },
+    select: CIRCLE_SELECT,
+  });
+  return rows.map(serializeCircleMember);
+}
+/** The month calendar (2026-09-25): every dated thing about the person in one
+    "YYYY-MM" month, keyed by day — tasks by due day, tutor reports, money, the
+    rules scheduled that day, and (parent side only) the day's habit marks. Days
+    with nothing on them are left out so the grid can dot only what matters. */
+export async function buildCalendarMonth(personId: string, monthKey: string, opts: { withHabits: boolean }): Promise<CalendarMonthDTO> {
+  const { first, last } = monthDays(monthKey);
+  const start = dayKeyToDate(first);
+  const end = dayKeyToDate(last);
+  const [tasks, reports, money, ruleMarks, habitMarks] = await Promise.all([
+    prisma.routineTask.findMany({
+      where: { personId, dueDate: { gte: start, lte: end } },
+      orderBy: [{ done: "asc" }, { createdAt: "asc" }],
+      select: { id: true, title: true, done: true, addedBy: true, dueDate: true },
+    }),
+    prisma.mentorReport.findMany({
+      where: { personId, date: { gte: start, lte: end } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, date: true, subject: true, covered: true, homework: true, collaborator: { select: { manager: { select: { name: true } } } } },
+    }),
+    prisma.moneyEntry.findMany({
+      where: { personId, date: { gte: start, lte: end } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, date: true, kind: true, amount: true, note: true },
+    }),
+    prisma.nonNegotiableMark.findMany({
+      where: { nonNegotiable: { personId, active: true }, crossed: true, date: { gte: start, lte: end } },
+      orderBy: { nonNegotiable: { orderKey: "asc" } },
+      select: { date: true, nonNegotiable: { select: { id: true, name: true } } },
+    }),
+    opts.withHabits
+      ? prisma.habitMark.findMany({
+          where: { habit: { active: true, segment: { personId } }, date: { gte: start, lte: end } },
+          select: { date: true, value: true },
+        })
+      : Promise.resolve([] as { date: Date; value: string }[]),
+  ]);
+  const days: Record<string, CalendarDayDTO> = {};
+  const day = (d: Date): CalendarDayDTO => {
+    const k = dateToKey(d);
+    return (days[k] ??= { tasks: [], reports: [], money: { given: 0, spent: 0, entries: [] }, rules: [], habits: null });
+  };
+  for (const t of tasks) if (t.dueDate) day(t.dueDate).tasks.push({ id: t.id, title: t.title, done: t.done, addedBy: t.addedBy === "PERSON" ? "PERSON" : "MANAGER" });
+  for (const r of reports) day(r.date).reports.push({ id: r.id, subject: r.subject, mentorName: r.collaborator.manager.name, covered: r.covered, homework: r.homework });
+  for (const m of money) {
+    const d = day(m.date);
+    const kind = m.kind === "SPENT" ? ("SPENT" as const) : ("GIVEN" as const);
+    if (kind === "GIVEN") d.money.given += m.amount;
+    else d.money.spent += m.amount;
+    d.money.entries.push({ id: m.id, kind, amount: m.amount, note: m.note });
+  }
+  for (const r of ruleMarks) day(r.date).rules.push({ id: r.nonNegotiable.id, name: r.nonNegotiable.name, crossed: true });
+  if (opts.withHabits) {
+    for (const h of habitMarks) {
+      const d = day(h.date);
+      d.habits ??= { met: 0, missed: 0, total: 0 };
+      d.habits.total += 1;
+      if (h.value === "MET") d.habits.met += 1;
+      else if (h.value === "MISSED") d.habits.missed += 1;
+    }
+  }
+  return { month: monthKey, today: todayKey(), days };
+}
+
+/* ── 2026-09-25 — maps: check-ins and the phone's posted positions. ─────────── */
+
+/** The places offered on the person's Check in card. "Other" opens a free text. */
+export const CHECKIN_PLACES = ["Home", "School", "Tutor", "Tennis", "Other"] as const;
+
+const LOCATION_SELECT = { id: true, at: true, lat: true, lng: true, accuracy: true, battery: true, source: true, place: true, note: true } as const;
+export function serializeLocation(p: { id: string; at: Date; lat: number; lng: number; accuracy: number | null; battery: number | null; source: string; place: string | null; note: string | null }): LocationPointDTO {
+  return {
+    id: p.id,
+    at: p.at.toISOString(),
+    lat: p.lat,
+    lng: p.lng,
+    accuracy: p.accuracy,
+    battery: p.battery,
+    source: p.source === "OWNTRACKS" ? "OWNTRACKS" : p.source === "OVERLAND" ? "OVERLAND" : "CHECKIN",
+    place: p.place,
+    note: p.note,
+  };
+}
+
+/** One IST day of positions (newest first), the latest point ever, and whether
+    phone sharing is on — with the sharing link only when `withUrl` (the owner). */
+export async function buildLocationDay(personId: string, dayKey: string, opts: { withUrl: boolean }): Promise<LocationDayDTO> {
+  const { start, end } = istDayRange(dayKey);
+  const [points, last, person] = await Promise.all([
+    prisma.locationPoint.findMany({ where: { personId, at: { gte: start, lte: end } }, orderBy: { at: "desc" }, take: 2000, select: LOCATION_SELECT }),
+    prisma.locationPoint.findFirst({ where: { personId }, orderBy: { at: "desc" }, select: LOCATION_SELECT }),
+    prisma.person.findUnique({ where: { id: personId }, select: { feedToken: true } }),
+  ]);
+  const token = person?.feedToken ?? null;
+  return {
+    day: dayKey,
+    points: points.map(serializeLocation),
+    lastSeen: last ? serializeLocation(last) : null,
+    sharing: { on: Boolean(token), url: token && opts.withUrl ? `${getBaseUrl()}/api/routine/feed/${token}` : null },
+  };
+}
+
+/** A "YYYY-MM-DD" day key, or null when the string is not one. */
+export function parseDayKey(v: string | null): string | null {
+  // The shape, then the round trip: "2026-13-45" is not a day (review, 2026-09-25).
+  return v && /^\d{4}-\d{2}-\d{2}$/.test(v) && dateToKey(dayKeyToDate(v)) === v ? v : null;
+}
+
+/** A circle row that belongs to this person, or 404. */
+export async function requireCircleMember(personId: string, id: string) {
+  const row = await prisma.routineCollaborator.findFirst({ where: { id, personId, status: "ACCEPTED", manager: { role: "PERSON" } }, select: CIRCLE_SELECT });
+  if (!row) throw new HttpError(404, "Not found.");
+  return row;
 }
 
 /* ── The habit grid for one person + week — shared by the manager overview AND
@@ -408,12 +716,12 @@ export function toPersonSegments(segments: HabitSegmentDTO[]): PersonHabitSegmen
 export async function buildOverview(
   person: { id: string; name: string; user: { email: string } },
   mondayKey: string,
-): Promise<Omit<RoutineOverviewDTO, "today" | "role" | "routines" | "collaborators">> {
+): Promise<Omit<RoutineOverviewDTO, "today" | "role" | "routines" | "collaborators" | "circle">> {
   const days = weekDays(mondayKey);
   const startDate = dayKeyToDate(days[0]);
   const endDate = dayKeyToDate(days[6]);
 
-  const [segmentsDto, nonNegotiables, tasks, weights] = await Promise.all([
+  const [segmentsDto, nonNegotiables, tasks, weights, money, reports, todayTasks] = await Promise.all([
     buildHabitGrid(person.id, mondayKey),
     prisma.nonNegotiable.findMany({
       where: { personId: person.id, active: true },
@@ -425,39 +733,30 @@ export async function buildOverview(
     prisma.routineTask.findMany({
       where: { personId: person.id, OR: [{ dueDate: null }, { dueDate: { gte: startDate, lte: endDate } }] },
       orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
-      select: { id: true, title: true, dueDate: true, done: true, doneAt: true },
+      select: TASK_SELECT,
     }),
     prisma.weightEntry.findMany({
       where: { personId: person.id },
       orderBy: [{ date: "asc" }, { createdAt: "asc" }],
       select: { id: true, date: true, weightKg: true },
     }),
+    // Money is by calendar month and always THIS month here; the Money tab browses others.
+    buildMoneyMonth(person.id, monthKeyOf(todayKey())),
+    // The tutors' reports dated inside the shown week.
+    listReportsBetween(person.id, days[0], days[6]),
+    // Today's list, whatever week is being browsed (the Today card; review 2026-09-25).
+    prisma.routineTask.findMany({
+      where: { personId: person.id, OR: [{ dueDate: null }, { dueDate: dayKeyToDate(todayKey()) }] },
+      orderBy: [{ done: "asc" }, { createdAt: "asc" }],
+      select: TASK_SELECT,
+    }),
   ]);
 
-  const nnIds = nonNegotiables.map((n) => n.id);
-  const nnMarks = nnIds.length
-    ? await prisma.nonNegotiableMark.findMany({
-        where: { nonNegotiableId: { in: nnIds }, date: { gte: startDate, lte: endDate } },
-        select: { nonNegotiableId: true, date: true, done: true },
-      })
-    : [];
-
-  // dayKey -> done for each rule; a key is present only on the manager's required days.
-  const daysByNn = new Map<string, Record<string, boolean>>();
-  for (const m of nnMarks) {
-    const rec = daysByNn.get(m.nonNegotiableId) ?? {};
-    rec[dateToKey(m.date)] = m.done;
-    daysByNn.set(m.nonNegotiableId, rec);
-  }
-  const today = todayKey();
-
+  // dayKey -> true on the days each line was logged as crossed this week (2026-09-25).
+  const crossedByNn = await crossedDaysByRule(nonNegotiables.map((n) => n.id), mondayKey);
   const nonNegotiablesDto: NonNegotiableDTO[] = nonNegotiables.map((n) => {
-    const dayMap = daysByNn.get(n.id) ?? {};
-    const entries = Object.entries(dayMap);
-    const doneThisWeek = entries.filter(([, done]) => done).length;
-    // A scheduled day already past (before today) and still not done counts as missed.
-    const missedThisWeek = entries.filter(([d, done]) => !done && d < today).length;
-    return { id: n.id, name: n.name, orderKey: n.orderKey, active: n.active, days: dayMap, requiredThisWeek: entries.length, doneThisWeek, missedThisWeek };
+    const dayMap = crossedByNn.get(n.id) ?? {};
+    return { id: n.id, name: n.name, orderKey: n.orderKey, active: n.active, days: dayMap, crossedThisWeek: Object.keys(dayMap).length };
   });
 
   // `weights` is already ordered ascending by date (the query), so the monthly
@@ -480,6 +779,9 @@ export async function buildOverview(
     weights: weightsDto,
     monthlyWeights,
     summary,
+    todayTasks: todayTasks.map(serializeTask),
+    money,
+    reports,
   };
 }
 
@@ -490,6 +792,6 @@ export function summarizeWeek(segments: HabitSegmentDTO[], nonNegotiables: NonNe
     segments: segments.map((s) => ({ id: s.id, name: s.name, daysMet: s.metThisWeek, target: s.targetThisWeek })),
     overallDaysMet: segments.reduce((a, s) => a + s.metThisWeek, 0),
     overallTarget: segments.reduce((a, s) => a + s.targetThisWeek, 0),
-    missed: nonNegotiables.reduce((a, n) => a + n.missedThisWeek, 0),
+    violations: nonNegotiables.reduce((a, n) => a + n.crossedThisWeek, 0),
   };
 }

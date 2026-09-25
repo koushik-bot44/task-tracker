@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
-import { requireManager, route } from "@/lib/session";
+import { HttpError, requireManager, route } from "@/lib/session";
 import { parseBody, routinePersonCreateSchema } from "@/lib/validation";
-import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
+import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listCircle, listRoutineCollaborators, monthKeyOf, personParam, todayKey, weekStartKey } from "@/lib/routine";
 import type { RoutineOverviewDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -43,10 +43,14 @@ export const GET = route(async (req: Request) => {
       tasks: [],
       weights: [],
       monthlyWeights: [],
-      summary: { segments: [], overallDaysMet: 0, overallTarget: 0, missed: 0 },
+      summary: { segments: [], overallDaysMet: 0, overallTarget: 0, violations: 0 },
       role: null,
       routines: switcher,
       collaborators: [],
+      todayTasks: [],
+      money: { month: monthKeyOf(today), given: 0, spent: 0, entries: [] },
+      reports: [],
+      circle: [],
     };
     return NextResponse.json(empty);
   }
@@ -56,13 +60,17 @@ export const GET = route(async (req: Request) => {
   const mondayKey = weekStartKey(weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? weekParam : today);
 
   const overview = await buildOverview(match.person, mondayKey);
-  // The "Monitoring managers" panel is owner-only.
-  const collaborators = match.role === "OWNER" ? await listRoutineCollaborators(match.person.id) : [];
-  return NextResponse.json({ ...overview, today, role: match.role, routines: switcher, collaborators } satisfies RoutineOverviewDTO);
+  // The "Monitoring managers" panel and the Circle are owner-only.
+  const [collaborators, circle] = match.role === "OWNER" ? await Promise.all([listRoutineCollaborators(match.person.id), listCircle(match.person.id)]) : [[], []];
+  return NextResponse.json({ ...overview, today, role: match.role, routines: switcher, collaborators, circle } satisfies RoutineOverviewDTO);
 });
 
 export const POST = route(async (req: Request) => {
   const actor = await requireManager();
+  // A co-parent opens Well Being through requireManager too (2026-09-25), but
+  // making a person is the CEO's alone — otherwise a co-parent could mint a
+  // stray person (with a login) that they then own (review, 2026-09-25).
+  if (actor.role !== "FOUNDER") throw new HttpError(403, "Only the CEO can add a person.");
 
   // One person per owner, counting one the CEO runs because nobody else can (2026-09-10).
   const existing = await getOwnedPersons(actor.id);

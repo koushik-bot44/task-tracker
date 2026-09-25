@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus, ShieldAlert, X } from "lucide-react";
+import { Plus, ShieldAlert, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { useRoutineMutations } from "@/lib/hooks/use-routine";
@@ -9,10 +9,11 @@ import type { NonNegotiableDTO, RoutineWeekDTO } from "@/lib/types";
 import { inputCls, weekdayInitial } from "./shared";
 
 /**
- * Non-negotiables (phase 42): the manager SCHEDULES which days each rule applies —
- * tapping a day cell turns it on/off. The PERSON then marks each scheduled day done
- * from their own screen; the manager sees those ✓s here (read-only for the manager).
- * A green cell = the person did it; an outlined cell = scheduled, still to do.
+ * Non-negotiables, as the Family Routine Agreement keeps them (2026-09-25): fixed
+ * lines that hold every day, logged ONLY on a day they were crossed. The parent
+ * taps a day to log a crossing (and taps again to take it back); the person sees
+ * the same log from their side. Nothing here is a chore to tick: the count should
+ * read 0, and a crossing is dealt with the same day, not saved for Sunday.
  */
 export function NonNegotiables({
   items,
@@ -29,13 +30,12 @@ export function NonNegotiables({
   today: string;
   readOnly?: boolean;
 }) {
-  const { addNonNegotiable, deleteNonNegotiable, setNonNegotiableDay } = useRoutineMutations(weekParam, personId);
+  const { addNonNegotiable, deleteNonNegotiable, crossNonNegotiableDay } = useRoutineMutations(weekParam, personId);
   const { show: toast } = useToast();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
-  const required = items.reduce((a, n) => a + n.requiredThisWeek, 0);
-  const done = items.reduce((a, n) => a + n.doneThisWeek, 0);
+  const crossed = items.reduce((a, n) => a + n.crossedThisWeek, 0);
 
   const add = () => {
     if (!name.trim()) return;
@@ -46,18 +46,17 @@ export function NonNegotiables({
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <ShieldAlert className="h-5 w-5 shrink-0 pk-fg-soft" strokeWidth={2} aria-hidden />
+          <ShieldAlert className={cn("h-5 w-5 shrink-0", crossed > 0 ? "text-warn-ink" : "pk-fg-soft")} strokeWidth={2} aria-hidden />
           <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold pk-fg">Non-negotiables</h2>
             <p className="mt-0.5 text-micro pk-fg-soft">
-              {readOnly
-                ? required === 0 ? "None set this week." : `${done} of ${required} done this week`
-                : required === 0 ? "Tap the days each rule applies — they mark them done." : `${done} of ${required} done · tap a day to add/remove it`}
+              {crossed === 0 ? "Nothing crossed this week." : `${crossed} crossed this week — dealt with the same day, not scored.`}
+              {readOnly ? "" : " Tap a day only when a line was crossed."}
             </p>
           </div>
         </div>
         {readOnly ? null : (
-          <button type="button" onClick={() => setAdding((v) => !v)} className="press shrink-0 rounded-card px-3 py-1.5 text-micro font-medium pk-fg hover:bg-[color:var(--pk-cell)]">
+          <button type="button" onClick={() => setAdding((v) => !v)} className="press h-11 shrink-0 rounded-card px-3 text-sm font-medium pk-fg hover:bg-[color:var(--pk-cell)]">
             {adding ? "Close" : "Add"}
           </button>
         )}
@@ -65,51 +64,50 @@ export function NonNegotiables({
 
       {adding && !readOnly ? (
         <div className="mb-4 flex items-center gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} aria-label="New non-negotiable" className={cn(inputCls, "h-10 flex-1")} />
-          <button type="button" onClick={add} aria-label="Add non-negotiable" className="press grid h-10 w-10 shrink-0 place-items-center rounded-card bg-primary text-on-primary"><Plus className="h-4 w-4" aria-hidden /></button>
+          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} aria-label="New non-negotiable" placeholder="A line that holds every day" className={cn(inputCls, "h-11 flex-1")} />
+          <button type="button" onClick={add} aria-label="Add non-negotiable" className="press grid h-11 w-11 shrink-0 place-items-center rounded-card bg-primary text-on-primary"><Plus className="h-4 w-4" aria-hidden /></button>
         </div>
       ) : null}
 
       {items.length === 0 ? (
-        <p className="py-4 text-center text-sm pk-fg-soft">None set. These are the serious, fixed lines — add one if it helps.</p>
+        <p className="py-4 text-center text-sm pk-fg-soft">None set. These are the fixed lines — add one if it helps.</p>
       ) : (
         <div className="space-y-3">
           {items.map((n) => (
             <div key={n.id}>
               <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                <span className="min-w-0 truncate text-sm font-medium pk-fg">{n.name}</span>
+                <span className="min-w-0 text-sm font-medium pk-fg">{n.name}</span>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className={cn("text-micro", n.missedThisWeek > 0 ? "text-warn-ink" : "pk-fg-soft")}>
-                    {n.requiredThisWeek === 0 ? "not set" : `${n.doneThisWeek}/${n.requiredThisWeek} done`}
+                  <span className={cn("text-micro", n.crossedThisWeek > 0 ? "font-semibold text-warn-ink" : "pk-fg-soft")}>
+                    {n.crossedThisWeek === 0 ? "0 crossed" : `${n.crossedThisWeek} crossed`}
                   </span>
                   {readOnly ? null : (
-                    <button type="button" onClick={() => { if (window.confirm(`Remove “${n.name}”?`)) deleteNonNegotiable.mutate(n.id, { onError: err }); }} aria-label={`Remove ${n.name}`} className="press grid h-6 w-6 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink">
-                      <X className="h-3.5 w-3.5" aria-hidden />
+                    <button type="button" onClick={() => { if (window.confirm(`Remove \u201c${n.name}\u201d?`)) deleteNonNegotiable.mutate(n.id, { onError: err }); }} aria-label={`Remove ${n.name}`} className="press grid h-11 w-11 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink">
+                      <X className="h-4 w-4" aria-hidden />
                     </button>
                   )}
                 </div>
               </div>
               <div className="grid grid-cols-7 gap-1.5">
                 {week.days.map((d) => {
-                  const scheduled = d in n.days;
-                  const isDone = n.days[d] ?? false;
-                  const state = !scheduled ? "off" : isDone ? "done" : "todo";
+                  const isCrossed = n.days[d] === true;
+                  const locked = readOnly || d > today;
                   return (
                     <button
                       key={d}
                       type="button"
-                      disabled={readOnly}
-                      onClick={() => setNonNegotiableDay.mutate({ nonNegotiableId: n.id, date: d, required: !scheduled }, { onError: err })}
-                      aria-pressed={scheduled}
-                      aria-label={`${n.name}, ${weekdayInitial(d)} — ${state === "off" ? "not required" : state === "done" ? "done" : "required, not done yet"}${readOnly ? "" : " (tap to add or remove this day)"}`}
+                      disabled={locked}
+                      onClick={() => crossNonNegotiableDay.mutate({ nonNegotiableId: n.id, date: d, crossed: !isCrossed }, { onError: err })}
+                      aria-pressed={isCrossed}
+                      aria-label={`${n.name}, ${weekdayInitial(d)} \u2014 ${isCrossed ? "crossed" : "held"}${locked ? "" : isCrossed ? " (tap to take it back)" : " (tap to log a crossing)"}`}
                       className={cn(
-                        "pk-press grid h-8 place-items-center rounded-card text-micro",
-                        state === "done" ? "pk-cell pk-met" : state === "todo" ? "pk-cell pk-todo" : "pk-cell border-dashed opacity-70",
-                        readOnly ? "cursor-default" : "pk-row-hover",
+                        "pk-press grid h-11 place-items-center rounded-card text-sm",
+                        isCrossed ? "pk-cell pk-missed font-semibold" : "pk-cell",
+                        locked ? "cursor-default opacity-60" : "pk-row-hover",
                         d === today ? "pk-today" : "",
                       )}
                     >
-                      {state === "done" ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden /> : weekdayInitial(d)}
+                      {isCrossed ? <X className="h-4 w-4" strokeWidth={2.5} aria-hidden /> : weekdayInitial(d)}
                     </button>
                   );
                 })}

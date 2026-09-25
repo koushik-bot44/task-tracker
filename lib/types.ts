@@ -706,15 +706,11 @@ export type NonNegotiableDTO = {
   name: string;
   orderKey: string;
   active: boolean;
-  /** dayKey -> done. A key is present ONLY on days the manager scheduled the rule
-      as REQUIRED (this week); the value is whether the PERSON has marked it done. */
+  /** 2026-09-25 (the Family Routine Agreement): dayKey -> true ONLY on the days
+      this line was CROSSED this week. Nothing is "done" — it holds every day. */
   days: Record<string, boolean>;
-  /** Days the manager scheduled this week. */
-  requiredThisWeek: number;
-  /** Scheduled days the person has marked done. */
-  doneThisWeek: number;
-  /** Scheduled days already past (before today) that were left undone. */
-  missedThisWeek: number;
+  /** Crossings logged this week. Should be 0. */
+  crossedThisWeek: number;
 };
 
 export type RoutineTaskDTO = {
@@ -723,6 +719,114 @@ export type RoutineTaskDTO = {
   dueDate: string | null;
   done: boolean;
   doneAt: string | null;
+  /** 2026-09-25: "MANAGER" = set by the parent side; "PERSON" = the person's own extra. */
+  addedBy: "MANAGER" | "PERSON";
+};
+
+/* 2026-09-25 — the circle around the tracked person: pocket money by hand, the
+   tutors' day reports, and the people invited in (a co-parent with the same Well
+   Being on their own login, or a tutor/coach with one report screen). */
+
+export type MoneyKind = "GIVEN" | "SPENT";
+export type MoneyEntryDTO = {
+  id: string;
+  /** "YYYY-MM-DD" (IST). */
+  date: string;
+  /** Whole rupees, positive; `kind` is the direction. */
+  amount: number;
+  kind: MoneyKind;
+  note: string;
+  /** Who wrote the line: the parent side or the person themself. */
+  side: "PARENT" | "PERSON";
+  addedByName: string;
+};
+/** One calendar month of the ledger, newest entry first, with its two totals. */
+export type MoneyMonthDTO = {
+  /** "YYYY-MM" (IST). */
+  month: string;
+  given: number;
+  spent: number;
+  entries: MoneyEntryDTO[];
+};
+
+export type MentorReportDTO = {
+  id: string;
+  date: string;
+  subject: string;
+  mentorName: string;
+  covered: string;
+  homework: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export type CircleKind = "FAMILY" | "MENTOR";
+/** One person around the tracked person, for the owner's Circle panel. */
+export type CircleMemberDTO = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  kind: CircleKind;
+  /** MENTOR: what they teach or coach. */
+  subject: string | null;
+  /** FAMILY: what they may do in Well Being. Ignored for a MENTOR. */
+  permission: RoutinePermission;
+  /** "PENDING" = invited, has not set a password yet; "ACTIVE" = can sign in. */
+  status: "PENDING" | "ACTIVE";
+};
+/** 2026-09-25 — the month calendar: one entry per day that has anything on it. */
+export type CalendarDayDTO = {
+  tasks: { id: string; title: string; done: boolean; addedBy: "MANAGER" | "PERSON" }[];
+  reports: { id: string; subject: string; mentorName: string; covered: string; homework: string | null }[];
+  money: { given: number; spent: number; entries: { id: string; kind: MoneyKind; amount: number; note: string }[] };
+  /** Non-negotiables logged as crossed that day. */
+  rules: { id: string; name: string; crossed: true }[];
+  /** Habit marks that day — parent side only (the person never sees a rollup). */
+  habits: { met: number; missed: number; total: number } | null;
+};
+export type CalendarMonthDTO = {
+  /** "YYYY-MM" (IST). */
+  month: string;
+  today: string;
+  /** dayKey -> what happened / is due that day. Days with nothing are absent. */
+  days: Record<string, CalendarDayDTO>;
+};
+
+/* 2026-09-25 — maps: where the person was. A CHECKIN is their own tap (place,
+   note, the phone's position if allowed); OWNTRACKS / OVERLAND are positions a
+   location app on their phone posts by itself through the sharing link. */
+export type LocationSource = "CHECKIN" | "OWNTRACKS" | "OVERLAND";
+export type LocationPointDTO = {
+  id: string;
+  /** ISO instant. */
+  at: string;
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  battery: number | null;
+  source: LocationSource;
+  place: string | null;
+  note: string | null;
+};
+export type LocationDayDTO = {
+  /** "YYYY-MM-DD" (IST). */
+  day: string;
+  /** That day's points, newest first. */
+  points: LocationPointDTO[];
+  /** The latest point ever, whatever the day. */
+  lastSeen: LocationPointDTO | null;
+  /** Phone sharing: on when a link exists; the link itself only for the owner. */
+  sharing: { on: boolean; url: string | null };
+};
+
+/** Who a walled (PERSON-role) login is: the tracked person, a co-parent, or a tutor. */
+export type WhoDTO = { kind: "SON" | "FAMILY" | "MENTOR"; name: string };
+/** The mentor's own screen: each person they report on, with their past reports. */
+export type MentorViewDTO = {
+  name: string;
+  today: string;
+  students: { collaboratorId: string; personName: string; subject: string | null; reports: MentorReportDTO[] }[];
 };
 
 export type WeightEntryDTO = { id: string; date: string; weightKg: number };
@@ -743,8 +847,8 @@ export type RoutineSummaryDTO = {
   segments: RoutineSummarySegmentDTO[];
   overallDaysMet: number;
   overallTarget: number;
-  /** Scheduled non-negotiable days already past that were left undone, this week. */
-  missed: number;
+  /** Non-negotiable crossings logged this week — should be 0, addressed at once, not scored. */
+  violations: number;
 };
 
 /* Phase 39 — routine collaboration. A manager reaches a routine as its OWNER
@@ -790,6 +894,14 @@ export type RoutineOverviewDTO = {
   routines: RoutineSwitcherDTO[];
   /** Monitoring managers for THIS routine — populated for the OWNER only, else []. */
   collaborators: RoutineCollaboratorDTO[];
+  /** 2026-09-25: today's tasks (due today or undated) whatever week is shown — the Today card. */
+  todayTasks: RoutineTaskDTO[];
+  /** 2026-09-25: this calendar month's pocket money (always the current month). */
+  money: MoneyMonthDTO;
+  /** 2026-09-25: the tutors' reports dated inside the shown week, newest first. */
+  reports: MentorReportDTO[];
+  /** 2026-09-25: the people around the person — OWNER only, else []. */
+  circle: CircleMemberDTO[];
 };
 
 /* Phase 37 — the person's own habit grid on /kid. Same segments/habits + Mon–Sun
@@ -808,13 +920,13 @@ export type PersonViewDTO = {
   week: RoutineWeekDTO;
   segments: PersonHabitSegmentDTO[];
   tasks: RoutineTaskDTO[];
-  /** House rules the person marks DONE per day (phase 42). Only rules the manager
-      SCHEDULED for this week appear, each with its required days -> done. The person
-      toggles `done` on those days only (they can't change which days are required).
-      NO score / missed count reaches this side (kept calm, not a scoreboard). */
+  /** The non-negotiables, read-only: dayKey -> true on days logged as crossed (2026-09-25). */
   nonNegotiables: { id: string; name: string; days: Record<string, boolean> }[];
   /** The latest unread task reminder (phase 39), shown once then marked read. */
   reminder: { title: string; body: string } | null;
+  /** 2026-09-25: this month's pocket money, and the latest tutor reports (homework). */
+  money: MoneyMonthDTO;
+  reports: MentorReportDTO[];
 };
 
 /** The minimal grid shape the shared SegmentGrid renders. Score fields are

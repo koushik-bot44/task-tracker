@@ -813,6 +813,14 @@ model Person {
   weightEntries  WeightEntry[]
   tasks          RoutineTask[]
   collaborators  RoutineCollaborator[]
+  /// 2026-09-25 (the circle): the pocket-money ledger and the tutors' day reports.
+  moneyEntries   MoneyEntry[]
+  mentorReports  MentorReport[]
+  /// 2026-09-25 (maps): where the person was — check-ins from their own screen and,
+  /// when the parent turns sharing on, positions a location app on their phone
+  /// posts by itself. `feedToken` is the secret in that app's link; null = off.
+  feedToken      String?         @unique
+  locations      LocationPoint[]
 }
 
 /// Phase 39: another MANAGER invited to monitor a person's routine, mirroring the
@@ -832,6 +840,16 @@ model RoutineCollaborator {
   invitedById String
   invitedBy   User     @relation("RoutineCollaboratorInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
   createdAt   DateTime @default(now())
+  /// 2026-09-25 (the circle): who this is around the person. "FAMILY" = a co-parent,
+  /// who opens the same Well Being at the granted permission from their own walled
+  /// login; "MENTOR" = a tutor or coach, who sees one screen only — the day report
+  /// they send after each session. Both logins carry the PERSON role (walled from
+  /// the work app exactly like the tracked person); the kind, not the role, decides
+  /// the screen. `managerId` then simply means "the user this row belongs to".
+  kind        String   @default("FAMILY")
+  /// MENTOR only: what they teach or coach — "Maths", "Tennis". Free text.
+  subject     String?
+  reports     MentorReport[]
 
   @@unique([personId, managerId])
   @@index([managerId, status])
@@ -904,6 +922,11 @@ model NonNegotiableMark {
   // `done` is what the PERSON sets when they complete it that day. (Replaces the old
   // `crossed` violation flag — the model flipped to manager-schedules / person-does.)
   done            Boolean       @default(false)
+  /// 2026-09-25: the owner's Family Routine Agreement logs a non-negotiable ONLY
+  /// when the boundary was crossed that day ("should be 0 — addressed immediately,
+  /// not scored"). A row with crossed = true is that log line; the app's screens and
+  /// summary read this flag now. `done` stays for the rows phase 42 wrote.
+  crossed         Boolean       @default(false)
 
   @@unique([nonNegotiableId, date])
   @@index([nonNegotiableId, date])
@@ -933,8 +956,78 @@ model RoutineTask {
   done      Boolean   @default(false)
   doneAt    DateTime?
   createdAt DateTime  @default(now())
+  /// 2026-09-25: "MANAGER" = set by the parent side (the CEO or a co-parent);
+  /// "PERSON" = the tracked person's own extra for the day, which only they add
+  /// and remove. The parent sees both, tagged.
+  addedBy   String    @default("MANAGER")
 
   @@index([personId, dueDate])
+}
+
+/// 2026-09-25 (the circle): pocket money, by hand. No bank, no UPI — the parent
+/// logs what was GIVEN, the person logs what they SPENT, both with a short note;
+/// the month adds itself up. `side` + `addedByName` say who wrote the line, as a
+/// snapshot (no user relation — a removed co-parent's lines stay readable).
+model MoneyEntry {
+  id          String   @id @default(cuid())
+  personId    String
+  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  /// Whole rupees, always positive; `kind` gives the direction.
+  amount      Int
+  /// "GIVEN" | "SPENT"
+  kind        String
+  note        String
+  /// "PARENT" (the CEO or a co-parent) | "PERSON" (the tracked person).
+  side        String
+  addedByName String
+  createdAt   DateTime @default(now())
+
+  @@index([personId, date])
+}
+
+/// 2026-09-25 (the circle): a tutor's or coach's day report — the only thing a
+/// MENTOR login writes. One per session: what was covered, homework, a line for
+/// the parents. Keyed to the collaborator row, so removing the mentor removes
+/// their reports; the subject is copied in so a later rename keeps old reports true.
+model MentorReport {
+  id             String              @id @default(cuid())
+  personId       String
+  person         Person              @relation(fields: [personId], references: [id], onDelete: Cascade)
+  collaboratorId String
+  collaborator   RoutineCollaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  date           DateTime            @db.Date
+  subject        String
+  covered        String
+  homework       String?
+  note           String?
+  createdAt      DateTime            @default(now())
+
+  @@index([personId, date])
+  @@index([collaboratorId, date])
+}
+
+/// 2026-09-25 (maps): one position of the person. CHECKIN = they tapped "Check in"
+/// (place, optional note, the phone's position if allowed); OWNTRACKS / OVERLAND =
+/// posted by a location app on their phone through the feed link. `at` is the
+/// instant the phone was there; days are read in IST.
+model LocationPoint {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  at        DateTime
+  lat       Float
+  lng       Float
+  accuracy  Float?
+  /// 0-100 when the phone sends it.
+  battery   Int?
+  /// "CHECKIN" | "OWNTRACKS" | "OVERLAND"
+  source    String
+  place     String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([personId, at])
 }
 
 /// Work model: a TEAM inside a department (ServiceNow's assignment group).

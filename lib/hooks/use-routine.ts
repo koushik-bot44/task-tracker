@@ -3,7 +3,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
+  CalendarMonthDTO,
+  LocationDayDTO,
+  LocationPointDTO,
+  CircleKind,
+  CircleMemberDTO,
   HabitMarkValue,
+  MentorReportDTO,
+  MentorViewDTO,
+  MoneyEntryDTO,
+  MoneyKind,
+  MoneyMonthDTO,
   PersonViewDTO,
   RoutineInviteDTO,
   RoutineOverviewDTO,
@@ -11,6 +21,7 @@ import type {
   RoutinePersonDTO,
   RoutineTaskDTO,
   WeightEntryDTO,
+  WhoDTO,
 } from "@/lib/types";
 
 /** The manager view is per-week AND per-routine (own person or a collaboration).
@@ -19,6 +30,16 @@ export const routineKey = (week: string | null, personId: string | null) =>
   ["routine", personId ?? "default", week ?? "current"] as const;
 export const kidKey = ["routine-kid"] as const;
 export const routineInvitesKey = ["routine-invites"] as const;
+/* 2026-09-25 — the circle. Money is keyed by month (and routine); the person's
+   money by month; who/mentor by nothing. */
+export const moneyKey = (month: string | null, personId: string | null) => ["routine-money", personId ?? "default", month ?? "current"] as const;
+export const kidMoneyKey = (month: string | null) => ["routine-kid-money", month ?? "current"] as const;
+export const whoKey = ["routine-who"] as const;
+export const locationKey = (day: string | null, personId: string | null) => ["routine-location", personId ?? "default", day ?? "today"] as const;
+export const kidLocationKey = (day: string | null) => ["routine-kid-location", day ?? "today"] as const;
+export const calendarKey = (month: string | null, personId: string | null) => ["routine-calendar", personId ?? "default", month ?? "current"] as const;
+export const kidCalendarKey = (month: string | null) => ["routine-kid-calendar", month ?? "current"] as const;
+export const mentorKey = ["routine-mentor"] as const;
 
 /** Append ?person=<id> (or &person=) to a routine URL when a routine is selected. */
 function withPerson(path: string, personId: string | null): string {
@@ -53,26 +74,16 @@ function applyHabitMark(prev: RoutineOverviewDTO, habitId: string, date: string,
   };
 }
 
-/** Manager optimistic: add/remove a scheduled (required) day; recompute the tallies.
-    A day added starts not-done; removing a day drops any done mark with it. */
-function applyNnRequire(prev: RoutineOverviewDTO, nonNegotiableId: string, date: string, required: boolean, today: string): RoutineOverviewDTO {
-  return {
-    ...prev,
-    nonNegotiables: prev.nonNegotiables.map((n) => {
-      if (n.id !== nonNegotiableId) return n;
-      const days = { ...n.days };
-      if (required) days[date] = days[date] ?? false;
-      else delete days[date];
-      const entries = Object.entries(days);
-      return {
-        ...n,
-        days,
-        requiredThisWeek: entries.length,
-        doneThisWeek: entries.filter(([, d]) => d).length,
-        missedThisWeek: entries.filter(([d, done]) => !done && d < today).length,
-      };
-    }),
-  };
+/** Parent optimistic: log / unlog a crossed day; the week's count and the summary follow. */
+function applyNnCross(prev: RoutineOverviewDTO, nonNegotiableId: string, date: string, crossed: boolean): RoutineOverviewDTO {
+  const nonNegotiables = prev.nonNegotiables.map((n) => {
+    if (n.id !== nonNegotiableId) return n;
+    const days = { ...n.days };
+    if (crossed) days[date] = true;
+    else delete days[date];
+    return { ...n, days, crossedThisWeek: Object.keys(days).length };
+  });
+  return { ...prev, nonNegotiables, summary: { ...prev.summary, violations: nonNegotiables.reduce((a, n) => a + n.crossedThisWeek, 0) } };
 }
 
 export type ReminderResult =
@@ -85,8 +96,11 @@ export function useRoutineMutations(week: string | null, personId: string | null
   const key = routineKey(week, personId);
   // Every write targets the SELECTED routine via ?person=.
   const p = (path: string) => withPerson(path, personId);
-  // Structural edits can shift any week — refetch every cached routine week.
-  const refresh = () => void qc.invalidateQueries({ queryKey: ["routine"] });
+  // Structural edits can shift any week — refetch every cached routine week (and the calendar).
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["routine"] });
+    void qc.invalidateQueries({ queryKey: ["routine-calendar"] });
+  };
 
   const createPerson = useMutation({
     mutationFn: (input: { name: string; email: string; password: string }) => apiPost<RoutinePersonDTO>("/api/routine", input),
@@ -155,13 +169,13 @@ export function useRoutineMutations(week: string | null, personId: string | null
     mutationFn: (id: string) => apiDelete(p(`/api/routine/non-negotiables/${id}`)),
     onSettled: refresh,
   });
-  // The manager schedules whether a rule is required on a day (the person marks done).
-  const setNonNegotiableDay = useMutation({
-    mutationFn: (input: { nonNegotiableId: string; date: string; required: boolean }) => apiPatch(p("/api/routine/non-negotiable-mark"), input),
-    onMutate: async ({ nonNegotiableId, date, required }) => {
+  // The parent logs a day a non-negotiable was crossed (2026-09-25); the person only sees it.
+  const crossNonNegotiableDay = useMutation({
+    mutationFn: (input: { nonNegotiableId: string; date: string; crossed: boolean }) => apiPatch(p("/api/routine/non-negotiable-mark"), input),
+    onMutate: async ({ nonNegotiableId, date, crossed }) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<RoutineOverviewDTO>(key);
-      if (prev) qc.setQueryData<RoutineOverviewDTO>(key, applyNnRequire(prev, nonNegotiableId, date, required, prev.today));
+      if (prev) qc.setQueryData<RoutineOverviewDTO>(key, applyNnCross(prev, nonNegotiableId, date, crossed));
       return { prev };
     },
     onError: (_e, _v, ctx) => {
@@ -209,15 +223,85 @@ export function useRoutineMutations(week: string | null, personId: string | null
     mutationFn: () => apiPost<ReminderResult>(p("/api/routine/reminder"), {}),
   });
 
+  // 2026-09-25 — pocket money (owner/editable) and the circle (owner only).
+  // A money write can land in any month: refetch every month cached + the overview.
+  const refreshMoney = () => {
+    void qc.invalidateQueries({ queryKey: ["routine-money"] });
+    void qc.invalidateQueries({ queryKey: ["routine-calendar"] });
+    void qc.invalidateQueries({ queryKey: ["routine"] });
+  };
+  const addMoney = useMutation({
+    mutationFn: (input: { date: string; amount: number; kind: MoneyKind; note: string }) => apiPost<MoneyEntryDTO>(p("/api/routine/money"), input),
+    onSettled: refreshMoney,
+  });
+  const deleteMoney = useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(p(`/api/routine/money/${id}`)),
+    onSettled: refreshMoney,
+  });
+  const inviteCircle = useMutation({
+    mutationFn: (input: { name: string; email: string; kind: CircleKind; subject?: string; permission?: RoutinePermission; sendEmail?: boolean }) =>
+      apiPost<{ member: CircleMemberDTO; inviteUrl: string; emailSent: boolean }>(p("/api/routine/circle"), input),
+    onSettled: refresh,
+  });
+  const updateCircle = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { permission?: RoutinePermission; subject?: string | null } }) => apiPatch<CircleMemberDTO>(p(`/api/routine/circle/${id}`), patch),
+    onSettled: refresh,
+  });
+  const removeCircle = useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(p(`/api/routine/circle/${id}`)),
+    onSettled: refresh,
+  });
+  const resendCircle = useMutation({
+    mutationFn: ({ id, sendEmail }: { id: string; sendEmail?: boolean }) => apiPost<{ inviteUrl: string; emailSent: boolean }>(p(`/api/routine/circle/${id}/resend`), { sendEmail }),
+    onSettled: refresh,
+  });
+
+  // 2026-09-25 — phone sharing (owner only): mint or drop the link.
+  const setSharing = useMutation({
+    mutationFn: (input: { on: boolean }) => apiPost<{ on: boolean; url: string | null }>(p("/api/routine/location/sharing"), input),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["routine-location"] }),
+  });
+
   return {
+    setSharing,
     createPerson, updatePerson, deletePerson,
     addSegment, renameSegment, deleteSegment,
     addHabit, updateHabit, deleteHabit, markHabit,
-    addNonNegotiable, updateNonNegotiable, deleteNonNegotiable, setNonNegotiableDay,
+    addNonNegotiable, updateNonNegotiable, deleteNonNegotiable, crossNonNegotiableDay,
     addTask, deleteTask,
     addWeight, updateWeight, deleteWeight,
     inviteCollaborator, updateCollaborator, revokeCollaborator, sendReminder,
+    addMoney, deleteMoney, inviteCircle, updateCircle, removeCircle, resendCircle,
   };
+}
+
+/** One IST day of the person's positions for the parent side (null = today). */
+export function useLocationDay(day: string | null, personId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: locationKey(day, personId),
+    queryFn: () => apiGet<LocationDayDTO>(withPerson(`/api/routine/location${day ? `?day=${day}` : ""}`, personId)),
+    enabled,
+    refetchInterval: 60_000,
+  });
+}
+
+/** The month calendar for the parent side. `month` is "YYYY-MM" or null for now. */
+export function useCalendar(month: string | null, personId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: calendarKey(month, personId),
+    queryFn: () => apiGet<CalendarMonthDTO>(withPerson(`/api/routine/calendar${month ? `?month=${month}` : ""}`, personId)),
+    enabled,
+  });
+}
+
+/** One month of the ledger for the Money tab (owner / co-parent). `month` is
+    "YYYY-MM" or null for the current month. */
+export function useMoney(month: string | null, personId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: moneyKey(month, personId),
+    queryFn: () => apiGet<MoneyMonthDTO>(withPerson(`/api/routine/money${month ? `?month=${month}` : ""}`, personId)),
+    enabled,
+  });
 }
 
 /** The caller's pending routine invites (Home) + accept/decline. Mirrors the
@@ -277,36 +361,6 @@ export function usePersonHabitMark() {
   });
 }
 
-/** The person marks THEIR OWN scheduled non-negotiable done for a day (phase 42) —
-    optimistic so the tap feels instant, then reconciled. Flips `done` on the SAME
-    NonNegotiableMark row the manager scheduled; the manager's view reflects it. */
-export function usePersonNonNegotiableMark() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { nonNegotiableId: string; date: string; done: boolean }) => apiPost("/api/routine/kid/non-negotiable-mark", input),
-    onMutate: async ({ nonNegotiableId, date, done }) => {
-      await qc.cancelQueries({ queryKey: kidKey });
-      const prev = qc.getQueryData<PersonViewDTO>(kidKey);
-      if (prev) {
-        qc.setQueryData<PersonViewDTO>(kidKey, {
-          ...prev,
-          nonNegotiables: prev.nonNegotiables.map((n) => {
-            if (n.id !== nonNegotiableId) return n;
-            // Only flip a day the manager scheduled (present in the map); never add one.
-            if (!(date in n.days)) return n;
-            return { ...n, days: { ...n.days, [date]: done } };
-          }),
-        });
-      }
-      return { prev };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(kidKey, ctx.prev);
-    },
-    onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
-  });
-}
-
 export function usePersonTaskToggle() {
   const qc = useQueryClient();
   return useMutation({
@@ -324,5 +378,101 @@ export function usePersonTaskToggle() {
       if (ctx?.prev) qc.setQueryData(kidKey, ctx.prev);
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
+  });
+}
+
+/* ---- 2026-09-25 — the person's own extras and money ---- */
+
+/** The person adds an extra of their own for today (addedBy PERSON). */
+export function usePersonAddTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { title: string }) => apiPost<RoutineTaskDTO>("/api/routine/kid/tasks", input),
+    onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
+  });
+}
+/** …and removes one of their own (never a task the parent set). */
+export function usePersonDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/routine/kid/tasks/${id}`),
+    onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
+  });
+}
+/** One month of the person's own ledger. */
+export function usePersonMoney(month: string | null) {
+  return useQuery({
+    queryKey: kidMoneyKey(month),
+    queryFn: () => apiGet<MoneyMonthDTO>(`/api/routine/kid/money${month ? `?month=${month}` : ""}`),
+  });
+}
+export function usePersonAddMoney() {
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["routine-kid-money"] });
+    void qc.invalidateQueries({ queryKey: kidKey });
+  };
+  return useMutation({
+    mutationFn: (input: { date: string; amount: number; kind: MoneyKind; note: string }) => apiPost<MoneyEntryDTO>("/api/routine/kid/money", input),
+    onSettled: refresh,
+  });
+}
+export function usePersonDeleteMoney() {
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["routine-kid-money"] });
+    void qc.invalidateQueries({ queryKey: kidKey });
+  };
+  return useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/routine/kid/money/${id}`),
+    onSettled: refresh,
+  });
+}
+
+/** The person's own month calendar (no habit rollup). */
+export function usePersonCalendar(month: string | null) {
+  return useQuery({
+    queryKey: kidCalendarKey(month),
+    queryFn: () => apiGet<CalendarMonthDTO>(`/api/routine/kid/calendar${month ? `?month=${month}` : ""}`),
+  });
+}
+
+/** The person's own positions for a day (null = today), for their Map tab. */
+export function usePersonLocationDay(day: string | null) {
+  return useQuery({
+    queryKey: kidLocationKey(day),
+    queryFn: () => apiGet<LocationDayDTO>(`/api/routine/kid/location${day ? `?day=${day}` : ""}`),
+  });
+}
+/** The person taps "Check in": a place, a note, and the phone's position if allowed. */
+export function usePersonCheckIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { place: string; note?: string; lat?: number; lng?: number; accuracy?: number }) => apiPost<LocationPointDTO>("/api/routine/kid/checkin", input),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["routine-kid-location"] }),
+  });
+}
+
+/* ---- Which walled login is this? (the person, a co-parent, a tutor) ---- */
+export function useWho() {
+  return useQuery({ queryKey: whoKey, queryFn: () => apiGet<WhoDTO>("/api/routine/who"), retry: false });
+}
+
+/* ---- The tutor's / coach's screen ---- */
+export function useMentor() {
+  return useQuery({ queryKey: mentorKey, queryFn: () => apiGet<MentorViewDTO>("/api/routine/mentor") });
+}
+export function useMentorReportAdd() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { collaboratorId: string; date: string; covered: string; homework?: string; note?: string }) => apiPost<MentorReportDTO>("/api/routine/mentor/reports", input),
+    onSettled: () => void qc.invalidateQueries({ queryKey: mentorKey }),
+  });
+}
+export function useMentorReportDelete() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/routine/mentor/reports/${id}`),
+    onSettled: () => void qc.invalidateQueries({ queryKey: mentorKey }),
   });
 }

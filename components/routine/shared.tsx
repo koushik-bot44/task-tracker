@@ -12,8 +12,9 @@ export const addDays = (key: string, n: number) => {
 };
 export const weekdayShort = (key: string) => asUTC(key).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
 export const weekdayInitial = (key: string) => weekdayShort(key).slice(0, 1);
+// Chromium's en-GB short September is "Sept"; three letters everywhere (2026-09-25).
 export const prettyDate = (key: string) =>
-  `${asUTC(key).getUTCDate()} ${asUTC(key).toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}`;
+  `${asUTC(key).getUTCDate()} ${asUTC(key).toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }).slice(0, 3)}`;
 
 /** "1–7 Sep" style label for a Mon..Sun week. */
 export const weekLabel = (days: string[]) => {

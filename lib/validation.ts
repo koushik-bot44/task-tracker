@@ -286,12 +286,12 @@ export const segmentUpdateSchema = z.object({ name: z.string().trim().min(1).max
 
 export const habitCreateSchema = z.object({
   segmentId: z.string().min(1),
-  name: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(160),
   targetPerWeek: z.number().int().min(0).max(7).optional(),
 });
 export const habitUpdateSchema = z
   .object({
-    name: z.string().trim().min(1).max(80),
+    name: z.string().trim().min(1).max(160),
     targetPerWeek: z.number().int().min(0).max(7),
     active: z.boolean(),
   })
@@ -304,21 +304,16 @@ export const habitMarkSchema = z.object({
   value: z.enum(["MET", "MISSED", "NA"]).nullable(),
 });
 
-export const nonNegotiableCreateSchema = z.object({ name: z.string().trim().min(1).max(80) });
+export const nonNegotiableCreateSchema = z.object({ name: z.string().trim().min(1).max(160) });
 export const nonNegotiableUpdateSchema = z
-  .object({ name: z.string().trim().min(1).max(80), active: z.boolean() })
+  .object({ name: z.string().trim().min(1).max(160), active: z.boolean() })
   .partial();
-// Phase 42: the MANAGER schedules whether a rule is required on a day…
-export const nonNegotiableRequireSchema = z.object({
+// 2026-09-25 (the Family Routine Agreement): the parent logs a day a non-negotiable
+// was CROSSED; crossed=false takes the log line away again.
+export const nonNegotiableCrossSchema = z.object({
   nonNegotiableId: z.string().min(1),
   date: dayKey,
-  required: z.boolean(),
-});
-// …and the PERSON marks whether they did it on a scheduled day.
-export const nonNegotiableDoneSchema = z.object({
-  nonNegotiableId: z.string().min(1),
-  date: dayKey,
-  done: z.boolean(),
+  crossed: z.boolean(),
 });
 
 export const routineTaskCreateSchema = z.object({
@@ -342,6 +337,44 @@ export const routineInviteSchema = z.object({
   permission: routinePermission,
 });
 export const routineCollaboratorUpdateSchema = z.object({ permission: routinePermission });
+
+/* 2026-09-25 — the circle: the person's own extras, pocket money, the invited
+   people, and the tutors' day reports. */
+export const kidTaskCreateSchema = z.object({ title: z.string().trim().min(1).max(200) });
+export const moneyEntryCreateSchema = z.object({
+  date: dayKey,
+  amount: z.number().int().positive().max(10_000_000),
+  kind: z.enum(["GIVEN", "SPENT"]),
+  note: z.string().trim().min(1).max(120),
+});
+export const circleInviteSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  email: z.string().trim().email().max(320),
+  kind: z.enum(["FAMILY", "MENTOR"]),
+  subject: z.string().trim().max(60).optional(),
+  permission: routinePermission.optional(),
+  /** false = only make the link (the CEO sends it on WhatsApp himself). */
+  sendEmail: z.boolean().optional(),
+});
+export const circleUpdateSchema = z
+  .object({ permission: routinePermission, subject: z.string().trim().max(60).nullable() })
+  .partial();
+/* 2026-09-25 — maps. */
+export const checkinSchema = z.object({
+  place: z.string().trim().min(1).max(40),
+  note: z.string().trim().max(120).optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  accuracy: z.number().min(0).max(100000).optional(),
+});
+export const sharingSchema = z.object({ on: z.boolean() });
+export const mentorReportCreateSchema = z.object({
+  collaboratorId: z.string().min(1),
+  date: dayKey,
+  covered: z.string().trim().min(1).max(1000),
+  homework: z.string().trim().max(1000).optional(),
+  note: z.string().trim().max(1000).optional(),
+});
 
 export const updateTaskSchema = z
   .object({

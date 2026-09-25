@@ -35,6 +35,30 @@ async function loadSessionUser(): Promise<User> {
 }
 
 /**
+ * 2026-09-25 (the circle): every login around the tracked person carries the
+ * PERSON role, so the work app's walls hold for all of them without a new role.
+ * WHICH one they are is data: the tracked person has a Person row (SON); a
+ * co-parent has an accepted FAMILY collaborator row; a tutor or coach a MENTOR
+ * one. Decided here, once, for the three gates below and for /api/routine/who.
+ */
+export type WalledKind = "SON" | "FAMILY" | "MENTOR";
+export async function walledKind(userId: string): Promise<WalledKind | null> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      personAccount: { select: { id: true } },
+      routineCollaborations: { where: { status: "ACCEPTED" }, select: { kind: true } },
+    },
+  });
+  if (!u) return null;
+  if (u.personAccount) return "SON";
+  const kinds = new Set(u.routineCollaborations.map((c) => c.kind));
+  if (kinds.has("MENTOR")) return "MENTOR";
+  if (kinds.has("FAMILY")) return "FAMILY";
+  return null;
+}
+
+/**
  * The gate for every WORK route. A PERSON (phase 35, was CHILD) is a walled-off
  * login that may touch nothing here — so requireUser REJECTS it with a 403.
  * Because every work handler funnels through requireUser (directly, or via
@@ -50,25 +74,47 @@ export async function requireUser(): Promise<User> {
   return user;
 }
 
-/** The gate for the PERSON routine endpoints — the ONLY thing a PERSON may reach. */
+/** The gate for the tracked person's own endpoints (/api/routine/kid): a PERSON
+    login that IS the tracked person. A co-parent or a tutor, though also PERSON-
+    role, is refused here (2026-09-25). */
 export async function requirePerson(): Promise<User> {
   const user = await loadSessionUser();
-  if (user.role !== "PERSON") {
+  if (user.role !== "PERSON" || (await walledKind(user.id)) !== "SON") {
     throw new HttpError(403, "Not available for this account.");
   }
   return user;
 }
 
-/** The Well Being (family routine) surface belongs to the CEO alone (owner,
-    2026-09-04: "Well Being is only for Rahul to track someone"). Deliberately
-    NOT the phase-48 chain. Project surfaces use requireProjectAuthority /
-    assertManager instead. The name is kept so nothing else has to move. */
-export async function requireManager(): Promise<User> {
-  const user = await requireUser();
-  if (user.role !== "FOUNDER") {
-    throw new HttpError(403, "Only the CEO has Well Being.");
+/** Any login around the tracked person (the person, a co-parent, a tutor) —
+    only /api/routine/who uses it, to say which screen to show. */
+export async function requireWalled(): Promise<{ user: User; kind: WalledKind }> {
+  const user = await loadSessionUser();
+  const kind = user.role === "PERSON" ? await walledKind(user.id) : null;
+  if (!kind) throw new HttpError(403, "Not available for this account.");
+  return { user, kind };
+}
+
+/** The gate for the tutor/coach endpoints (/api/routine/mentor). */
+export async function requireMentor(): Promise<User> {
+  const user = await loadSessionUser();
+  if (user.role !== "PERSON" || (await walledKind(user.id)) !== "MENTOR") {
+    throw new HttpError(403, "Not available for this account.");
   }
   return user;
+}
+
+/** The Well Being (family routine) surface belongs to the CEO (owner,
+    2026-09-04: "Well Being is only for Rahul to track someone") — and, since
+    2026-09-25, to a co-parent he invited, who opens the same screens from a
+    walled login at the permission he granted (what they may touch is settled
+    per request by requireRoutineAccess). Deliberately NOT the phase-48 chain.
+    Project surfaces use requireProjectAuthority / assertManager instead. The
+    name is kept so nothing else has to move. */
+export async function requireManager(): Promise<User> {
+  const user = await loadSessionUser();
+  if (user.role === "FOUNDER") return user;
+  if (user.role === "PERSON" && (await walledKind(user.id)) === "FAMILY") return user;
+  throw new HttpError(403, "Only the CEO has Well Being.");
 }
 
 /** The project-authority chain: the CEO, an HOD, or a MANAGER.
