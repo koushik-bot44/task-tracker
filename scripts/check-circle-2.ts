@@ -249,10 +249,10 @@ async function main() {
   /* ---- Arjun's side: his own calendar and map ---- */
   const arjunCookie = await signIn(ARJUN.email, ARJUN.password);
   record(`${ARJUN.name} signs in`, Boolean(arjunCookie));
-  let arjunTabsWanted = "Today|Habits|Rules|Calendar|Map";
+  let arjunTabsWanted = "Today|Habits|Non-negotiables|Calendar|Map";
   if (arjunCookie) {
     const kView = await call<{ segments: unknown[]; nonNegotiables: unknown[] }>(arjunCookie, "GET", "/api/routine/kid");
-    arjunTabsWanted = ["Today", ...(kView.json?.segments.length ? ["Habits"] : []), ...(kView.json?.nonNegotiables.length ? ["Rules"] : []), "Calendar", "Map"].join("|");
+    arjunTabsWanted = ["Today", ...(kView.json?.segments.length ? ["Habits"] : []), ...(kView.json?.nonNegotiables.length ? ["Non-negotiables"] : []), "Calendar", "Map"].join("|");
     info(`${ARJUN.name}'s side has ${kView.json?.segments.length ?? 0} habit groups and ${kView.json?.nonNegotiables.length ?? 0} rules this week, so his tabs should read ${arjunTabsWanted.replace(/\|/g, " · ")}`);
     const kCal = await call<CalendarMonthDTO>(arjunCookie, "GET", "/api/routine/kid/calendar");
     const kDays = Object.entries(kCal.json?.days ?? {});

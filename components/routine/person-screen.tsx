@@ -137,7 +137,7 @@ export function PersonScreen() {
   const available: { id: TabId; label: string; icon: typeof Sun }[] = [
     { id: "today", label: "Today", icon: ListChecks },
     ...(segments.length > 0 ? [{ id: "habits" as const, label: "Habits", icon: Sun }] : []),
-    ...(rules.length > 0 ? [{ id: "rules" as const, label: "Rules", icon: ShieldCheck }] : []),
+    ...(rules.length > 0 ? [{ id: "rules" as const, label: "Non-negotiables", icon: ShieldCheck }] : []),
     { id: "calendar", label: "Calendar", icon: CalendarDays },
     { id: "map", label: "Map", icon: MapPin },
   ];
