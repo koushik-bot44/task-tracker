@@ -180,7 +180,6 @@ function whereWords(p: LocationPointDTO | null): string {
   if (!p) return "";
   if (p.placeName) return p.placeName;
   if (p.source === "CHECKIN" && p.place) return p.place;
-  if (p.near) return `near ${p.near}`;
   if (p.lat === 0 && p.lng === 0) return "no position";
   return "on the map";
 }
@@ -228,7 +227,7 @@ async function main() {
   const lastSeenWords = whereWords(lastSeen);
   const lastSeenRe = new RegExp(`^Last seen: ${escapeRe(lastSeenWords)} · `);
   const lastCheckin = points.find((p) => p.source === "CHECKIN") ?? null;
-  info(`last seen: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}${lastSeen?.near ? `, near ${lastSeen.near}` : ""}); last check-in today: ${lastCheckin?.place ?? "none"}`);
+  info(`last seen: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}); last check-in today: ${lastCheckin?.place ?? "none"}`);
   const phonePoint = phone.find((p) => p.source === "OVERLAND");
   record("a phone point keeps its battery and accuracy", phonePoint?.battery === 61 && phonePoint?.accuracy === 25, `battery ${phonePoint?.battery}, accuracy ${phonePoint?.accuracy}`);
   const badDay = await call<LocationDayDTO>(ceoCookie, "GET", "/api/routine/location?day=bad");
@@ -361,7 +360,7 @@ async function main() {
   await openTab(arjunPage, "Map");
   record("his Map draws today", await mapReady(arjunPage));
   const arjunSharing = (await arjunPage.getByText("Sharing with your parents").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
-  record("…shows today's log and says sharing with his parents is on", (await seen(arjunPage, /Today.s log/)) && (await seen(arjunPage, "Tutor")) && (await seen(arjunPage, "Maths")) && arjunSharing === "Sharing with your parents: on", `"${arjunSharing}"`);
+  record("…shows today's log and says sharing with his parents is on", (await seen(arjunPage, /Today.s log/)) && (await seen(arjunPage, "check-in")) && (await seen(arjunPage, "Maths")) && arjunSharing === "Sharing with your parents: on", `"${arjunSharing}"`);
   record("…and never shows him the link", (await arjunPage.getByText("Phone sharing").count()) === 0 && (await arjunPage.locator("code").count()) === 0);
   await photograph(arjunPage, "arjun-3-map.png", `${ARJUN.name}'s Map`, SCOPE, true);
 

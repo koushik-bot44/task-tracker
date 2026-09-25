@@ -1,13 +1,13 @@
 PASS  the CEO signs in
 PASS  the CEO's Well Being is Arjun's  (status 200, Arjun, today 2026-09-25)
 PASS  the CEO's calendar opens on this month with today's tasks  (status 200, month 2026-09, today: Physics assignment, Pack tennis kit, Call grandma)
-PASS  …and Arjun's habits on the days he was marked  (2026-09-25 0 of 1, 2026-09-24 10 of 15, 2026-09-23 11 of 15, 2026-09-22 11 of 15, 2026-09-21 12 of 15)
-PASS  …the tutors' reports and the rules on their days  (today: 6 report, 4 rules scheduled)
+PASS  …and Arjun's habits on the days he was marked  (2026-09-25 0 of 2, 2026-09-24 10 of 15, 2026-09-23 11 of 15, 2026-09-22 11 of 15, 2026-09-21 12 of 15)
+PASS  …the tutors' reports and the rules on their days  (today: 1 report, 3 rules scheduled)
 PASS  a month that is not a month is refused  (status 400: That is not a month.)
 PASS  the CEO's map for today lists Arjun's check-ins and the phone's points  (status 200, 3 check-ins, 4 from the phone: Home, Tutor, School)
 PASS  …newest first, with the latest point as last seen  (last seen APP at 2026-09-25T13:36:30.533Z)
 PASS  …and phone sharing on, with the link for the owner  (on true, link of 32 letters)
-INFO  last seen: Road Number 8, Ayyappa Society Colony (APP, near School); last check-in today: Home
+INFO  last seen: Road Number 8, Ayyappa Society Colony (APP); last check-in today: Home
 PASS  a phone point keeps its battery and accuracy  (battery 61, accuracy 25)
 PASS  a day that is not a day is refused  (status 400: That is not a day.)
 PASS  Priya signs in
@@ -41,7 +41,7 @@ PASS  Arjun is offered Today, Habits, Rules, Calendar, Map — Calendar and Map 
 PASS  his Today says his phone is sharing, and keeps his own extra
 PASS  Arjun's Today fits a phone with no sideways scroll  (page width 390px)
 PASS  Arjun's Today: every tap on the new sections is at least 36px tall  (11 controls)
-INFO  Arjun's calendar, today's cell: "25 September, 13 things", panel "Fri 25 Sep · Today"
+INFO  Arjun's calendar, today's cell: "25 September, 7 things", panel "Fri 25 Sep · Today"
 PASS  his Calendar opens on this month and today's panel lists his tasks and the tutor's homework  (panel "Fri 25 Sep · Today")
 PASS  …with no habit bars on his side  (0 bars)
 PASS  Arjun's Calendar fits a phone with no sideways scroll  (page width 390px)
@@ -69,7 +69,7 @@ PASS  …says where Arjun was last seen, shows today's log with the phone's poin
 PASS  …and, for the owner, phone sharing is on with a link to copy  (switch aria-checked true)
 PASS  the CEO's Map fits a phone with no sideways scroll  (page width 390px)
 INFO  the CEO's Map: taps under 40px — a "Leaflet" 14px
-PASS  the CEO's Map: every tap on the new sections is at least 36px tall  (19 controls)
+PASS  the CEO's Map: every tap on the new sections is at least 36px tall  (13 controls)
 PASS  his Tutors tab lists the tutors’ reports by day, today's first, Maths among them  ("Tutors’ reports What each tutor or coach punched in after a session, day by day.")
 PASS  the CEO's Tutors fits a phone with no sideways scroll  (page width 390px)
 PASS  the CEO's Tutors: every tap on the new sections is at least 36px tall  (6 controls)
@@ -88,11 +88,11 @@ PASS  Priya's Map draws today
 PASS  …shows the same day, and never the sharing switch or the link  (wanted "Last seen: Road Number 8, Ayyappa Society Colony · …"; 3 log rows from the phone)
 PASS  Priya's Map fits a phone with no sideways scroll  (page width 390px)
 INFO  Priya's Map: taps under 40px — a "Leaflet" 14px
-PASS  Priya's Map: every tap on the new sections is at least 36px tall  (16 controls)
+PASS  Priya's Map: every tap on the new sections is at least 36px tall  (10 controls)
 PASS  Dr Rao stays on the tutor's page  (/mentor)
 PASS  Dr Rao's screen shows Arjun · Maths and nothing of the map or the calendar
 PASS  Dr Rao's screen fits a phone with no sideways scroll  (page width 390px)
-PASS  Dr Rao's screen: every tap on the new sections is at least 36px tall  (13 controls)
+PASS  Dr Rao's screen: every tap on the new sections is at least 36px tall  (8 controls)
 INFO  screens: arjun-1-today, arjun-2-calendar, arjun-3-map, arjun-4-habits, ceo-1-summary, ceo-2-calendar, ceo-3-map, ceo-4-tutors, ceo-5-circle, ceo-6-tracker, priya-1-family, priya-2-map, rao-1-mentor
 
 82 passed, 0 failed
