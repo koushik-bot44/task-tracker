@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireManager, route } from "@/lib/session";
 import { buildLocationDay, parseDayKey, personParam, requireRoutineAccess, todayKey } from "@/lib/routine";
+import { auditLocationView } from "@/lib/location-audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,5 +17,6 @@ export const GET = route(async (req: Request) => {
   const day = raw ? parseDayKey(raw) : todayKey();
   if (!day) return NextResponse.json({ error: "That is not a day." }, { status: 400 });
 
+  await auditLocationView(person.id, actor.id, "VIEW_HISTORY", { day });
   return NextResponse.json(await buildLocationDay(person.id, day, { withUrl: role === "OWNER" }));
 });

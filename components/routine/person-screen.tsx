@@ -93,8 +93,10 @@ export function PersonScreen() {
   // Today's positions: the "Where are you?" card's last check-in and the Map tab.
   const location = usePersonLocationDay(null);
   const lastSeen: LocationPointDTO | null = location.data?.lastSeen ?? null;
-  // The app notes where he is on open and on the hour; the phone asks its own question once.
-  useAppPing();
+  // An enrolled phone shares on its own (2026-09-29); until then the web app notes
+  // where he is when it is opened. Never both.
+  const phone = location.data?.device ?? null;
+  useAppPing(Boolean(location.data) && !phone);
   // The card wants his last CHECK-IN, not the phone's last point (review, 2026-09-25).
   const lastCheckIn: LocationPointDTO | null =
     location.data?.points.find((p) => p.source === "CHECKIN") ?? (lastSeen?.source === "CHECKIN" ? lastSeen : null);
@@ -256,11 +258,15 @@ export function PersonScreen() {
                   {/* While his phone shares on its own, asking him to tap is noise: one line says
                       sharing is on. The Check in card is the fallback for when it is off (owner's
                       developer, 2026-09-25). */}
-                  {location.data?.sharing.on ? (
+                  {phone || location.data?.sharing.on ? (
                     <div className="pk-glass mb-4 flex items-center gap-3 rounded-card px-4 py-3">
                       <MapPin className="h-5 w-5 shrink-0 text-ok-ink" strokeWidth={2} aria-hidden />
                       <p className="pk-fg min-w-0 text-sm">
-                        Sharing your location with your parents: <span className="font-semibold">on</span>
+                        {phone ? (
+                          <>Your phone shares your location with your parents automatically. <span className="font-semibold">{phone.label}</span></>
+                        ) : (
+                          <>Sharing your location with your parents: <span className="font-semibold">on</span></>
+                        )}
                       </p>
                     </div>
                   ) : location.data ? (
@@ -367,7 +373,7 @@ export function PersonScreen() {
               ) : null}
 
               {active === "map" && data ? (
-                <PersonMap points={location.data?.points ?? []} lastSeen={lastSeen} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
+                <PersonMap points={location.data?.points ?? []} gaps={location.data?.track.gaps ?? []} lastSeen={lastSeen} phone={phone} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
               ) : null}
             </main>
           </div>
@@ -399,7 +405,21 @@ function PersonCalendar({ today, month, selected, onMonth, onSelect }: { today: 
 /** The Map tab — his own view of today: the map, the day's check-ins, and
     whether his phone is sharing its position with his parents. Nothing here is
     hidden from him: if sharing is on, this line says so. */
-function PersonMap({ points, lastSeen, sharingOn, loading }: { points: LocationPointDTO[]; lastSeen: LocationPointDTO | null; sharingOn: boolean; loading: boolean }) {
+function PersonMap({
+  points,
+  gaps,
+  lastSeen,
+  phone,
+  sharingOn,
+  loading,
+}: {
+  points: LocationPointDTO[];
+  gaps: { fromId: string; toId: string; minutes: number; km: number }[];
+  lastSeen: LocationPointDTO | null;
+  phone: { name: string | null; label: string } | null;
+  sharingOn: boolean;
+  loading: boolean;
+}) {
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -412,12 +432,16 @@ function PersonMap({ points, lastSeen, sharingOn, loading }: { points: LocationP
       <LocationMapLazy points={lastSeen ? [lastSeen] : []} height={280} />
 
       <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">Today&rsquo;s log</h3>
-      <LocationLog points={points} loading={loading} emptyText="Nothing yet today." />
+      <LocationLog points={points} loading={loading} emptyText="Nothing yet today." gaps={gaps} />
 
       <p className="mt-4 text-sm pk-fg">
-        Sharing with your parents: <span className="font-semibold">{loading ? "…" : sharingOn ? "on" : "off"}</span>
+        Sharing with your parents: <span className="font-semibold">{loading ? "…" : phone ? `on, automatically — ${phone.label}` : sharingOn ? "on" : "off"}</span>
       </p>
-      <p className="mt-1 text-micro pk-fg-soft">The app notes where you are when you open it, and every hour while it stays open. Your parents see the same log you see here.</p>
+      <p className="mt-1 text-micro pk-fg-soft">
+        {phone
+          ? `${phone.name ?? "Your phone"} sends where it is by itself, also when the app is closed. Your parents see the same log you see here.`
+          : "The app notes where you are when you open it. Your parents see the same log you see here."}
+      </p>
     </section>
   );
 }

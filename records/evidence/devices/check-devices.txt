@@ -1,0 +1,66 @@
+INFO  head of department: vikram@orbit.local
+INFO  child: Arjun
+PASS  the tutor cannot see the phones  (status 403)
+PASS  the tutor cannot see the latest location  (status 403)
+PASS  the child himself cannot see the phones  (status 403)
+PASS  the child himself cannot see the latest location  (status 403)
+PASS  a head of department cannot see the phones  (status 403)
+PASS  a head of department cannot see the latest location  (status 403)
+PASS  nobody signed out can see the latest location  (status 401)
+PASS  a made-up code is refused  (status 404 PAIRING_INVALID)
+PASS  the editable co-parent may make a pairing code too  (status 201)
+PASS  the CEO makes a pairing code (8 characters, 15 minutes)  (B2N5-5T3T)
+PASS  …which kills the co-parent's older code  (status 404)
+PASS  the phone pairs with the code as typed (any case, any spacing)  (status 201)
+PASS  …and is told how often to report
+PASS  the same code cannot pair a second phone  (status 404)
+PASS  only a hash of the phone's token is stored
+PASS  the parents are told a phone was connected  (A phone was connected for Arjun)
+PASS  paired, no position yet: the parent sees it honestly (not live)  (STALE: The phone is in touch but has not sent a position yet.)
+PASS  permission not given yet -> Permission off  (Permission off)
+PASS  …and the parents are notified once  (Location permission is turned off on the phone.)
+PASS  the phone reports sharing running with all permissions
+PASS  an upload keeps 5 good fixes, drops a repeat, rejects bad ones with reasons  (accepted 5, duplicates 1, rejected ["BAD_COORDINATES","FUTURE_TIME"])
+PASS  a retried upload of the same fixes stores nothing twice  (accepted 0, duplicates 5)
+PASS  …the database holds exactly 5 positions for the phone  (5)
+PASS  now the parent sees it Live, from the phone, 4 min old by the phone's own clock  (ACTIVE, 240s)
+PASS  …with battery, network and accuracy
+PASS  a late upload of an old fix never moves 'last seen' backwards
+INFO  history day asked for: 2026-09-29
+PASS  …and history shows it with its real time and when it arrived  (at 04:48, arrived 05:38)
+PASS  history splits the route where data is missing (a 30-minute hole is a gap)  (30 min)
+PASS  Locate Now is accepted as a request, not a made-up position  (202 PENDING)
+PASS  …and says honestly it waits for the next check-in (instant push not set up here)  (Waiting for the phone to check in — it does so about every 15 minutes.)
+PASS  pressing again while one is on its way shows the same request
+PASS  the editable co-parent may press Locate Now (same request)  (status 200)
+PASS  the tutor cannot press Locate Now  (status 403)
+PASS  the child cannot press Locate Now  (status 403)
+PASS  the phone's next check-in carries the request
+PASS  the phone acknowledges -> the parent sees it is finding its position  (The phone got the request and is finding its position…)
+PASS  the phone's fresh fix fulfils the request, with the position attached  (FULFILLED)
+PASS  an unknown request id is a 404
+PASS  a phone that cannot answer says why, and the parent is told plainly  (The phone could not answer: the phone's location switch is off.)
+PASS  no answer in time -> EXPIRED, with the last known position still shown  (EXPIRED)
+PASS  more than 20 Locate Now an hour is refused kindly  (status 429)
+PASS  a phone sending more than 30 requests a minute is slowed down  (limited at request 22 of this burst)
+PASS  after rotation the old token is dead and the new one works
+PASS  a made-up token gets nothing
+PASS  location switched off on the phone -> Location off  (The phone's location setting is switched off.)
+PASS  sharing not running on the phone -> Sharing stopped  (Sharing stopped)
+PASS  the phone said it was switching off -> Switched off  (The phone said it was switching off 5 min ago.)
+PASS  silent for 2 hours -> Unreachable, last known position kept  (The phone has not been in touch for 2 hr — no signal, flight mode, switched off, or the app was force-stopped.)
+PASS  back after a restart -> Live again  (Live)
+PASS  …and the parents are told it is sharing again
+PASS  the co-parent sees the same live status
+PASS  …but the access log is the owner's alone  (status 403)
+PASS  the owner's access log records pairing, views, Locate Now, permission changes, rotation  (all there)
+PASS  …a dashboard that looked many times is one view row per viewer per 10 minutes  (0 rows)
+PASS  the co-parent cannot change how long positions are kept  (status 403)
+PASS  retention under a week is refused
+PASS  with 7 days' retention, the daily housekeeping deletes a 10-day-old position  (purged 1)
+PASS  …and nobody without the cron secret can run it
+PASS  the child sees that his phone is sharing, and never the legacy link  (Live)
+PASS  the parent removes the phone; its token stops at once (the app is told why)  (401 DEVICE_REVOKED)
+PASS  …and it is gone from the parent's list
+
+61 passed, 0 failed

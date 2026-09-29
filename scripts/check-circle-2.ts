@@ -376,7 +376,7 @@ async function main() {
   await ceoPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const ceoTabs = await ceoPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`the CEO's tabs: ${ceoTabs.join(" · ")}`);
-  record("the CEO is offered Summary, Tracker, Calendar, Map, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors|Circle", ceoTabs.join(", "));
+  record("the CEO is offered Summary, Tracker, Calendar, Location, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors|Circle", ceoTabs.join(", "));
   record("his Summary shows today's list and where Arjun was last seen", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, lastSeenRe)), `wanted "Last seen: ${lastSeenWords} · …"`);
   await photograph(ceoPage, "ceo-1-summary.png", "the CEO's Summary", SCOPE, true);
 
@@ -388,7 +388,7 @@ async function main() {
   record("…the week nav stays out of the way", (await ceoPage.getByRole("button", { name: "Previous week" }).count()) === 0);
   await photograph(ceoPage, "ceo-2-calendar.png", "the CEO's Calendar", SCOPE, true);
 
-  await openTab(ceoPage, "Map");
+  await openTab(ceoPage, "Location");
   record("his Map draws today", await mapReady(ceoPage));
   const ceoPhoneRows = await logRows(ceoPage).filter({ hasText: /phone/ }).count();
   record(`…says where ${ARJUN.name} was last seen, shows today's log with the phone's points in it`, (await seen(ceoPage, lastSeenRe)) && (await seen(ceoPage, /Today.s log/)) && ceoPhoneRows >= 1, `wanted "Last seen: ${lastSeenWords} · …"; ${await logRows(ceoPage).count()} log rows, ${ceoPhoneRows} from the phone`);
@@ -419,9 +419,9 @@ async function main() {
   await priyaPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const priyaTabs = await priyaPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`${PRIYA.name}'s tabs: ${priyaTabs.join(" · ")}`);
-  record(`${PRIYA.name} sees Summary, Tracker, Calendar, Map and Tutors — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors", priyaTabs.join(", "));
+  record(`${PRIYA.name} sees Summary, Tracker, Calendar, Location and Tutors — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors", priyaTabs.join(", "));
   await photograph(priyaPage, "priya-1-family.png", `${PRIYA.name}'s Well Being`, SCOPE, true);
-  await openTab(priyaPage, "Map");
+  await openTab(priyaPage, "Location");
   record(`${PRIYA.name}'s Map draws today`, await mapReady(priyaPage));
   const priyaPhoneRows = await logRows(priyaPage).filter({ hasText: /phone/ }).count();
   record(`…shows the same day, and never the sharing switch or the link`, (await seen(priyaPage, lastSeenRe)) && (await seen(priyaPage, /Today.s log/)) && priyaPhoneRows >= 1 && (await priyaPage.getByText("Phone sharing").count()) === 0 && (await priyaPage.getByRole("switch").count()) === 0 && (await priyaPage.locator("code").count()) === 0, `wanted "Last seen: ${lastSeenWords} · …"; ${priyaPhoneRows} log rows from the phone`);

@@ -780,7 +780,7 @@ export type CalendarMonthDTO = {
    location app on their phone posts by itself through the sharing link. */
 /** CHECKIN = his tap; APP = the app noted it when he opened it or on the hour while
     open; OWNTRACKS / OVERLAND = a location app on his phone, through the sharing link. */
-export type LocationSource = "CHECKIN" | "APP" | "OWNTRACKS" | "OVERLAND";
+export type LocationSource = "CHECKIN" | "APP" | "OWNTRACKS" | "OVERLAND" | "DEVICE";
 
 export type LocationPointDTO = {
   id: string;
@@ -795,6 +795,11 @@ export type LocationPointDTO = {
   note: string | null;
   /** The place as the map knows it ("Mindspace, Madhapur"); "" = nothing there; null = not looked up yet. */
   placeName: string | null;
+  /** 2026-09-29: when the server received it (`at` is the phone's own fix time). */
+  receivedAt: string | null;
+  /** 2026-09-29: why the phone took it: BACKGROUND, MOTION, LOCATE_NOW, BOOT, HEARTBEAT, APP_OPEN. */
+  trigger: string | null;
+  speed: number | null;
 };
 export type LocationDayDTO = {
   /** "YYYY-MM-DD" (IST). */
@@ -805,7 +810,69 @@ export type LocationDayDTO = {
   lastSeen: LocationPointDTO | null;
   /** Phone sharing: on when a link exists; the link itself only for the owner. */
   sharing: { on: boolean; url: string | null };
+  /** 2026-09-29: the day's route, split where the data has gaps (never a line through a gap). */
+  track: { segments: string[][]; gaps: { fromId: string; toId: string; fromAt: string; toAt: string; minutes: number; km: number }[] };
+  /** 2026-09-29: the enrolled phone, in brief, for both sides' screens (null = none). */
+  device: { name: string | null; platform: string; state: DeviceStateName; label: string; lastContactAt: string | null } | null;
 };
+
+/* 2026-09-29 — automatic location: enrolled phones, their state, Locate Now. */
+export type DeviceStateName = "ACTIVE" | "STALE" | "OFFLINE" | "PERMISSION_REVOKED" | "LOCATION_DISABLED" | "DEVICE_OFFLINE" | "POWERED_OFF" | "UNKNOWN";
+export type DeviceStatusDTO = { state: DeviceStateName; label: string; message: string; since: string | null };
+export type DeviceIssueDTO = { code: string; severity: "high" | "medium" | "low"; message: string };
+export type DeviceDTO = {
+  id: string;
+  platform: "ANDROID" | "IOS";
+  name: string | null;
+  model: string | null;
+  osVersion: string | null;
+  appVersion: string | null;
+  createdAt: string;
+  permission: string;
+  preciseLocation: boolean | null;
+  locationEnabled: boolean | null;
+  notificationsAllowed: boolean | null;
+  batteryOptimized: boolean | null;
+  trackingState: string;
+  batteryLevel: number | null;
+  isCharging: boolean | null;
+  networkType: string | null;
+  queueSize: number | null;
+  pushReady: boolean;
+  lastHeartbeatAt: string | null;
+  lastLocationAt: string | null;
+  lastContactAt: string | null;
+  status: DeviceStatusDTO;
+  issues: DeviceIssueDTO[];
+};
+export type LocateStatus = "PENDING" | "SENT" | "DELIVERED" | "FULFILLED" | "FAILED" | "EXPIRED";
+export type LocateRequestDTO = {
+  id: string;
+  status: LocateStatus;
+  /** What to tell the parent right now, in plain words. */
+  message: string;
+  requestedAt: string;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  fulfilledAt: string | null;
+  expiresAt: string;
+  failureReason: string | null;
+  pushProvider: string | null;
+  point: LocationPointDTO | null;
+};
+export type LatestLocationDTO = {
+  status: DeviceStatusDTO;
+  device: DeviceDTO | null;
+  latest: LocationPointDTO | null;
+  /** How old the latest position is by the phone's own clock, and whether it reached us late. */
+  freshness: { recordedAt: string; receivedAt: string | null; ageSeconds: number; delayedUpload: boolean } | null;
+  issues: DeviceIssueDTO[];
+  pendingLocate: LocateRequestDTO | null;
+  canLocate: boolean;
+  retentionDays: number;
+};
+export type DevicePairingDTO = { code: string; expiresAt: string; serverUrl: string };
+export type LocationAuditDTO = { id: string; action: string; actorName: string | null; at: string; detail: unknown };
 
 /** Who a walled (PERSON-role) login is: the tracked person, a co-parent, or a tutor. */
 export type WhoDTO = { kind: "SON" | "FAMILY" | "MENTOR"; name: string };

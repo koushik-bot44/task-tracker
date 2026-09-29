@@ -4,6 +4,8 @@ import { HttpError } from "@/lib/session";
 import { istDayKey, istDayRange } from "@/lib/timezone";
 import { getBaseUrl } from "@/lib/base-url";
 import { namePoints } from "@/lib/geocode";
+import { buildTrack } from "@/lib/location-track";
+import { deviceStatus } from "@/lib/device-status";
 import { notifyUsers } from "@/lib/notify";
 import type {
   CalendarDayDTO,
@@ -570,10 +572,10 @@ export async function buildCalendarMonth(personId: string, monthKey: string, opt
 /** The places offered on the person's Check in card. "Other" opens a free text. */
 export const CHECKIN_PLACES = ["Home", "School", "Tutor", "Tennis", "Other"] as const;
 
-const LOCATION_SELECT = { id: true, at: true, lat: true, lng: true, accuracy: true, battery: true, source: true, place: true, note: true, placeName: true } as const;
+export const LOCATION_SELECT = { id: true, at: true, lat: true, lng: true, accuracy: true, battery: true, source: true, place: true, note: true, placeName: true, receivedAt: true, trigger: true, speed: true } as const;
 
 export function serializeLocation(
-  p: { id: string; at: Date; lat: number; lng: number; accuracy: number | null; battery: number | null; source: string; place: string | null; note: string | null; placeName: string | null },
+  p: { id: string; at: Date; lat: number; lng: number; accuracy: number | null; battery: number | null; source: string; place: string | null; note: string | null; placeName: string | null; receivedAt?: Date | null; trigger?: string | null; speed?: number | null },
 ): LocationPointDTO {
   return {
     id: p.id,
@@ -582,20 +584,25 @@ export function serializeLocation(
     lng: p.lng,
     accuracy: p.accuracy,
     battery: p.battery,
-    source: p.source === "OWNTRACKS" ? "OWNTRACKS" : p.source === "OVERLAND" ? "OVERLAND" : p.source === "APP" ? "APP" : "CHECKIN",
+    source: p.source === "DEVICE" ? "DEVICE" : p.source === "OWNTRACKS" ? "OWNTRACKS" : p.source === "OVERLAND" ? "OVERLAND" : p.source === "APP" ? "APP" : "CHECKIN",
     place: p.place,
     note: p.note,
     placeName: p.placeName,
+    receivedAt: p.receivedAt ? p.receivedAt.toISOString() : null,
+    trigger: p.trigger ?? null,
+    speed: p.speed ?? null,
   };
 }
 /** One IST day of positions (newest first), the latest point ever, and whether
     phone sharing is on — with the sharing link only when `withUrl` (the owner). */
 export async function buildLocationDay(personId: string, dayKey: string, opts: { withUrl: boolean }): Promise<LocationDayDTO> {
   const { start, end } = istDayRange(dayKey);
-  const [points, last, person] = await Promise.all([
+  const [points, last, person, device] = await Promise.all([
     prisma.locationPoint.findMany({ where: { personId, at: { gte: start, lte: end } }, orderBy: { at: "desc" }, take: 2000, select: LOCATION_SELECT }),
     prisma.locationPoint.findFirst({ where: { personId }, orderBy: { at: "desc" }, select: LOCATION_SELECT }),
     prisma.person.findUnique({ where: { id: personId }, select: { feedToken: true } }),
+    // The phone that is sharing (most recently in touch), for the brief status line on both sides.
+    prisma.childDevice.findFirst({ where: { personId, revokedAt: null }, orderBy: [{ lastContactAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }] }),
   ]);
   const token = person?.feedToken ?? null;
   // The map's names arrive a few at a time (the free lookup is one a second): the
@@ -607,6 +614,13 @@ export async function buildLocationDay(personId: string, dayKey: string, opts: {
     points: points.map((p) => serializeLocation(withName(p))),
     lastSeen: last ? serializeLocation(withName(last)) : null,
     sharing: { on: Boolean(token), url: token && opts.withUrl ? `${getBaseUrl()}/api/routine/feed/${token}` : null },
+    track: buildTrack(points.map((p) => ({ id: p.id, at: p.at.toISOString(), lat: p.lat, lng: p.lng, accuracy: p.accuracy }))),
+    device: device
+      ? (() => {
+          const st = deviceStatus(device, new Date());
+          return { name: device.name, platform: device.platform, state: st.state, label: st.label, lastContactAt: device.lastContactAt ? device.lastContactAt.toISOString() : null };
+        })()
+      : null,
   };
 }
 

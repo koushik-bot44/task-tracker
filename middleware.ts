@@ -9,7 +9,9 @@ import { SESSION_COOKIE, readSessionToken } from "@/lib/auth";
 // reply link (restructure): the signed token in the URL is the authorisation.
 // /api/routine/feed/<token> (2026-09-25) is where a location app on the tracked
 // person's phone posts positions: no cookie, the secret in the path is the authorisation.
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/cron", "/invite", "/api/invite", "/forgot", "/api/password-reset/request", "/r", "/api/routine/feed"];
+// /api/device (2026-09-29) is the enrolled phone's API: no cookie; every handler checks
+// the phone's own token (lib/device-auth.ts › requireDevice), pairing checks its code.
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/cron", "/invite", "/api/invite", "/forgot", "/api/password-reset/request", "/r", "/api/routine/feed", "/api/device"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

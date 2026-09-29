@@ -367,6 +367,61 @@ export const checkinSchema = z.object({
   accuracy: z.number().min(0).max(100000).optional(),
 });
 export const sharingSchema = z.object({ on: z.boolean() });
+
+/* 2026-09-29 — the child's phone (device API) and the parents' location settings.
+   Points are shape-checked here; range and time checks happen per point, so one
+   bad fix is rejected with a reason instead of failing the whole batch. */
+const shortText = (n: number) => z.string().trim().max(n);
+export const devicePairSchema = z.object({
+  code: z.string().min(1).max(20),
+  platform: z.enum(["ANDROID", "IOS"]),
+  appVersion: shortText(40),
+  model: shortText(80).optional(),
+  osVersion: shortText(40).optional(),
+  name: shortText(80).optional(),
+});
+const networkType = z.enum(["WIFI", "CELLULAR", "NONE", "UNKNOWN"]);
+export const devicePointSchema = z.object({
+  clientId: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/),
+  lat: z.number(),
+  lng: z.number(),
+  accuracy: z.number().nullable().optional(),
+  altitude: z.number().nullable().optional(),
+  speed: z.number().nullable().optional(),
+  heading: z.number().nullable().optional(),
+  recordedAt: z.string().max(40),
+  trigger: z.enum(["BACKGROUND", "MOTION", "LOCATE_NOW", "BOOT", "HEARTBEAT", "APP_OPEN"]).optional(),
+  locateRequestId: z.string().max(40).nullable().optional(),
+  batteryLevel: z.number().min(0).max(100).nullable().optional(),
+  isCharging: z.boolean().nullable().optional(),
+  networkType: networkType.nullable().optional(),
+});
+export const deviceLocationsSchema = z.object({ points: z.array(devicePointSchema).min(1).max(200) });
+export const deviceHeartbeatSchema = z.object({
+  permission: z.enum(["ALWAYS", "WHILE_IN_USE", "DENIED", "NOT_DETERMINED"]),
+  locationEnabled: z.boolean(),
+  trackingState: z.enum(["RUNNING", "STOPPED", "STARTING", "SHUTTING_DOWN"]),
+  preciseLocation: z.boolean().nullable().optional(),
+  notificationsAllowed: z.boolean().nullable().optional(),
+  batteryOptimized: z.boolean().nullable().optional(),
+  batteryLevel: z.number().min(0).max(100).nullable().optional(),
+  isCharging: z.boolean().nullable().optional(),
+  networkType: networkType.nullable().optional(),
+  appVersion: shortText(40).optional(),
+  osVersion: shortText(40).optional(),
+  pushProvider: z.enum(["FCM", "APNS"]).nullable().optional(),
+  pushToken: z.string().max(4096).nullable().optional(),
+  queueSize: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  lastShutdownAt: z.string().max(40).nullable().optional(),
+  bootedAt: z.string().max(40).nullable().optional(),
+  event: z.enum(["PERIODIC", "BOOT", "SHUTDOWN", "PERMISSION_CHANGED", "APP_OPEN", "LOCATE_NOW"]).optional(),
+});
+export const deviceLocateStatusSchema = z.object({
+  status: z.enum(["DELIVERED", "FAILED"]),
+  reason: z.enum(["PERMISSION_DENIED", "LOCATION_DISABLED", "TIMEOUT", "UNAVAILABLE", "OTHER"]).optional(),
+  detail: shortText(200).optional(),
+});
+export const locationSettingsSchema = z.object({ retentionDays: z.number().int().min(7).max(365) });
 /** The app noting where he is on its own (open / hourly): a position, nothing else. */
 export const pingSchema = z.object({
   lat: z.number().min(-90).max(90),

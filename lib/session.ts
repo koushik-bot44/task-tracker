@@ -7,10 +7,13 @@ import { canAdministerAccountsRole, isManagerRole } from "@/lib/roles";
 
 export class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** 2026-09-29: an optional machine-readable code (the phone app acts on it, e.g. DEVICE_REVOKED). */
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
     this.name = "HttpError";
+    this.code = code;
   }
 }
 
@@ -150,7 +153,7 @@ export async function requireAccountAdmin(): Promise<User> {
 /** Turns a thrown HttpError into its response; rethrows anything unexpected. */
 export function errorResponse(error: unknown): NextResponse {
   if (error instanceof HttpError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json(error.code ? { error: error.message, code: error.code } : { error: error.message }, { status: error.status });
   }
   // Two presses racing each other (2026-09-11): the second save of the same record,
   // or the second delete of one already gone, is a conflict, not a crash.

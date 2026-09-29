@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
 import { HttpError, route } from "@/lib/session";
+import { runLocationHousekeeping } from "@/lib/device-service";
 import { sweepUnusedFiles } from "@/lib/uploads";
 
 export const runtime = "nodejs";
@@ -72,5 +73,12 @@ export const GET = route(async (req: Request) => {
     return 0;
   });
 
-  return NextResponse.json({ ok: true, scanned: due.length, woken, pushed, sweptFiles });
+  // 2026-09-29: location housekeeping on the same tick (retention, expired Locate
+  // Now, silent-phone alerts) — no third cron entry on the current plan.
+  const location = await runLocationHousekeeping(now).catch((error) => {
+    console.error("[cron] location housekeeping failed:", error);
+    return null;
+  });
+
+  return NextResponse.json({ ok: true, scanned: due.length, woken, pushed, sweptFiles, location });
 });

@@ -1,0 +1,19 @@
+{
+  "name": "orbit-child",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Orbit Child — the phone app that shares a child's location with the family, after explicit pairing and the phone's own permissions.",
+  "scripts": {
+    "sync": "cap sync",
+    "android": "cap sync android",
+    "ios": "cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

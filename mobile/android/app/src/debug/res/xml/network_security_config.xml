@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEBUG BUILD ONLY: allows plain http:// so the app can reach a local
+     development server (e.g. http://10.0.2.2:3010 from the emulator, or the
+     Mac's LAN address from a phone). Release builds use src/main/res/xml/
+     network_security_config.xml, which forbids cleartext, and the native code
+     refuses a non-https server address in release as well. -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

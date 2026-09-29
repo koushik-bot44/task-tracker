@@ -49,3 +49,17 @@ records/snapshots/prod-backup-*/
 
 # A reset manifest names people; it stays out of the repo like the backups.
 records/snapshots/reset-*
+
+# The child's phone app (mobile/): dependencies and build output stay local.
+mobile/node_modules/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/local.properties
+mobile/android/app/google-services.json
+mobile/android/*.keystore
+mobile/android/app/src/main/assets/public/
+mobile/ios/App/Pods/
+mobile/ios/App/App/public/
+mobile/ios/App/build/
+mobile/ios/DerivedData/

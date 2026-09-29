@@ -801,25 +801,33 @@ model Notification {
 /// (segments, habits, marks, non-negotiables, weight, tasks). Everything here is
 /// scoped to the owning manager (and, for the person's login, to their own tasks).
 model Person {
-  id             String          @id @default(cuid())
-  managerId      String          @unique
-  manager        User            @relation("PersonManager", fields: [managerId], references: [id], onDelete: Cascade)
-  userId         String          @unique
-  user           User            @relation("PersonAccount", fields: [userId], references: [id], onDelete: Cascade)
-  name           String
-  createdAt      DateTime        @default(now())
-  segments       HabitSegment[]
-  nonNegotiables NonNegotiable[]
-  weightEntries  WeightEntry[]
-  tasks          RoutineTask[]
-  collaborators  RoutineCollaborator[]
+  id                    String                @id @default(cuid())
+  managerId             String                @unique
+  manager               User                  @relation("PersonManager", fields: [managerId], references: [id], onDelete: Cascade)
+  userId                String                @unique
+  user                  User                  @relation("PersonAccount", fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  createdAt             DateTime              @default(now())
+  segments              HabitSegment[]
+  nonNegotiables        NonNegotiable[]
+  weightEntries         WeightEntry[]
+  tasks                 RoutineTask[]
+  collaborators         RoutineCollaborator[]
   /// 2026-09-25 (the circle): the tutors' day reports.
-  mentorReports  MentorReport[]
+  mentorReports         MentorReport[]
   /// 2026-09-25 (maps): where the person was — check-ins from their own screen and,
   /// when the parent turns sharing on, positions a location app on their phone
   /// posts by itself. `feedToken` is the secret in that app's link; null = off.
-  feedToken      String?         @unique
-  locations      LocationPoint[]
+  feedToken             String?               @unique
+  locations             LocationPoint[]
+  /// 2026-09-29 (automatic location): the phones enrolled for this child, their
+  /// pairing codes, Locate Now requests and the location access log; positions
+  /// older than locationRetentionDays are deleted by the daily housekeeping.
+  devices               ChildDevice[]
+  devicePairings        DevicePairing[]
+  locateRequests        LocateRequest[]
+  locationAudit         LocationAuditEvent[]
+  locationRetentionDays Int                   @default(90)
 }
 
 /// Phase 39: another MANAGER invited to monitor a person's routine, mirroring the
@@ -996,25 +1004,158 @@ model MentorReport {
 /// posted by a location app on their phone through the feed link. `at` is the
 /// instant the phone was there; days are read in IST.
 model LocationPoint {
-  id        String   @id @default(cuid())
-  personId  String
-  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  at        DateTime
-  lat       Float
-  lng       Float
-  accuracy  Float?
+  id             String          @id @default(cuid())
+  personId       String
+  person         Person          @relation(fields: [personId], references: [id], onDelete: Cascade)
+  at             DateTime
+  lat            Float
+  lng            Float
+  accuracy       Float?
   /// 0-100 when the phone sends it.
-  battery   Int?
+  battery        Int?
   /// "CHECKIN" | "OWNTRACKS" | "OVERLAND"
-  source    String
-  place     String?
-  note      String?
+  source         String
+  place          String?
+  note           String?
   /// 2026-09-25: the place as the map knows it ("Mindspace, Madhapur"), looked up
   /// from the position (OpenStreetMap). Null = not looked up yet; "" = nothing there.
-  placeName String?
-  createdAt DateTime @default(now())
+  placeName      String?
+  createdAt      DateTime        @default(now())
+  /// 2026-09-29 (automatic location, source DEVICE): the enrolled phone that sent
+  /// it, the phone's own id for the fix (idempotency: one row per device+clientId),
+  /// when the server received it (`at` stays the phone's own fix time — a late
+  /// upload is shown as late, never as live), and what the phone measured.
+  deviceId       String?
+  device         ChildDevice?    @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  clientId       String?
+  receivedAt     DateTime        @default(now())
+  altitude       Float?
+  speed          Float?
+  heading        Float?
+  isCharging     Boolean?
+  networkType    String?
+  /// "BACKGROUND" | "MOTION" | "LOCATE_NOW" | "BOOT" | "HEARTBEAT" | "APP_OPEN"
+  trigger        String?
+  locateRequests LocateRequest[]
 
+  @@unique([deviceId, clientId])
   @@index([personId, at])
+}
+
+/// 2026-09-29 (automatic location): one phone enrolled to share a child's
+/// location, by explicit pairing with a code a parent made. The phone holds a
+/// random token; only its SHA-256 is stored. Everything the phone last reported
+/// about itself lives here, so the parent sees state, not just a dot.
+model ChildDevice {
+  id                   String          @id @default(cuid())
+  personId             String
+  person               Person          @relation(fields: [personId], references: [id], onDelete: Cascade)
+  /// "ANDROID" | "IOS"
+  platform             String
+  name                 String?
+  model                String?
+  osVersion            String?
+  appVersion           String?
+  tokenHash            String          @unique
+  tokenIssuedAt        DateTime        @default(now())
+  revokedAt            DateTime?
+  revokedById          String?
+  enrolledById         String
+  createdAt            DateTime        @default(now())
+  /// Last reported: "ALWAYS" | "WHILE_IN_USE" | "DENIED" | "NOT_DETERMINED" | "UNKNOWN"
+  permission           String          @default("UNKNOWN")
+  preciseLocation      Boolean?
+  locationEnabled      Boolean?
+  notificationsAllowed Boolean?
+  batteryOptimized     Boolean?
+  /// "RUNNING" | "STOPPED" | "STARTING" | "SHUTTING_DOWN" | "UNKNOWN"
+  trackingState        String          @default("UNKNOWN")
+  batteryLevel         Int?
+  isCharging           Boolean?
+  /// "WIFI" | "CELLULAR" | "NONE" | "UNKNOWN"
+  networkType          String?
+  queueSize            Int?
+  /// "FCM" | "APNS"
+  pushProvider         String?
+  pushToken            String?
+  lastHeartbeatAt      DateTime?
+  lastLocationAt       DateTime?
+  lastContactAt        DateTime?
+  lastShutdownAt       DateTime?
+  bootedAt             DateTime?
+  /// The state the parents were last notified about, so an alert goes out once.
+  statusAlertState     String?
+  statusAlertedAt      DateTime?
+  /// A per-device request counter (30 a minute), kept in the row so it holds
+  /// across serverless instances.
+  rateWindowStart      DateTime?
+  rateWindowCount      Int             @default(0)
+  locations            LocationPoint[]
+  locateRequests       LocateRequest[]
+  pairing              DevicePairing?
+
+  @@index([personId])
+}
+
+/// 2026-09-29: a short-lived, single-use pairing code a parent shows and the
+/// child's phone types. Only a peppered hash is kept; 15 minutes to live.
+model DevicePairing {
+  id          String       @id @default(cuid())
+  personId    String
+  person      Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  codeHash    String       @unique
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  deviceId    String?      @unique
+  device      ChildDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  createdById String
+  createdAt   DateTime     @default(now())
+
+  @@index([personId])
+}
+
+/// 2026-09-29: one Locate Now. PENDING → SENT (push accepted) → DELIVERED (the
+/// phone acknowledged) → FULFILLED (a fresh position arrived with this id), or
+/// FAILED (the phone said why) or EXPIRED (no answer in time). Never faked.
+model LocateRequest {
+  id              String         @id @default(cuid())
+  personId        String
+  person          Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
+  deviceId        String
+  device          ChildDevice    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  requestedById   String
+  status          String         @default("PENDING")
+  pushProvider    String?
+  pushDetail      String?
+  failureReason   String?
+  requestedAt     DateTime       @default(now())
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  fulfilledAt     DateTime?
+  expiresAt       DateTime
+  locationPointId String?
+  locationPoint   LocationPoint? @relation(fields: [locationPointId], references: [id], onDelete: SetNull)
+
+  @@index([personId, requestedAt])
+  @@index([deviceId, status])
+}
+
+/// 2026-09-29: who looked at, asked for or changed a child's location sharing.
+/// Views are written at most once per viewer per 10 minutes.
+model LocationAuditEvent {
+  id          String   @id @default(cuid())
+  personId    String
+  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  actorUserId String?
+  deviceId    String?
+  /// VIEW_LATEST | VIEW_HISTORY | LOCATE_NOW | PAIRING_CODE | DEVICE_PAIRED | DEVICE_REVOKED |
+  /// TOKEN_ROTATED | PERMISSION_CHANGED | RETENTION_CHANGED | RETENTION_PURGE | SHARING_LINK
+  action      String
+  detail      Json?
+  createdAt   DateTime @default(now())
+
+  @@index([personId, createdAt])
+  @@index([actorUserId, personId, action, createdAt])
 }
 
 /// 2026-09-25: the map's name for a spot, cached by position rounded to ~100 m,

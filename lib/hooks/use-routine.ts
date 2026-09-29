@@ -4,11 +4,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   CalendarMonthDTO,
-  LocationDayDTO,
-  LocationPointDTO,
   CircleKind,
   CircleMemberDTO,
+  DeviceDTO,
+  DevicePairingDTO,
   HabitMarkValue,
+  LatestLocationDTO,
+  LocateRequestDTO,
+  LocationAuditDTO,
+  LocationDayDTO,
+  LocationPointDTO,
   MentorReportDTO,
   MentorViewDTO,
   PersonViewDTO,
@@ -448,4 +453,73 @@ export function useMentorReportDelete() {
     mutationFn: (id: string) => apiDelete<{ ok: true }>(`/api/routine/mentor/reports/${id}`),
     onSettled: () => void qc.invalidateQueries({ queryKey: mentorKey }),
   });
+}
+
+/* ---- 2026-09-29 — automatic location: the latest position, phones, Locate Now ---- */
+
+export const latestKey = (personId: string | null) => ["routine-latest", personId ?? "default"] as const;
+export const devicesKey = (personId: string | null) => ["routine-devices", personId ?? "default"] as const;
+export const locateKey = (id: string | null, personId: string | null) => ["routine-locate", personId ?? "default", id ?? "none"] as const;
+export const locationAuditKey = (personId: string | null) => ["routine-location-audit", personId ?? "default"] as const;
+
+/** Where the phone was last and what state it is in. Every 30 s; every 3 s while a
+    Locate Now is on its way (`fast`). */
+export function useLatestLocation(personId: string | null, fast: boolean) {
+  return useQuery({
+    queryKey: latestKey(personId),
+    queryFn: () => apiGet<LatestLocationDTO>(withPerson("/api/routine/location/latest", personId)),
+    refetchInterval: fast ? 3000 : 30_000,
+  });
+}
+export function useDevices(personId: string | null) {
+  return useQuery({
+    queryKey: devicesKey(personId),
+    queryFn: () => apiGet<{ devices: DeviceDTO[]; pairingActiveUntil: string | null }>(withPerson("/api/routine/devices", personId)),
+    refetchInterval: 60_000,
+  });
+}
+export function useLocationAudit(personId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: locationAuditKey(personId),
+    queryFn: () => apiGet<{ events: LocationAuditDTO[] }>(withPerson("/api/routine/location/audit", personId)),
+    enabled,
+  });
+}
+/** One Locate Now, polled every 3 s until it settles. */
+export function useLocateRequest(id: string | null, personId: string | null) {
+  return useQuery({
+    queryKey: locateKey(id, personId),
+    queryFn: () => apiGet<{ request: LocateRequestDTO }>(withPerson(`/api/routine/location/locate/${id}`, personId)),
+    enabled: Boolean(id),
+    refetchInterval: (q) => {
+      const st = q.state.data?.request.status;
+      return st && ["FULFILLED", "FAILED", "EXPIRED"].includes(st) ? false : 3000;
+    },
+  });
+}
+export function useLocationMutations(personId: string | null) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["routine-latest"] });
+    void qc.invalidateQueries({ queryKey: ["routine-devices"] });
+    void qc.invalidateQueries({ queryKey: ["routine-location"] });
+    void qc.invalidateQueries({ queryKey: ["routine-location-audit"] });
+  };
+  const createPairing = useMutation({
+    mutationFn: () => apiPost<DevicePairingDTO>(withPerson("/api/routine/devices/pairing", personId), {}),
+    onSettled: refresh,
+  });
+  const revokeDevice = useMutation({
+    mutationFn: (id: string) => apiDelete<{ ok: true }>(withPerson(`/api/routine/devices/${id}`, personId)),
+    onSettled: refresh,
+  });
+  const locateNow = useMutation({
+    mutationFn: () => apiPost<{ request: LocateRequestDTO; reused: boolean }>(withPerson("/api/routine/location/locate", personId), {}),
+    onSettled: refresh,
+  });
+  const setRetention = useMutation({
+    mutationFn: (retentionDays: number) => apiPatch<{ retentionDays: number }>(withPerson("/api/routine/location/settings", personId), { retentionDays }),
+    onSettled: refresh,
+  });
+  return { createPairing, revokeDevice, locateNow, setRetention };
 }

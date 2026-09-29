@@ -1,0 +1,11 @@
+{
+  "appId": "com.sgroup.orbit.child",
+  "appName": "Orbit Child",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

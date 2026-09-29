@@ -30,7 +30,7 @@ import { addDays, inputCls, Labeled, weekLabel } from "./shared";
 
 /** The six views (2026-09-25: Calendar and Map join). Circle is the owner's alone. */
 type View = "summary" | "tracker" | "calendar" | "map" | "tutors" | "circle";
-const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Map", tutors: "Tutors", circle: "Circle" };
+const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Location", tutors: "Tutors", circle: "Circle" };
 
 /**
  * The Well Being tab (was "Routine", phase 35) — MANAGER only. A calm family corner
@@ -394,7 +394,7 @@ function RoutineDashboard({
       ) : active === "calendar" ? (
         <ParentCalendar personId={routineId} today={today} month={calMonth ?? monthOf(today)} selected={calSelected ?? today} onMonth={pickMonth} onSelect={setCalSelected} />
       ) : active === "map" ? (
-        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} today={today} />
+        <LocationSection personId={routineId} personName={person!.name} isOwner={isOwner} canWrite={canWrite} today={today} />
       ) : active === "tutors" ? (
         <ParentTutors personId={routineId} today={today} />
       ) : active === "circle" ? (
