@@ -16,6 +16,43 @@ func onMain(_ work: @escaping () -> Void) {
     }
 }
 
+/// Calls its action at most once (iOS completion handlers must be called exactly
+/// once). A class, so closures share it instead of capturing a mutable local.
+final class Once<T> {
+    private var action: ((T) -> Void)?
+    private let lock = NSLock()
+
+    init(_ action: @escaping (T) -> Void) {
+        self.action = action
+    }
+
+    func run(_ value: T) {
+        lock.lock()
+        let pending = action
+        action = nil
+        lock.unlock()
+        pending?(value)
+    }
+}
+
+/// A shared yes/no that closures can set.
+final class Flag {
+    private let lock = NSLock()
+    private var raised = false
+
+    var isSet: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return raised
+    }
+
+    func set() {
+        lock.lock()
+        raised = true
+        lock.unlock()
+    }
+}
+
 enum DeviceInfo {
     /// The hardware model identifier, e.g. "iPhone15,2" (utsname.machine).
     static var model: String {

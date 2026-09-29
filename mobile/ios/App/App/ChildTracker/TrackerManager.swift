@@ -557,14 +557,14 @@ final class TrackerManager: NSObject, CLLocationManagerDelegate {
             completion()
         default:
             addPermissionWaiter(completion)
-            var questionShown = false
+            let questionShown = Flag()
             let observer = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { _ in
-                questionShown = true
+                questionShown.set()
             }
             m.requestAlwaysAuthorization()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 NotificationCenter.default.removeObserver(observer)
-                if !questionShown && self.authStatus != .authorizedAlways {
+                if !questionShown.isSet && self.authStatus != .authorizedAlways {
                     // iOS asks "Change to Always Allow?" only once per app; after that
                     // the choice is only in Settings → Orbit Child → Location → Always.
                     self.openSettings()
@@ -1074,17 +1074,13 @@ final class TrackerManager: NSObject, CLLocationManagerDelegate {
         locatesInFlight.insert(requestId)
         let work = BackgroundWork.begin("orbit-locate")
         let statusPath = "/api/device/locate/\(requestId)/status"
-        var answered = false
-        let answer: (UIBackgroundFetchResult) -> Void = { outcome in
-            if !answered {
-                answered = true
-                completion?(outcome)
-            }
+        let answer = Once<UIBackgroundFetchResult> { outcome in
+            completion?(outcome)
         }
         if completion != nil {
             // iOS gives a silent push about 30 s; answer in time even on a slow network.
             DispatchQueue.main.asyncAfter(deadline: .now() + TrackerManager.pushAnswerDeadline) {
-                answer(.failed)
+                answer.run(.failed)
             }
         }
         api.post(creds.base, statusPath, token: creds.token, json: ["status": "DELIVERED"]) { _ in }
@@ -1098,7 +1094,7 @@ final class TrackerManager: NSObject, CLLocationManagerDelegate {
                 case .success:
                     self.flush(force: true) {
                         self.locateDone(requestId, work)
-                        answer(self.store.lastUploadError == nil ? .newData : .failed)
+                        answer.run(self.store.lastUploadError == nil ? .newData : .failed)
                     }
                 case .failure(let failure):
                     var body: [String: Any] = ["status": "FAILED", "reason": failure.rawValue]
@@ -1108,7 +1104,7 @@ final class TrackerManager: NSObject, CLLocationManagerDelegate {
                     self.api.post(creds.base, statusPath, token: creds.token, json: body) { _ in
                         self.sendHeartbeat(event: "LOCATE_NOW", force: true) {
                             self.locateDone(requestId, work)
-                            answer(.failed)
+                            answer.run(.failed)
                         }
                     }
                 }
@@ -1440,24 +1436,21 @@ final class TrackerManager: NSObject, CLLocationManagerDelegate {
 
     private func runBackgroundRefresh(_ task: BGTask) {
         scheduleBackgroundRefresh()
-        var finished = false
-        let finish: (Bool) -> Void = { success in
-            if finished { return }
-            finished = true
+        let finish = Once<Bool> { success in
             task.setTaskCompleted(success: success)
         }
         task.expirationHandler = {
             DispatchQueue.main.async {
-                finish(false)
+                finish.run(false)
             }
         }
         guard dataReady, isPaired else {
-            finish(true)
+            finish.run(true)
             return
         }
         sendHeartbeat(event: "PERIODIC") {
             self.flush(force: true) {
-                finish(true)
+                finish.run(true)
             }
         }
     }

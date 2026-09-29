@@ -225,7 +225,9 @@ async function main() {
   /** What every screen should say Arjun's latest point is — never hard-coded: the same words the app makes of lastSeen. */
   const lastSeen = loc.json?.lastSeen ?? null;
   const lastSeenWords = whereWords(lastSeen);
-  const lastSeenRe = new RegExp(`^Last seen: ${escapeRe(lastSeenWords)} · `);
+  const lastSeenRe = new RegExp(`^Last seen: ${escapeRe(lastSeenWords)} · `); // the Summary/Today card's one-liner
+  // The Location tab's rebuilt "Where <name> is" card (2026-09-29): the place on its own line, then honest freshness.
+  const nowFreshRe = /(Updated|Last known) /;
   const lastCheckin = points.find((p) => p.source === "CHECKIN") ?? null;
   info(`last seen: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}); last check-in today: ${lastCheckin?.place ?? "none"}`);
   const phonePoint = phone.find((p) => p.source === "OVERLAND");
@@ -391,10 +393,12 @@ async function main() {
   await openTab(ceoPage, "Location");
   record("his Map draws today", await mapReady(ceoPage));
   const ceoPhoneRows = await logRows(ceoPage).filter({ hasText: /phone/ }).count();
-  record(`…says where ${ARJUN.name} was last seen, shows today's log with the phone's points in it`, (await seen(ceoPage, lastSeenRe)) && (await seen(ceoPage, /Today.s log/)) && ceoPhoneRows >= 1, `wanted "Last seen: ${lastSeenWords} · …"; ${await logRows(ceoPage).count()} log rows, ${ceoPhoneRows} from the phone`);
+  record(`…says where ${ARJUN.name} was last seen, shows today's log with the phone's points in it`, (await seen(ceoPage, lastSeenWords)) && (await seen(ceoPage, nowFreshRe)) && (await seen(ceoPage, /Today.s log/)) && ceoPhoneRows >= 1, `wanted "${lastSeenWords}" + Updated/Last known; ${await logRows(ceoPage).count()} log rows, ${ceoPhoneRows} from the phone`);
+  // The older OwnTracks link is folded away now; the owner opens "Older way…" to reach the switch and copy the link.
+  await ceoPage.getByRole("button", { name: /Older way/ }).first().click().catch(() => {});
   const sw = ceoPage.getByRole("switch").first();
   const swOn = (await sw.count()) ? await sw.getAttribute("aria-checked") : null;
-  record("…and, for the owner, phone sharing is on with a link to copy", (await seen(ceoPage, "Phone sharing")) && swOn === "true" && (await ceoPage.locator("code").count()) === 1 && (await seen(ceoPage, "Copy")) && (await seen(ceoPage, /install OwnTracks/)), `switch aria-checked ${swOn}`);
+  record("…and, for the owner, the older location-app link can still be turned on and copied", (await seen(ceoPage, /Older way/)) && swOn === "true" && (await ceoPage.locator("code").count()) === 1 && (await seen(ceoPage, "Copy")) && (await seen(ceoPage, /OwnTracks/)), `switch aria-checked ${swOn}`);
   await photograph(ceoPage, "ceo-3-map.png", "the CEO's Map", SCOPE, true);
 
   await openTab(ceoPage, "Tutors");
@@ -424,7 +428,7 @@ async function main() {
   await openTab(priyaPage, "Location");
   record(`${PRIYA.name}'s Map draws today`, await mapReady(priyaPage));
   const priyaPhoneRows = await logRows(priyaPage).filter({ hasText: /phone/ }).count();
-  record(`…shows the same day, and never the sharing switch or the link`, (await seen(priyaPage, lastSeenRe)) && (await seen(priyaPage, /Today.s log/)) && priyaPhoneRows >= 1 && (await priyaPage.getByText("Phone sharing").count()) === 0 && (await priyaPage.getByRole("switch").count()) === 0 && (await priyaPage.locator("code").count()) === 0, `wanted "Last seen: ${lastSeenWords} · …"; ${priyaPhoneRows} log rows from the phone`);
+  record(`…shows the same day, and never the sharing switch or the link`, (await seen(priyaPage, lastSeenWords)) && (await seen(priyaPage, nowFreshRe)) && (await seen(priyaPage, /Today.s log/)) && priyaPhoneRows >= 1 && (await priyaPage.getByText(/Older way/).count()) === 0 && (await priyaPage.getByRole("switch").count()) === 0 && (await priyaPage.locator("code").count()) === 0, `wanted "${lastSeenWords}" + Updated/Last known; ${priyaPhoneRows} log rows from the phone`);
   await photograph(priyaPage, "priya-2-map.png", `${PRIYA.name}'s Map`, SCOPE, true);
   await priyaCtx.close();
 
