@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Copy, History, Plus, ShieldCheck, Smartphone, X } from "lucide-react";
+import { ChevronDown, Copy, Download, History, Plus, ShieldCheck, Smartphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useDevices, useLocationAudit, useLocationMutations } from "@/lib/hooks/use-routine";
@@ -38,6 +38,24 @@ function auditLine(e: LocationAuditDTO): string {
     e.action === "RETENTION_CHANGED" && typeof d.retentionDays === "number" ? ` to ${d.retentionDays} days` :
     e.action === "VIEW_HISTORY" && typeof d.day === "string" ? ` (${d.day})` : "";
   return e.actorName ? `${e.actorName} ${words}${extra}` : `${words.charAt(0).toUpperCase()}${words.slice(1)}${extra}`;
+}
+
+/** Orbit Child for Android, served by this site from public/downloads (2026-10-01).
+    No iPhone build yet: that needs a Mac with Xcode and an Apple developer account. */
+const APK_PATH = "/downloads/orbit-child.apk";
+
+function AppDownload({ personName, onCopy }: { personName: string; onCopy: (text: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <a href={APK_PATH} download="Orbit-Child.apk" className="press inline-flex h-11 items-center gap-1.5 rounded-card bg-primary px-4 text-sm font-medium text-on-primary">
+        <Download className="h-4 w-4" aria-hidden /> Download Orbit Child
+      </a>
+      <button type="button" onClick={() => onCopy(new URL(APK_PATH, window.location.origin).href)} className="press inline-flex h-11 items-center gap-1.5 rounded-card px-3 text-sm pk-fg-soft hover:bg-[color:var(--pk-cell)]">
+        <Copy className="h-4 w-4" aria-hidden /> Copy link
+      </button>
+      <p className="w-full text-micro pk-fg-soft">Android only. Open it on {personName}&apos;s phone (or send the link) and allow the install. No iPhone version yet.</p>
+    </div>
+  );
 }
 
 /** mm:ss until a moment, ticking. */
@@ -132,7 +150,9 @@ export function DevicePanel({
             </>
           ) : (
             <>
-              <p className="text-sm pk-fg">On {personName}&apos;s phone, open <b>Orbit Child</b> and enter:</p>
+              <p className="mb-2 text-sm pk-fg"><b>1.</b> Install Orbit Child on {personName}&apos;s phone:</p>
+              <AppDownload personName={personName} onCopy={copy} />
+              <p className="mt-4 text-sm pk-fg"><b>2.</b> Open <b>Orbit Child</b> and enter:</p>
               <dl className="mt-3 space-y-2">
                 <div>
                   <dt className="text-micro pk-fg-soft">Address</dt>
@@ -154,9 +174,12 @@ export function DevicePanel({
       ) : null}
 
       {devices.length === 0 ? (
-        <p className="text-sm pk-fg-soft">
-          No phone is set up. Location then only arrives from the older ways below. {canWrite ? "Tap Set up to connect the phone." : ""}
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm pk-fg-soft">
+            No phone is set up yet. {canWrite && !pairing ? "Install Orbit Child on the phone, then tap Set up for a code." : ""}
+          </p>
+          {pairing ? null : <AppDownload personName={personName} onCopy={copy} />}
+        </div>
       ) : (
         <ul className="space-y-2">
           {devices.map((d) => (

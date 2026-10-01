@@ -13,7 +13,6 @@ import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO }
 import { WellBeingScene } from "./well-being-scene";
 import { SegmentGrid } from "./weekly-grid";
 import { CalendarView, monthOf } from "./calendar-view";
-import { CheckInCard } from "./checkin-card";
 import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
 import { LocationMapLazy } from "./location-map-lazy";
@@ -97,9 +96,6 @@ export function PersonScreen() {
   // where he is when it is opened. Never both.
   const phone = location.data?.device ?? null;
   useAppPing(Boolean(location.data) && !phone);
-  // The card wants his last CHECK-IN, not the phone's last point (review, 2026-09-25).
-  const lastCheckIn: LocationPointDTO | null =
-    location.data?.points.find((p) => p.source === "CHECKIN") ?? (lastSeen?.source === "CHECKIN" ? lastSeen : null);
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
   // Shared time-of-day scene (person + manager Well Being use the same source).
@@ -255,9 +251,8 @@ export function PersonScreen() {
                     </div>
                   ) : null}
 
-                  {/* While his phone shares on its own, asking him to tap is noise: one line says
-                      sharing is on. The Check in card is the fallback for when it is off (owner's
-                      developer, 2026-09-25). */}
+                  {/* Location is the phone's job: one line while it shares, nothing otherwise.
+                      The "Where are you?" check-in card is gone (owner, 2026-10-01). */}
                   {phone || location.data?.sharing.on ? (
                     <div className="pk-glass mb-4 flex items-center gap-3 rounded-card px-4 py-3">
                       <MapPin className="h-5 w-5 shrink-0 text-ok-ink" strokeWidth={2} aria-hidden />
@@ -269,8 +264,6 @@ export function PersonScreen() {
                         )}
                       </p>
                     </div>
-                  ) : location.data ? (
-                    <CheckInCard lastSeen={lastCheckIn} />
                   ) : null}
 
                   {forYou.length > 0 ? (

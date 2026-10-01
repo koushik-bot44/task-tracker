@@ -89,8 +89,9 @@ export async function middleware(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
+// apk (2026-10-01): the Orbit Child app in public/downloads, fetched by a phone that is not signed in.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|apk)$).*)",
   ],
 };
