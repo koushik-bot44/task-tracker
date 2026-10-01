@@ -1,12 +1,12 @@
 "use client";
 
-import { Bell, CalendarDays, Check, ListChecks, Loader2, LogOut, MapPin, Plus, ShieldCheck, Star, Sun, X } from "lucide-react";
+import { Bell, CalendarDays, Check, ListChecks, MapPin, Plus, ShieldCheck, Star, Sun, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { ApiError, apiDelete } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO } from "@/lib/types";
@@ -77,7 +77,6 @@ export function PersonGate() {
 }
 
 export function PersonScreen() {
-  const router = useRouter();
   const { data, isLoading } = usePerson();
   const toggle = usePersonTaskToggle();
   const mark = usePersonHabitMark();
@@ -100,14 +99,6 @@ export function PersonScreen() {
 
   // Shared time-of-day scene (person + manager Well Being use the same source).
   const { mounted, night, overNight, floatText, scene } = useTimeScene();
-  const qc = useQueryClient();
-
-  const signOut = async () => {
-    await apiDelete("/api/auth").catch(() => {});
-    // A shared phone: the next login must not see this one's cached screens (review, 2026-09-25).
-    qc.clear();
-    router.replace("/login");
-  };
 
   const tasks = data?.tasks ?? [];
   const forYou = tasks.filter((t) => t.addedBy === "MANAGER");
@@ -140,7 +131,6 @@ export function PersonScreen() {
     { id: "map", label: "Map", icon: MapPin },
   ];
   const active = available.some((t) => t.id === tab) ? tab : "today";
-  const busy = toggle.isPending || mark.isPending || addTask.isPending || deleteTask.isPending;
 
   // The pill row slides sideways; the active pill brings itself into view.
   const tabBar = useRef<HTMLDivElement>(null);
@@ -187,6 +177,11 @@ export function PersonScreen() {
           paddingRight: "max(1.25rem, env(safe-area-inset-right))",
         }}
       >
+        {/* Profile menu (2026-10-01): its own row at the very top, so the greeting
+            keeps the whole width — change password, the Orbit Child app, sign out. */}
+        <div className="relative z-20 -mt-3 mb-1 flex justify-end">
+          <ProfileMenu />
+        </div>
         <header className="relative mb-5 text-center">
           {/* Night: a soft blurred dark halo behind the greeting so the white text
               stays readable even where a bright star sits under a glyph. */}
@@ -372,12 +367,6 @@ export function PersonScreen() {
           </div>
         )}
 
-        <footer className="mt-8 text-center">
-          <button type="button" onClick={signOut} className={cn("press inline-flex h-11 items-center gap-1.5 rounded-card px-3 text-sm font-medium", overNight ? "text-on-primary hover:opacity-80" : "text-ink hover:opacity-80")}>
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <LogOut className="h-3.5 w-3.5" aria-hidden />}
-            Sign out
-          </button>
-        </footer>
       </div>
     </div>
   );

@@ -31,7 +31,9 @@ export async function middleware(req: NextRequest) {
     // only keeps every one of them out of the work app.
     const isPerson = claims.role === "PERSON";
     const walledScreen = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
-    const personArea = walledScreen("/person") || walledScreen("/family") || walledScreen("/mentor") || pathname.startsWith("/api/routine");
+    // /api/me (2026-10-01): the profile menu every account wears — who am I, change
+    // or reset my own password. Its handlers reach nothing else.
+    const personArea = walledScreen("/person") || walledScreen("/family") || walledScreen("/mentor") || pathname.startsWith("/api/routine") || walledScreen("/api/me");
     if (isPerson && !personArea) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Not available for this account." }, { status: 403 });

@@ -291,7 +291,7 @@ async function main() {
     record("a head of department can't open Well Being", r.status === 403, `status ${r.status}`);
     const fam = await fetchPage(outsider, "/family");
     const men = await fetchPage(outsider, "/mentor");
-    const away = (p: { status: number; location: string; body: string }) => (p.status >= 300 && p.status < 400 && !/\/(family|mentor)/.test(p.location)) || (p.status === 200 && !p.body.includes("Nothing shared with you yet") && !p.body.includes("Sign out"));
+    const away = (p: { status: number; location: string; body: string }) => (p.status >= 300 && p.status < 400 && !/\/(family|mentor)/.test(p.location)) || (p.status === 200 && !p.body.includes("Nothing shared with you yet") && !p.body.includes("Sign out") && !p.body.includes("Your menu")); // 2026-10-01: Sign out moved into the profile menu
     record("…and is sent away from the co-parent's and the tutor's pages", away(fam) && away(men), `/family ${fam.status} -> ${fam.location || "(page)"}, /mentor ${men.status} -> ${men.location || "(page)"}`);
   }
 
@@ -323,7 +323,7 @@ async function main() {
   await ceoPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const ceoTabs = await ceoPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`the CEO's tabs: ${ceoTabs.join(" · ")}`);
-  record("the CEO is offered Summary, Tracker, Calendar, Map, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors|Circle", ceoTabs.join(", "));
+  record("the CEO is offered Summary, Tracker, Calendar, Location, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors|Circle", ceoTabs.join(", "));
   record("his Summary shows today's list and only today's tutor report", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, "From tutors today")) && (await seen(ceoPage, "Word problems on quadratics")));
   const SCOPE = "[role=tablist], section, .rounded-sheet";
   await photograph(ceoPage, "ceo-1-summary.png", "the CEO's Summary", SCOPE, true);
@@ -343,7 +343,7 @@ async function main() {
   await priyaPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const priyaTabs = await priyaPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`${PRIYA.name}'s tabs: ${priyaTabs.join(" · ")}`);
-  record(`${PRIYA.name} sees Well Being for ${ARJUN.name} with Summary, Tracker, Calendar, Map and Tutors — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Map|Tutors" && (await seen(priyaPage, "Well Being")) && (await seen(priyaPage, ARJUN.name)), priyaTabs.join(", "));
+  record(`${PRIYA.name} sees Well Being for ${ARJUN.name} with Summary, Tracker, Calendar, Location and Tutors — no Circle`, priyaTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors" && (await seen(priyaPage, "Well Being")) && (await seen(priyaPage, ARJUN.name)), priyaTabs.join(", "));
   await photograph(priyaPage, "priya-1-family.png", `${PRIYA.name}'s Well Being`, SCOPE, true);
   await priyaCtx.close();
 

@@ -77,6 +77,13 @@ export async function requireUser(): Promise<User> {
   return user;
 }
 
+/** Any signed-in account, the walled PERSON logins included — only for /api/me,
+    the few things every account does for itself (its profile menu: who am I,
+    change or reset my password). Nothing there reaches work or family data. */
+export async function requireSignedIn(): Promise<User> {
+  return loadSessionUser();
+}
+
 /** The gate for the tracked person's own endpoints (/api/routine/kid): a PERSON
     login that IS the tracked person. A co-parent or a tutor, though also PERSON-
     role, is refused here (2026-09-25). */

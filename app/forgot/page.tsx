@@ -5,28 +5,33 @@ import { useState } from "react";
 
 /**
  * Public forgot-password page (phase 14). Submitting sends the email to the
- * request endpoint, which always answers the same way — an admin is notified if
- * the account exists — so this page never reveals whether an email is real.
+ * request endpoint, which always answers the same way whether or not the account
+ * exists, so this page never reveals whether an email is real. Since 2026-10-01
+ * a site with email set up mails the link straight to the account; without it an
+ * admin is notified. The page shows whichever answer the server gives.
  */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || busy) return;
     setBusy(true);
+    let message = "If that account exists, a link to set a new password is on its way. Check your email shortly.";
     try {
-      await fetch("/api/password-reset/request", {
+      const res = await fetch("/api/password-reset/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
+      const body = (await res.json().catch(() => null)) as { message?: string } | null;
+      if (body?.message) message = `${body.message} Check your email shortly.`;
     } catch {
       /* the answer is generic either way */
     }
-    setDone(true);
+    setDone(message);
     setBusy(false);
   };
 
@@ -35,14 +40,11 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm">
         <h1 className="font-display text-page-lg font-bold text-ink">Forgot your password?</h1>
         {done ? (
-          <p className="mt-3 text-sm text-muted">
-            If that account exists, an admin has been notified and will send you a link to set a new
-            password. Check your email shortly.
-          </p>
+          <p className="mt-3 text-sm text-muted">{done}</p>
         ) : (
           <>
             <p className="mt-2 text-sm text-muted">
-              Enter your email and an admin will send you a link to set a new password.
+              Enter the email you sign in with and we&apos;ll send a link to set a new password.
             </p>
             <form onSubmit={submit} className="mt-4 space-y-3">
               <input
@@ -59,7 +61,7 @@ export default function ForgotPasswordPage() {
                 disabled={busy || !email.trim()}
                 className="press h-11 w-full rounded-card bg-primary text-sm font-medium text-on-primary disabled:opacity-40"
               >
-                Send reset request
+                Send reset link
               </button>
             </form>
           </>

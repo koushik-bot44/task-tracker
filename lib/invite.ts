@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendEmail } from "@/lib/email";
-import { inviteEmail } from "@/lib/email-templates";
+import { inviteEmail, resetEmail } from "@/lib/email-templates";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABEL, type UserRole } from "@/lib/types";
 
@@ -52,6 +52,8 @@ export async function issueInvite(opts: {
   /** 2026-09-25: what the mail calls the invitee when the role word would mislead —
       a co-parent or a tutor carries the walled PERSON role, but is not "a Person". */
   roleLabel?: string;
+  /** "reset" (2026-10-01): the account asked for it itself — same link, worded as a reset. */
+  purpose?: "invite" | "reset";
 }): Promise<{ token: string; url: string; sent: boolean }> {
   const token = generateInviteToken();
   const tokenHash = hashInviteToken(token);
@@ -66,22 +68,25 @@ export async function issueInvite(opts: {
   const url = `${APP_URL}/invite/${token}`;
   if (opts.send === false) return { token, url, sent: false };
 
-  const body = inviteEmail({
-    name: opts.user.name,
-    roleLabel: opts.roleLabel ?? ROLE_LABEL[opts.user.role],
-    inviterName: opts.inviterName,
-    url,
-    projectName: opts.projectName,
-  });
+  const reset = opts.purpose === "reset";
+  const body = reset
+    ? resetEmail({ name: opts.user.name, url })
+    : inviteEmail({
+        name: opts.user.name,
+        roleLabel: opts.roleLabel ?? ROLE_LABEL[opts.user.role],
+        inviterName: opts.inviterName,
+        url,
+        projectName: opts.projectName,
+      });
   const res = await sendEmail({
     to: opts.user.email,
     subject: body.subject,
     html: body.html,
     text: body.text,
     // New token each issue, so a resend is not deduped against the prior send.
-    dedupeKey: `invite:${opts.user.id}:${tokenHash.slice(0, 16)}`,
+    dedupeKey: `${reset ? "reset" : "invite"}:${opts.user.id}:${tokenHash.slice(0, 16)}`,
     userId: opts.user.id,
-    kind: "invite",
+    kind: reset ? "reset" : "invite",
     refId: opts.user.id,
   });
   return { token, url, sent: res.sent };

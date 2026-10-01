@@ -1,18 +1,17 @@
 "use client";
 
-import { Bell, ChevronLeft, ChevronRight, Eye, Loader2, LogOut, Maximize2, Minimize2, Pencil, Plus, ShieldCheck, Sparkles, Sun, Trash2, Users, X } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Eye, Loader2, Maximize2, Minimize2, Pencil, Plus, ShieldCheck, Sparkles, Sun, Trash2, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { apiDelete } from "@/lib/api";
 import { isFounderRole } from "@/lib/roles";
 import { useMe } from "@/lib/hooks/use-users";
-import { useQueryClient } from "@tanstack/react-query";
 import { useCalendar, useReports, useRoutine, useRoutineMutations } from "@/lib/hooks/use-routine";
 import { TutorsSection } from "./tutors-section";
 
 import { useUsers } from "@/lib/hooks/use-users";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
+import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
 import type { RoutineCollaboratorDTO, RoutineOverviewDTO, RoutinePermission } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
@@ -154,19 +153,10 @@ function AppRoutinePage() {
  * see (its role is EDITABLE or READ_ONLY, never OWNER, so Circle never shows).
  */
 function StandaloneRoutinePage() {
-  const router = useRouter();
   const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState();
   const { data, isLoading, isError } = useRoutine(week, selectedPerson, true);
   const { mounted, night, overNight, floatText } = useTimeScene();
   const sceneClass = overNight ? "pk-night" : "pk-day";
-  const qc = useQueryClient();
-
-  const signOut = async () => {
-    await apiDelete("/api/auth").catch(() => {});
-    // A shared phone: the next login must not see this one's cached screens (review, 2026-09-25).
-    qc.clear();
-    router.replace("/login");
-  };
 
   return (
     <div className={cn("relative min-h-dvh bg-bg", sceneClass)}>
@@ -191,9 +181,10 @@ function StandaloneRoutinePage() {
             </h1>
             {data?.person ? <p className={cn("mt-1 truncate text-sm", overNight ? "text-on-primary" : "pk-fg")}>{data.person.name}</p> : null}
           </div>
-          <button type="button" onClick={signOut} className="pk-press pk-btn pk-glass pk-fg inline-flex h-11 shrink-0 items-center gap-1.5 rounded-card px-3 text-sm font-medium">
-            <LogOut className="h-4 w-4" aria-hidden /> Sign out
-          </button>
+          {/* Profile menu (2026-10-01): change password, the Orbit Child app, sign out. */}
+          <div className="shrink-0">
+            <ProfileMenu />
+          </div>
         </header>
 
         {isError ? (

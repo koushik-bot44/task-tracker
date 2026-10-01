@@ -119,6 +119,28 @@ export function inviteEmail(opts: {
   return { subject, html, text };
 }
 
+/** A set-password link asked for by the account itself (forgot password, or the
+    profile menu) — the same single-use link as an invite, worded as a reset (2026-10-01). */
+export function resetEmail(opts: { name: string; url: string }): EmailBody {
+  const subject = "Reset your Orbit password";
+  const html = layout({
+    heading: `${escapeHtml(opts.name)}, reset your password`,
+    bodyHtml: `<p style="margin:0 0 12px">Someone (hopefully you) asked to reset the password for your Orbit account. Your current password keeps working until you set a new one.</p>`,
+    rows: [],
+    ctas: [{ label: "Set a new password", url: opts.url }],
+    note: "This link works once, for 72 hours.",
+    footer: "If you didn&rsquo;t ask for this, you can ignore this email.",
+  });
+  const text = [
+    `${opts.name}, reset your Orbit password:`,
+    opts.url,
+    "",
+    "Your current password keeps working until you set a new one.",
+    "This link works once, for 72 hours. If you didn't ask for this, ignore this email.",
+  ].join("\n");
+  return { subject, html, text };
+}
+
 /** (a) task_given */
 export function taskGivenEmail(opts: {
   taskRef?: string;

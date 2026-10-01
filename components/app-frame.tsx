@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Building2, CalendarDays, CircleHelp, ListChecks, LogOut, NotebookPen, Settings, Sun, SunMedium, UserRound, Users } from "lucide-react";
+import { Building2, CalendarDays, CircleHelp, Download, KeyRound, ListChecks, LogOut, NotebookPen, Settings, Sun, SunMedium, UserRound, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { ChangePasswordSheet } from "@/components/account/change-password-sheet";
 import { CommandPalette } from "@/components/command-palette";
 import { DetailPanelHost } from "@/components/detail-panel";
 import { HelpSheet } from "@/components/help-sheet";
@@ -16,6 +17,7 @@ import { Face } from "@/components/ui/face";
 import { cn } from "@/lib/cn";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useMe } from "@/lib/hooks/use-users";
+import { ORBIT_CHILD_APK, ORBIT_CHILD_FILENAME } from "@/lib/orbit-child-app";
 import { canSeeUserListRole, isAdminRole } from "@/lib/roles";
 
 /**
@@ -162,6 +164,7 @@ function UserMenu() {
   const { data: me } = useMe();
   const [open, setOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const reduce = useReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -218,6 +221,22 @@ function UserMenu() {
               role="menuitem"
               onClick={() => {
                 setOpen(false);
+                setPasswordOpen(true);
+              }}
+              className="press flex h-11 w-full items-center gap-3 rounded-input px-3 text-left text-sm text-ink"
+            >
+              <KeyRound className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
+              Change password
+            </button>
+            <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} role="menuitem" onClick={() => setOpen(false)} className="press flex h-11 items-center gap-3 rounded-input px-3 text-sm text-ink">
+              <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
+              Download Orbit Child app
+            </a>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
                 setHelpOpen(true);
               }}
               className="press flex h-11 w-full items-center gap-3 rounded-input px-3 text-left text-sm text-ink"
@@ -242,6 +261,7 @@ function UserMenu() {
         ) : null}
       </AnimatePresence>
       <HelpSheet open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <ChangePasswordSheet open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </div>
   );
 }

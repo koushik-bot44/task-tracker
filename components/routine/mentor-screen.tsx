@@ -1,12 +1,12 @@
 "use client";
 
-import { Loader2, LogOut, Plus, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { ApiError, apiDelete } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { useMentor, useMentorReportAdd, useMentorReportDelete, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import type { MentorReportDTO, MentorViewDTO } from "@/lib/types";
@@ -221,19 +221,10 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
   );
 }
 
-/** The full-page scene + greeting + sign-out that the person screen wears, so the
-    door (gate), the loading line and the screen all stand in the same room. */
+/** The full-page scene + greeting + profile menu that the person screen wears, so
+    the door (gate), the loading line and the screen all stand in the same room. */
 function Shell({ name, children }: { name?: string; children: ReactNode }) {
-  const router = useRouter();
-  const qc = useQueryClient();
   const { mounted, night, overNight, floatText, scene } = useTimeScene();
-
-  const signOut = async () => {
-    await apiDelete("/api/auth").catch(() => {});
-    // A shared phone: the next login must not see this one's cached screens (review, 2026-09-25).
-    qc.clear();
-    router.replace("/login");
-  };
 
   return (
     <div className="relative min-h-dvh bg-bg">
@@ -266,6 +257,11 @@ function Shell({ name, children }: { name?: string; children: ReactNode }) {
           paddingRight: "max(1.25rem, env(safe-area-inset-right))",
         }}
       >
+        {/* Profile menu (2026-10-01): its own row at the very top, so the greeting
+            keeps the whole width — change password, the Orbit Child app, sign out. */}
+        <div className="relative z-20 -mt-3 mb-1 flex justify-end">
+          <ProfileMenu />
+        </div>
         <header className="relative mb-5 text-center">
           {overNight ? (
             <div aria-hidden className="pointer-events-none absolute left-1/2 top-[52%] z-0 h-24 w-[26rem] max-w-[94%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] blur-xl" style={{ background: "rgba(9,13,38,0.9)" }} />
@@ -278,12 +274,6 @@ function Shell({ name, children }: { name?: string; children: ReactNode }) {
 
         <div className="min-w-0 flex-1">{children}</div>
 
-        <footer className="mt-8 text-center">
-          <button type="button" onClick={signOut} className={cn("press inline-flex h-11 items-center gap-1.5 rounded-card px-3 text-sm font-medium", overNight ? "text-on-primary hover:opacity-80" : "text-ink hover:opacity-80")}>
-            <LogOut className="h-3.5 w-3.5" aria-hidden />
-            Sign out
-          </button>
-        </footer>
       </div>
     </div>
   );

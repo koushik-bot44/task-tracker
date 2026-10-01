@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { useDevices, useLocationAudit, useLocationMutations } from "@/lib/hooks/use-routine";
 import { useToast } from "@/components/toast";
 import type { DevicePairingDTO, LocationAuditDTO } from "@/lib/types";
+import { ORBIT_CHILD_APK, ORBIT_CHILD_FILENAME } from "@/lib/orbit-child-app";
 import { ago, StatePill } from "./location-now";
 
 const PERMISSION_WORDS: Record<string, string> = {
@@ -40,17 +41,13 @@ function auditLine(e: LocationAuditDTO): string {
   return e.actorName ? `${e.actorName} ${words}${extra}` : `${words.charAt(0).toUpperCase()}${words.slice(1)}${extra}`;
 }
 
-/** Orbit Child for Android, served by this site from public/downloads (2026-10-01).
-    No iPhone build yet: that needs a Mac with Xcode and an Apple developer account. */
-const APK_PATH = "/downloads/orbit-child.apk";
-
 function AppDownload({ personName, onCopy }: { personName: string; onCopy: (text: string) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <a href={APK_PATH} download="Orbit-Child.apk" className="press inline-flex h-11 items-center gap-1.5 rounded-card bg-primary px-4 text-sm font-medium text-on-primary">
+      <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} className="press inline-flex h-11 items-center gap-1.5 rounded-card bg-primary px-4 text-sm font-medium text-on-primary">
         <Download className="h-4 w-4" aria-hidden /> Download Orbit Child
       </a>
-      <button type="button" onClick={() => onCopy(new URL(APK_PATH, window.location.origin).href)} className="press inline-flex h-11 items-center gap-1.5 rounded-card px-3 text-sm pk-fg-soft hover:bg-[color:var(--pk-cell)]">
+      <button type="button" onClick={() => onCopy(new URL(ORBIT_CHILD_APK, window.location.origin).href)} className="press inline-flex h-11 items-center gap-1.5 rounded-card px-3 text-sm pk-fg-soft hover:bg-[color:var(--pk-cell)]">
         <Copy className="h-4 w-4" aria-hidden /> Copy link
       </button>
       <p className="w-full text-micro pk-fg-soft">Android only. Open it on {personName}&apos;s phone (or send the link) and allow the install. No iPhone version yet.</p>
