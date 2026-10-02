@@ -244,11 +244,12 @@ export async function requireOwnWeight(personId: string, id: string) {
 export type PersonRef = { id: string; name: string; userId: string; user: { email: string } };
 const PERSON_SELECT = { id: true, name: true, userId: true, user: { select: { email: true } } } as const;
 
-/** The persons the caller runs as OWNER: their own (Person.managerId). A CEO with
-    none of his own also runs every person whose manager is not a CEO (2026-09-10).
-    Well Being has been the CEO's alone since 2026-09-04, so nobody else can open
-    those; on the live site the one person still belongs to a manager. Worked out
-    on every read: nobody is reassigned. Oldest first. */
+/** The persons the caller runs as OWNER: their own (Person.managerId). A CEO-role
+    account with none of its own runs every person (2026-09-10: the persons whose
+    manager was not a CEO; 2026-10-01: every one — the developers' CEO-role account
+    sees all of Well Being, as the CEO does). The CEO, who has his own person,
+    sees exactly that, as before. Worked out on every read: nobody is reassigned.
+    Oldest first. */
 export async function getOwnedPersons(callerId: string): Promise<PersonRef[]> {
   const caller = await prisma.user.findUnique({
     where: { id: callerId },
@@ -258,7 +259,6 @@ export async function getOwnedPersons(callerId: string): Promise<PersonRef[]> {
   if (caller.managedPerson) return [caller.managedPerson];
   if (caller.role !== "FOUNDER") return [];
   return prisma.person.findMany({
-    where: { manager: { role: { not: "FOUNDER" } } },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: PERSON_SELECT,
   });

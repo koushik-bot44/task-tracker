@@ -111,7 +111,8 @@ export async function canManageProject(user: { id: string; role: Role }, project
 export async function reviewAttendeeIds(projectId: string, milestoneId: string | null): Promise<string[]> {
   const [project, founder, holders] = await Promise.all([
     prisma.project.findUnique({ where: { id: projectId }, select: { leadId: true, ownerId: true } }),
-    prisma.user.findFirst({ where: { role: "FOUNDER", disabledAt: null, status: "ACTIVE" }, select: { id: true } }),
+    // The CEO is the oldest CEO-role account; a developers' one added later is not invited (2026-10-01).
+    prisma.user.findFirst({ where: { role: "FOUNDER", disabledAt: null, status: "ACTIVE" }, orderBy: { createdAt: "asc" }, select: { id: true } }),
     prisma.task.findMany({
       where: { projectId, deletedAt: null, archived: false, assigneeId: { not: null }, ...(milestoneId ? { milestoneId } : {}) },
       select: { assigneeId: true },
