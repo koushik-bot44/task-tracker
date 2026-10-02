@@ -21,6 +21,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // The phone's own API (2026-10-02). Every handler checks the phone's token (or the
+  // pairing code), never a cookie. Inside the Orbit app the phone's requests share the
+  // site's cookie jar, so they arrive carrying the signed-in child's session — which
+  // the PERSON wall below would refuse ("Not available for this account").
+  if (pathname === "/api/device" || pathname.startsWith("/api/device/")) {
+    return NextResponse.next();
+  }
+
   const claims = await readSessionToken(req.cookies.get(SESSION_COOKIE)?.value);
   if (claims) {
     // Phase 35 — the PERSON wall at the edge. A PERSON login reaches ONLY the

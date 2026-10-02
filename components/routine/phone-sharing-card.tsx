@@ -22,6 +22,8 @@ export type PhoneSetup = {
   working: boolean;
   error: string | null;
   run: () => Promise<void>;
+  /** Connect again after a failure (the "Try again" button). */
+  retry: () => void;
 };
 
 /**
@@ -49,12 +51,11 @@ export function usePhoneSetup(enabled: boolean, onConnected?: () => void): Phone
     }
   }, [tracker]);
 
-  // Connect this phone by itself, once; read the permissions again on coming back
-  // from the phone's settings.
-  useEffect(() => {
-    if (!tracker) return;
-    let cancelled = false;
-    void (async () => {
+  // Connect this phone by itself (on open, and again from "Try again").
+  const connect = useCallback(
+    async (isCancelled: () => boolean = () => false) => {
+      if (!tracker) return;
+      setError(null);
       let s = await tracker.getState().catch(() => null);
       if (s && (!s.paired || s.revoked) && !connecting.current) {
         connecting.current = true;
@@ -63,13 +64,22 @@ export function usePhoneSetup(enabled: boolean, onConnected?: () => void): Phone
           s = await tracker.pair({ serverUrl: window.location.origin, code: r.code });
           connectedRef.current?.();
         } catch (e) {
-          if (!cancelled) setError(message(e));
+          if (!isCancelled()) setError(message(e));
         } finally {
           connecting.current = false;
         }
       }
-      if (!cancelled && s) setState(s);
-    })();
+      if (!isCancelled() && s) setState(s);
+    },
+    [tracker],
+  );
+
+  // Connect once on open; read the permissions again on coming back from the
+  // phone's settings.
+  useEffect(() => {
+    if (!tracker) return;
+    let cancelled = false;
+    void connect(() => cancelled);
     const onVisible = () => {
       if (!document.hidden) void refresh();
     };
@@ -83,7 +93,7 @@ export function usePhoneSetup(enabled: boolean, onConnected?: () => void): Phone
       document.removeEventListener("visibilitychange", onVisible);
       sub?.remove();
     };
-  }, [tracker, refresh]);
+  }, [tracker, refresh, connect]);
 
   // Sharing starts by itself as soon as everything it needs is allowed.
   useEffect(() => {
@@ -140,6 +150,7 @@ export function usePhoneSetup(enabled: boolean, onConnected?: () => void): Phone
     working,
     error,
     run,
+    retry: () => void connect(),
   };
 }
 
@@ -154,7 +165,14 @@ export function PhoneSetupGate({ setup, onLater, overNight }: { setup: PhoneSetu
       <p className={cn("mx-auto mt-2 max-w-xs text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>
         One time only — a parent can do it. Then it works by itself, about every hour.
       </p>
-      {setup.connecting && !setup.error ? (
+      {setup.error && !setup.next ? (
+        <div className="mt-6">
+          <p className="text-sm text-danger-ink">{setup.error}</p>
+          <button type="button" onClick={setup.retry} className="press mt-4 inline-flex h-14 w-full items-center justify-center rounded-card bg-primary px-4 text-lg font-semibold text-on-primary">
+            Try again
+          </button>
+        </div>
+      ) : setup.connecting ? (
         <div className="mt-6 flex items-center justify-center gap-2 text-sm pk-fg">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Connecting this phone…
         </div>
@@ -169,7 +187,7 @@ export function PhoneSetupGate({ setup, onLater, overNight }: { setup: PhoneSetu
       ) : (
         <p className="mt-6 text-sm pk-fg">Starting…</p>
       )}
-      {setup.error ? <p className="mt-3 text-sm text-danger-ink">{setup.error}</p> : null}
+      {setup.error && setup.next ? <p className="mt-3 text-sm text-danger-ink">{setup.error}</p> : null}
       <button type="button" onClick={onLater} className="press mt-6 h-11 rounded-card px-4 text-sm pk-fg-soft">
         Later
       </button>
@@ -194,6 +212,11 @@ export function PhoneSharingCard({ setup, overNight }: { setup: PhoneSetup; over
             </button>
           ) : null}
           {setup.error ? <p className="mt-2 text-sm text-danger-ink">{setup.error}</p> : null}
+          {setup.error && !setup.next ? (
+            <button type="button" onClick={setup.retry} className="press mt-3 inline-flex h-12 w-full items-center justify-center rounded-card bg-primary px-4 text-base font-semibold text-on-primary">
+              Try again
+            </button>
+          ) : null}
         </div>
       </div>
     </section>
