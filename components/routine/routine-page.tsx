@@ -15,7 +15,7 @@ import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
 import type { RoutineCollaboratorDTO, RoutineOverviewDTO, RoutinePermission } from "@/lib/types";
-import { WellBeingScene } from "./well-being-scene";
+import KineticGrid from "@/components/ui/kinetic-grid";
 import { WeeklyGrid } from "./weekly-grid";
 import { NonNegotiables } from "./non-negotiables";
 import { TasksSection } from "./tasks-section";
@@ -83,7 +83,7 @@ function AppRoutinePage() {
   useRetryWhenBack(isError && !data, refetch);
   // Shared scene (same source as the person screen). The scene class (pk-day / pk-night)
   // on this page root supplies the glass CSS vars to every .pk-* descendant.
-  const { mounted, night, overNight, floatText } = useTimeScene();
+  const { overNight, floatText } = useTimeScene();
   const sceneClass = overNight ? "pk-night" : "pk-day";
 
   // Full-screen: the manager can send just the Well Being scene edge-to-edge (browser
@@ -124,8 +124,8 @@ function AppRoutinePage() {
     // relative root — the sidebar/header + other tabs keep their normal light look).
     <div ref={rootRef} className={cn("wb-fs relative min-h-[calc(100dvh-4rem)]", sceneClass)}>
       <div aria-hidden className="wb-scene wb-scene-app">
-        {mounted ? <WellBeingScene night={night} /> : null}
-        <SceneBackdrop night={night} />
+        {/* The kinetic grid replaces the wallpaper (owner, 2026-10-02). */}
+        <KineticGrid />
       </div>
       {/* z-[1] sits above the z-0 scene but BELOW the app header (z-sticky = 10), so the
           content slides cleanly under the chrome instead of painting over it when scrolled. */}
@@ -196,14 +196,14 @@ function StandaloneRoutinePage() {
   // phone is back (2026-10-02).
   const refused = error instanceof ApiError && (error.status === 403 || error.status === 404);
   useRetryWhenBack(isError && !refused && !data, refetch);
-  const { mounted, night, overNight, floatText } = useTimeScene();
+  const { overNight, floatText } = useTimeScene();
   const sceneClass = overNight ? "pk-night" : "pk-day";
 
   return (
     <div className={cn("relative min-h-dvh bg-bg", sceneClass)}>
       <div aria-hidden className="wb-scene wb-scene-full">
-        {mounted ? <WellBeingScene night={night} /> : null}
-        <SceneBackdrop night={night} />
+        {/* The kinetic grid replaces the wallpaper (owner, 2026-10-02). */}
+        <KineticGrid />
       </div>
       <div
         className="relative z-10 mx-auto flex min-h-dvh max-w-2xl flex-col"
@@ -245,32 +245,6 @@ function StandaloneRoutinePage() {
   );
 }
 
-/** The owner's picture over the scene: a calm hill under a wide sky (owner,
-    2026-09-08). Dimmed at night so the glass panels keep their contrast. Sharp:
-    the picture is the point — the panels do the blurring, each one frosts whatever
-    sits behind IT. Shared by the in-app page and the co-parent's full page. */
-function SceneBackdrop({ night }: { night: boolean }) {
-  return (
-    <>
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
-        style={{
-          backgroundImage: "url('/well-being.jpg')",
-          opacity: 1,
-          filter: night ? "saturate(112%) brightness(0.9)" : "saturate(108%)",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          background: night
-            ? "linear-gradient(180deg, rgba(10,14,32,0.18) 0%, rgba(10,14,32,0.42) 100%)"
-            : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
-        }}
-      />
-    </>
-  );
-}
 
 function AddPerson() {
   const { createPerson } = useRoutineMutations(null, null);

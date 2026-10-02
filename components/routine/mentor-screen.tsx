@@ -10,7 +10,7 @@ import { useToast } from "@/components/toast";
 import { useMentor, useMentorReportAdd, useMentorReportDelete, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import type { MentorReportDTO, MentorViewDTO } from "@/lib/types";
-import { WellBeingScene } from "./well-being-scene";
+import KineticGrid from "@/components/ui/kinetic-grid";
 
 import { Labeled, inputCls, prettyDate, weekdayShort } from "./shared";
 import { useRetryWhenBack } from "./use-retry-when-back";
@@ -234,27 +234,13 @@ function StudentPanel({ student, today }: { student: Student; today: string }) {
 /** The full-page scene + greeting + profile menu that the person screen wears, so
     the door (gate), the loading line and the screen all stand in the same room. */
 function Shell({ name, children }: { name?: string; children: ReactNode }) {
-  const { mounted, night, overNight, floatText, scene } = useTimeScene();
+  const { mounted, overNight, floatText, scene } = useTimeScene();
 
   return (
     <div className="relative min-h-dvh bg-bg">
       <div aria-hidden className="wb-scene wb-scene-full">
-        {mounted ? <WellBeingScene night={night} /> : null}
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-opacity duration-500"
-          style={{
-            backgroundImage: "url('/well-being.jpg')",
-            filter: night ? "saturate(112%) brightness(0.9)" : "saturate(108%)",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: night
-              ? "linear-gradient(180deg, rgba(10,14,32,0.18) 0%, rgba(10,14,32,0.42) 100%)"
-              : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.22) 100%)",
-          }}
-        />
+        {/* The kinetic grid replaces the wallpaper (owner, 2026-10-02). */}
+        <KineticGrid />
       </div>
       {/* The scene class sits on the whole column so every glass piece below reads
           the same day/night tints. */}

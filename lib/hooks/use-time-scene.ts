@@ -28,12 +28,14 @@ export function useTimeScene() {
     const id = setInterval(tick, 5 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
-  const overNight = mounted && night;
+  // The Well Being background is the dark kinetic grid at every hour (owner,
+  // 2026-10-02: "remove the wallpaper"), so the glass and text always wear the
+  // night set — light text on clear glass — from the first paint.
   return {
     mounted,
     night,
-    overNight,
-    scene: overNight ? "pk-night" : "pk-day",
-    floatText: overNight ? "text-on-primary" : "text-ink",
+    overNight: true,
+    scene: "pk-night",
+    floatText: "text-on-primary",
   } as const;
 }

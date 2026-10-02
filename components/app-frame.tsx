@@ -58,7 +58,8 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh bg-bg">
       {/* Desktop rail */}
-      <aside className="sticky top-0 hidden h-dvh w-[220px] shrink-0 flex-col bg-surface-2 px-3 pb-4 pt-4 md:flex">
+      {/* z-sticky: above the Well Being background grid, whose canvas is fixed to the window (2026-10-02). */}
+      <aside className="sticky top-0 z-sticky hidden h-dvh w-[220px] shrink-0 flex-col bg-surface-2 px-3 pb-4 pt-4 md:flex">
         <Link href="/" className="mb-4 flex items-center gap-2 rounded-input px-2 py-1.5">
           <Image src="/orbit-logo.png" alt="Orbit" width={256} height={256} priority className="h-7 w-7 rounded-lg" />
           <span className="text-row font-semibold text-ink">Orbit</span>
