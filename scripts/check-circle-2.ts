@@ -227,7 +227,7 @@ async function main() {
   const lastSeenWords = whereWords(lastSeen);
   const lastSeenRe = new RegExp(`^Last seen: ${escapeRe(lastSeenWords)} · `); // the Summary/Today card's one-liner
   // The Location tab's rebuilt "Where <name> is" card (2026-09-29): the place on its own line, then honest freshness.
-  const nowFreshRe = /(Updated|Last known) /;
+  const nowFreshRe = /Last seen /; // 2026-10-02: "Last seen … ago", noted when the app is opened
   const lastCheckin = points.find((p) => p.source === "CHECKIN") ?? null;
   info(`last seen: ${lastSeenWords || "nothing"} (${lastSeen?.source ?? "-"}); last check-in today: ${lastCheckin?.place ?? "none"}`);
   const phonePoint = phone.find((p) => p.source === "OVERLAND");
@@ -348,7 +348,8 @@ async function main() {
   info(`${ARJUN.name}'s tabs: ${arjunTabs.join(" · ")}`);
   record(`${ARJUN.name} is offered ${arjunTabsWanted.replace(/\|/g, ", ")} — Calendar and Map among them`, arjunTabs.join("|") === arjunTabsWanted, arjunTabs.join(", "));
   // With his phone sharing on its own, the Check in card gives way to one line (2026-09-25).
-  record("his Today says his phone is sharing, and keeps his own extra", (await seen(arjunPage, "Sharing your location with your parents: on")) && !(await seen(arjunPage, "Where are you?")) && (await seen(arjunPage, "Call grandma")));
+  // Owner, 2026-10-02: no location notices on the child's screen at all.
+  record("his Today shows no location notice, and keeps his own extra", (await arjunPage.getByText(/Sharing your location|shares your location/).count()) === 0 && !(await seen(arjunPage, "Where are you?")) && (await seen(arjunPage, "Call grandma")));
   await photograph(arjunPage, "arjun-1-today.png", `${ARJUN.name}'s Today`, SCOPE, true);
 
   await openTab(arjunPage, "Calendar");
@@ -361,8 +362,7 @@ async function main() {
 
   await openTab(arjunPage, "Map");
   record("his Map draws today", await mapReady(arjunPage));
-  const arjunSharing = (await arjunPage.getByText("Sharing with your parents").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
-  record("…shows today's log and says sharing with his parents is on", (await seen(arjunPage, /Today.s log/)) && (await seen(arjunPage, "check-in")) && (await seen(arjunPage, "Maths")) && arjunSharing === "Sharing with your parents: on", `"${arjunSharing}"`);
+  record("…shows today's log, with no sharing notice", (await seen(arjunPage, /Today.s log/)) && (await seen(arjunPage, "check-in")) && (await seen(arjunPage, "Maths")) && (await arjunPage.getByText("Sharing with your parents").count()) === 0);
   record("…and never shows him the link", (await arjunPage.getByText("Phone sharing").count()) === 0 && (await arjunPage.locator("code").count()) === 0);
   await photograph(arjunPage, "arjun-3-map.png", `${ARJUN.name}'s Map`, SCOPE, true);
 
