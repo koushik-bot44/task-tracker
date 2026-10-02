@@ -8,7 +8,9 @@
  * responses are never cached — an owner decision — so the installed app always
  * shows live data or, with no connection, the offline page.
  */
-const SHELL = "orbit-shell-v3";
+// v4 (2026-10-02): the offline page now retries by itself; a new name makes every
+// installed phone fetch it again (activate below drops the old copy).
+const SHELL = "orbit-shell-v4";
 const SHELL_ASSETS = [
   "/offline.html",
   "/manifest.webmanifest",
@@ -49,7 +51,7 @@ self.addEventListener("fetch", (event) => {
  */
 self.addEventListener("push", (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch (_e) { data = {}; }
+  try { data = event.data ? event.data.json() : {}; } catch { data = {}; }
   const title = data.title || "Orbit";
   const options = {
     body: data.body || "",

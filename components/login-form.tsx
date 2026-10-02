@@ -9,6 +9,33 @@ import { useState, type FormEvent } from "react";
 const inputClass =
   "h-12 w-full rounded-input border border-line bg-surface px-4 text-base text-ink outline-none transition-colors duration-150 ease-out placeholder:text-muted focus:border-primary";
 
+/**
+ * 2026-10-02: the page to go back to after signing in — where the person was
+ * when their session ran out (lib/api.ts sends /login?next=<that page>). Only
+ * one of Orbit's own pages: a path starting "/" (not "//" or "/\", which a
+ * browser reads as another site) that stays on this origin and is not the
+ * door itself or an API address. Anything else: null, and the usual landing.
+ */
+function returnPath(): string | null {
+  const next = new URLSearchParams(window.location.search).get("next");
+  // No backslashes or control characters anywhere: browsers read "\" as "/".
+  // eslint-disable-next-line no-control-regex
+  if (!next || !next.startsWith("/") || next.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(next)) return null;
+  try {
+    const url = new URL(next, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    // Check the path as the browser will use it, after it folds "." and ".." —
+    // "/.//evil.example" passes the raw checks but becomes "//evil.example",
+    // which a navigation reads as another site (review, 2026-10-02).
+    const path = url.pathname;
+    if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return null;
+    if (path === "/login" || path.startsWith("/login/") || path.startsWith("/api/")) return null;
+    return path + url.search + url.hash;
+  } catch {
+    return null;
+  }
+}
+
 export function LoginForm({ needsBootstrap }: { needsBootstrap: boolean }) {
   const router = useRouter();
   const reduce = useReducedMotion();
@@ -49,7 +76,10 @@ export function LoginForm({ needsBootstrap }: { needsBootstrap: boolean }) {
 
       // Phase 35: a PERSON login lands on their own calm screen, never the work app.
       const body = (await res.json().catch(() => null)) as { user?: { role?: string } } | null;
-      router.replace(body?.user?.role === "PERSON" ? "/person" : body?.user?.role === "ADMIN" ? "/people" : "/");
+      const landing = body?.user?.role === "PERSON" ? "/person" : body?.user?.role === "ADMIN" ? "/people" : "/";
+      // 2026-10-02: signed out mid-use → back to that page (the edge still walls
+      // each role in, so a page this login may not see sends it to its own).
+      router.replace(returnPath() ?? landing);
       router.refresh();
     } catch {
       setError("Network error. Try again.");

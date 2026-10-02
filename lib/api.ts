@@ -18,7 +18,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
   if (res.status === 401 && typeof window !== "undefined") {
     // Session expired mid-use. Send them to the door rather than failing quietly.
-    window.location.href = "/login";
+    // 2026-10-02: carrying the page they were on (?next=), so signing back in
+    // returns them there (components/login-form.tsx) instead of to Today. Never
+    // from the door itself — there is nowhere to send them.
+    const { pathname, search } = window.location;
+    if (pathname !== "/login") window.location.href = `/login?next=${encodeURIComponent(pathname + search)}`;
     throw new ApiError(401, "Unauthorized");
   }
 

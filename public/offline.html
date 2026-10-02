@@ -41,7 +41,28 @@
       </svg>
       <h1>You're offline</h1>
       <p>Orbit needs a connection to load your projects. Your work is safe — reconnect and try again.</p>
-      <button onclick="location.reload()">Try again</button>
+      <button id="retry" type="button">Try again</button>
     </div>
+    <script>
+      /* 2026-10-02: this page comes back by itself. sw.js serves it AT the address
+         that failed to load, so reloading is the retry — when the phone says it is
+         online again, when the page comes back on screen, and every 15 s while it
+         is on screen. A small no-cache fetch asks first, so a phone still without
+         signal does not blink every 15 s. Try again reloads at once. */
+      (function () {
+        function go() {
+          if (location.pathname === "/offline.html") location.replace("/");
+          else location.reload();
+        }
+        function retry() {
+          if (document.visibilityState !== "visible") return;
+          fetch("/manifest.webmanifest", { cache: "no-store" }).then(go, function () {});
+        }
+        document.getElementById("retry").addEventListener("click", go);
+        window.addEventListener("online", retry);
+        document.addEventListener("visibilitychange", retry);
+        setInterval(retry, 15000);
+      })();
+    </script>
   </body>
 </html>
