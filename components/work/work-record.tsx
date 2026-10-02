@@ -55,6 +55,11 @@ function stamp(iso: string | null): string {
  */
 export function WorkRecord({ number }: { number: string }) {
   const { data: task, isLoading, isError, error, refetch } = useWorkItem(number);
+  const gone = isError && error instanceof Error && /not found/i.test(error.message);
+  /* A failed refresh keeps the record on screen, and with it the note being
+     typed — it used to swap the whole record for "Couldn't load this" (2026-10-02).
+     Only a record that is gone, or nothing loaded yet, replaces it. */
+  if (task && !gone) return <RecordBody task={task} />;
   if (isLoading) {
     return (
       <div className="w-full px-2 pb-8 pt-2 md:px-4" aria-busy>
@@ -62,14 +67,11 @@ export function WorkRecord({ number }: { number: string }) {
       </div>
     );
   }
-  if (isError || !task) {
-    return (
-      <div className="w-full px-2 pb-8 pt-2 md:px-4">
-        {error instanceof Error && /not found/i.test(error.message) ? <EmptyState title="Record not found" body="It may have been deleted, or it may not be yours to see." /> : <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} />}
-      </div>
-    );
-  }
-  return <RecordBody task={task} />;
+  return (
+    <div className="w-full px-2 pb-8 pt-2 md:px-4">
+      {gone ? <EmptyState title="Record not found" body="It may have been deleted, or it may not be yours to see." /> : <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} />}
+    </div>
+  );
 }
 
 type Tab = "notes" | "attachments";
@@ -380,8 +382,19 @@ function RecordBody({ task }: { task: TaskDTO }) {
               <input
                 value={title}
                 readOnly={ro}
-                onChange={(e) => setTitle(titleCase(e.target.value))}
-                onBlur={() => { if (!ro && title.trim() !== task.title) update.mutate({ title: title.trim() }, { onError: fail }); }}
+                /* The capitals go on when the box is left, never while typing: changing the
+                   words under a phone keyboard doubled letters ("Hhello Wworld") (2026-10-02). */
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={() => {
+                  if (ro) return;
+                  const typed = title.trim();
+                  // Only when the person changed it: tapping in and out must not re-save an
+                  // older title in different casing (review, 2026-10-02).
+                  if (typed === task.title) return;
+                  const next = titleCase(typed);
+                  setTitle(next);
+                  if (next !== task.title) update.mutate({ title: next }, { onError: fail });
+                }}
                 onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                 aria-label="Short description"
                 className={snInput}

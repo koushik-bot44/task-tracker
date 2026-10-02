@@ -100,7 +100,9 @@ export function ActivityStream({ task, staff, onOpenFile }: { task: TaskDTO; sta
 
       {isLoading ? (
         <Skeleton rows={3} />
-      ) : isError ? (
+      ) : isError && !data ? (
+        /* Only when nothing has loaded: one failed 30-second poll used to empty the
+           notes while somebody was typing under them (2026-10-02). */
         <p className="text-sm text-muted">
           Couldn&apos;t load the activity.{" "}
           <button type="button" onClick={() => refetch()} className="font-medium text-primary-ink">

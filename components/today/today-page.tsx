@@ -18,10 +18,10 @@ import { TaskRows } from "./task-rows";
  * that need your OK. One button: + gives a task.
  */
 export function TodayPage() {
-  const { data: me, isLoading: loadingMe } = useMe();
+  const { data: me, isLoading: loadingMe, refetch: refetchMe } = useMe();
   const admin = isAdminRole(me?.role);
   // The ADMIN looks after accounts only: no tasks, no meetings, no Today to fetch.
-  const { data, isLoading, isError, error, refetch } = useToday(Boolean(me) && !admin);
+  const { data, isLoading, error, refetch } = useToday(Boolean(me) && !admin);
   const canGive = Boolean(me) && !admin;
 
   // Bottom padding keeps the last card clear of the floating + button.
@@ -29,15 +29,20 @@ export function TodayPage() {
     <div className="mx-auto w-full max-w-content px-4 pb-20 pt-4 md:pb-24">
       {admin ? (
         <EmptyState title="Nothing waiting on you." body="Accounts are looked after from People." />
+      ) : data ? (
+        /* A failed refresh keeps what is on screen: coming back to the tab without
+           signal swapped the tasks and meetings for "Couldn't load this" and left
+           it there (2026-10-02). The next refresh runs when the tab is shown again
+           or the connection returns. */
+        <TodayBody data={data} />
       ) : isLoading || loadingMe ? (
         <div className="space-y-6" aria-busy>
           <Skeleton rows={3} />
           <Skeleton rows={1} />
         </div>
-      ) : isError || !data ? (
-        <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} />
       ) : (
-        <TodayBody data={data} />
+        // Nothing loaded yet. Without the account there is no Today to ask for, so Retry asks for that first.
+        <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void (me ? refetch() : refetchMe())} />
       )}
 
       {canGive ? (

@@ -116,7 +116,7 @@ export function WorkTable({
     setSortDir(dir);
   };
   const query: WorkQuery = { ...fixed, ...sliceQuery(slice), q: q || undefined, sort: activeSort, dir: activeDir, limit: PAGE, cursor };
-  const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me));
+  const { data, isLoading, error, refetch } = useWorkList(query, Boolean(me));
   const from = pages.length * PAGE + 1;
   // A task given to several people is several records; the list shows it once,
   // so the count has to say tasks too.
@@ -169,7 +169,8 @@ export function WorkTable({
 
       {isLoading || !me ? (
         <div className="p-3"><Skeleton rows={5} /></div>
-      ) : isError || !data ? (
+      ) : !data ? (
+        // Only when nothing has loaded: a failed refresh keeps the rows on screen (2026-10-02).
         <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
       ) : (
         <>

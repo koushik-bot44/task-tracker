@@ -78,7 +78,8 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
 
   const submit = () => {
     const body = draft.trim();
-    if (files.uploading) return;
+    // One send at a time: the words stay in the box until the note is saved.
+    if (files.uploading || addNote.isPending) return;
     if (files.failed) {
       toast({ message: "A file didn't upload. Try it again, or take it off before sending.", tone: "danger" });
       return;
@@ -86,12 +87,21 @@ export function ActivityComposer({ task }: { task: TaskDTO }) {
     const attached = files.ready;
     if (!body && !attached.length) return;
     const named = mentions.filter((m) => body.includes(`@${m.name}`)).map((m) => m.id);
-    setDraft("");
-    files.clear();
-    setMentions([]);
+    const sent = draft;
+    const sentFiles = files.items.filter((p) => p.status === "done" && p.result).map((p) => p.key);
     addNote.mutate(
       { body, internal, attachments: attached, mentions: named },
-      { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) },
+      {
+        /* Cleared once the note is saved, not before: a failed send threw the
+           typed note away (2026-10-02). What was sent leaves the box; anything
+           typed or attached while it was sending stays. */
+        onSuccess: () => {
+          setDraft((d) => (d.startsWith(sent) ? d.slice(sent.length).trimStart() : d));
+          for (const key of sentFiles) files.remove(key);
+          setMentions((prev) => prev.filter((m) => !named.includes(m.id)));
+        },
+        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+      },
     );
   };
 

@@ -230,7 +230,8 @@ export function ProjectPage({ slug }: { slug: string }) {
 
   const startIso = project.startDate ?? project.createdAt;
   const listLoading = milestonesQ.isLoading || tasksQ.isLoading;
-  const listError = milestonesQ.isError || tasksQ.isError;
+  // Only when nothing has loaded: a failed refresh keeps the stages on screen (2026-10-02).
+  const listError = (milestonesQ.isError && !milestonesQ.data) || (tasksQ.isError && !tasksQ.data);
 
   return (
     <Shell>

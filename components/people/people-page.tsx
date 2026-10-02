@@ -132,7 +132,9 @@ export function PeoplePage() {
 
       {isLoading || !me ? (
         <Skeleton rows={5} className="mt-5" />
-      ) : isError ? (
+      ) : isError && !users ? (
+        /* Only when nothing has loaded: a failed refresh keeps everyone on screen,
+           and an open Team sheet open with what was typed in it (2026-10-02). */
         <div className="mt-5">
           <ErrorState onRetry={() => void refetch()} />
         </div>

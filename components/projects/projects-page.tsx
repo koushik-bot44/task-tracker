@@ -124,7 +124,10 @@ export function ProjectsPage() {
     );
   }
 
-  if (projectsQuery.isError || departmentsQuery.isError) {
+  /* Only when there is nothing to show yet. A failed refresh keeps the page — the
+     "Find a project" box and an open New project sheet with what was typed in
+     them — instead of swapping it all for "Couldn't load this" (2026-10-02). */
+  if ((projectsQuery.isError && !projectsQuery.data) || (departmentsQuery.isError && !departmentsQuery.data)) {
     const err = (projectsQuery.error ?? departmentsQuery.error) as Error | null;
     return (
       <Shell>

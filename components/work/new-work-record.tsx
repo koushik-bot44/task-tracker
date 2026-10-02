@@ -205,7 +205,7 @@ export function NewWorkRecord() {
       setInviting(false);
     }
     const base = {
-      title: title.trim(),
+      title: titleCase(title.trim()),
       type: kind as WorkType,
       projectId: projectId || null,
       departmentId: departmentId || undefined,
@@ -512,7 +512,8 @@ export function NewWorkRecord() {
             </div>
             <div className="border-t border-line py-2">
               <FormRow label="Short description" required>
-                <input value={title} onChange={(e) => setTitle(titleCase(e.target.value))} aria-label="Short description" className={snInput} />
+                {/* Capitals on leaving the box, never while typing: a phone keyboard doubled letters ("Hhello Wworld") (2026-10-02). */}
+                <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => setTitle((t) => titleCase(t))} aria-label="Short description" className={snInput} />
               </FormRow>
               <FormRow label="Description">
                 <textarea value={describe} onChange={(e) => setDescribe(e.target.value)} rows={4} aria-label="Description" className={cn(snInput, "h-auto resize-y py-1.5")} />

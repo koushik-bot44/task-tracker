@@ -104,16 +104,29 @@ export function NotesThread({
 
   const submit = () => {
     const body = draft.trim();
-    if (files.uploading) return;
+    // One send at a time: the words stay in the box until the note is saved.
+    if (files.uploading || addComment.isPending) return;
     if (files.failed) {
       toast({ message: "A file didn't upload. Try it again, or take it off before sending.", tone: "danger" });
       return;
     }
     const attached = files.ready;
     if (!body && !attached.length) return;
-    setDraft("");
-    files.clear();
-    addComment.mutate({ body, attachments: attached }, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) });
+    const sent = draft;
+    const sentFiles = files.items.filter((p) => p.status === "done" && p.result).map((p) => p.key);
+    addComment.mutate(
+      { body, attachments: attached },
+      {
+        /* Cleared once the note is saved, not before: a failed send threw the
+           typed note away (2026-10-02). What was sent leaves the box; anything
+           typed or attached while it was sending stays. */
+        onSuccess: () => {
+          setDraft((d) => (d.startsWith(sent) ? d.slice(sent.length).trimStart() : d));
+          for (const key of sentFiles) files.remove(key);
+        },
+        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+      },
+    );
   };
 
   return (
@@ -121,7 +134,8 @@ export function NotesThread({
       <div className={cn(fill && "min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3")}>
       {isLoading ? (
         <Skeleton rows={2} />
-      ) : isError ? (
+      ) : isError && !notes ? (
+        /* Only when nothing has loaded: a failed refresh keeps the notes on screen (2026-10-02). */
         <p className="text-sm text-muted">
           Couldn&apos;t load notes.{" "}
           <button type="button" onClick={() => refetch()} className="font-medium text-primary-ink">

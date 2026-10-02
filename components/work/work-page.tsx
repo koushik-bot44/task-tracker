@@ -149,8 +149,17 @@ export function WorkPage() {
   const q = params.get("q") ?? "";
   const page = Math.max(1, Math.floor(Number(params.get("page")) || 1));
   const [draftQ, setDraftQ] = useState(q);
+  /* The search just sent with Enter / Go. When the address catches up with it,
+     the box keeps whatever was typed since — it was put back to the words as
+     sent, eating the letters typed after Enter (2026-10-02). */
+  const sentQ = useRef<string | null>(null);
   // The box follows the address — after Clear filters, Back, or a link.
-  useEffect(() => setDraftQ(q), [q]);
+  useEffect(() => {
+    const sent = sentQ.current;
+    sentQ.current = null;
+    if (sent !== null && sent === q) return;
+    setDraftQ(q);
+  }, [q]);
   /** The extra axes stay folded away; most days "Show" and a search is the whole job. */
   const [moreFilters, setMoreFilters] = useState(false);
   /** Who the Individual tab can narrow to (owner, 2026-09-11). */
@@ -285,7 +294,7 @@ export function WorkPage() {
     return base;
   }, [slice, q, params, scope, page]);
 
-  const { data, isLoading, isError, error, refetch } = useWorkList(query, Boolean(me) && !admin);
+  const { data, isLoading, error, refetch } = useWorkList(query, Boolean(me) && !admin);
 
   /* What the grouped view narrows by: everything set above except the paging
      and the department/project, which the grouping itself supplies. */
@@ -428,7 +437,9 @@ export function WorkPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              set({ q: draftQ.trim() || null, page: null });
+              const next = draftQ.trim();
+              if (next !== q) sentQ.current = next;
+              set({ q: next || null, page: null });
             }}
             className="relative w-full md:ml-auto md:w-72"
           >
@@ -521,7 +532,8 @@ export function WorkPage() {
           <DepartmentTree departments={departmentChoices} filter={groupedFilter} />
         ) : (isLoading && !data) || !me ? (
           <div className="p-3"><Skeleton rows={6} /></div>
-        ) : isError || !data ? (
+        ) : !data ? (
+          // Only when nothing has loaded: a failed refresh keeps the rows on screen (2026-10-02).
           <div className="p-3"><ErrorState message={error instanceof Error ? error.message : undefined} onRetry={() => void refetch()} /></div>
         ) : (
           <>
