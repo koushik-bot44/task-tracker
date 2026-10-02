@@ -25,7 +25,8 @@ export const GET = route(async () => {
 
   const today = todayKey();
   const mondayKey = weekStartKey(today); // the person sees the CURRENT week only
-  const [grid, tasks, houseRules, reminderNotif, reports] = await Promise.all([
+  const days = weekDays(mondayKey);
+  const [grid, tasks, houseRules, reminderNotif, reports, weekWeight] = await Promise.all([
     buildHabitGrid(person.id, mondayKey),
     prisma.routineTask.findMany({
       where: { personId: person.id, ...tasksOnDay(dayKeyToDate(today)) },
@@ -41,6 +42,12 @@ export const GET = route(async () => {
     }),
     // 2026-09-25: the latest tutor reports (homework).
     listLatestReports(person.id, 5),
+    // 2026-10-02: this week's weight, for the "weight this week" reminder.
+    prisma.weightEntry.findFirst({
+      where: { personId: person.id, date: { gte: dayKeyToDate(days[0]), lte: dayKeyToDate(days[6]) } },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      select: { weightKg: true },
+    }),
   ]);
 
   // Show the latest unread reminder once, then mark this person's reminders read.
@@ -53,11 +60,12 @@ export const GET = route(async () => {
   const view: PersonViewDTO = {
     name: person.name,
     today,
-    week: { weekStart: mondayKey, days: weekDays(mondayKey) },
+    week: { weekStart: mondayKey, days },
     segments: toPersonSegments(grid),
     tasks: tasks.map(serializeTask),
     nonNegotiables: houseRules,
     reminder,
+    weightThisWeek: weekWeight?.weightKg ?? null,
     // The tutor's "line for the parents" is theirs: it does not travel to this side.
     reports: reports.map((r) => ({ ...r, note: null })),
   };

@@ -976,6 +976,9 @@ export type PersonViewDTO = {
   nonNegotiables: { id: string; name: string; days: Record<string, boolean>; addedBy: "MANAGER" | "PERSON" }[];
   /** The latest unread task reminder (phase 39), shown once then marked read. */
   reminder: { title: string; body: string } | null;
+  /** This week's (Mon–Sun) latest weight in kg, or null when none is in yet — the
+      child's Today shows a "weight this week" reminder until there is one (2026-10-02). */
+  weightThisWeek: number | null;
   /** 2026-09-25: the latest tutor reports (homework). */
   reports: MentorReportDTO[];
 };

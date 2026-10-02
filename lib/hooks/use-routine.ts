@@ -371,6 +371,18 @@ export function usePersonTaskToggle(onFailed?: () => void) {
 
 /* ---- 2026-09-25 — the person's own extras ---- */
 
+/** The child adds this week's weight (2026-10-02); the reminder card goes once it is in. */
+export function usePersonAddWeight() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { weightKg: number }) => apiPost<{ date: string; weightKg: number }>("/api/routine/kid/weight", input),
+    onSuccess: (r) => {
+      qc.setQueryData<PersonViewDTO>(kidKey, (prev) => (prev ? { ...prev, weightThisWeek: r.weightKg } : prev));
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
+  });
+}
+
 /** The person adds an extra of their own for today (addedBy PERSON). */
 export function usePersonAddTask() {
   const qc = useQueryClient();

@@ -1,13 +1,13 @@
 "use client";
 
-import { Bell, CalendarDays, Check, ListChecks, MapPin, Plus, ShieldCheck, Star, Sun, X } from "lucide-react";
+import { Bell, CalendarDays, Check, ListChecks, MapPin, Plus, Scale, ShieldCheck, Star, Sun, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ApiError } from "@/lib/api";
 import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
-import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
+import { usePerson, usePersonAddTask, usePersonAddWeight, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
 import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
@@ -261,6 +261,8 @@ export function PersonScreen() {
             <main className="p-1.5">
               {active === "today" ? (
                 <div className="space-y-5">
+                  {/* Weight this week (owner, 2026-10-02): a reminder until it is in. */}
+                  {data.weightThisWeek === null ? <WeightReminder /> : null}
                   {tasks.length === 0 ? (
                     <div className="px-6 pb-2 pt-8 text-center">
                       <p className="text-4xl" aria-hidden>🎈</p>
@@ -418,6 +420,48 @@ function PersonMap({ points, lastSeen, loading }: { points: LocationPointDTO[]; 
 
       <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">Today&rsquo;s log</h3>
       <LocationLog points={points} loading={loading} emptyText="Nothing yet today." gaps={[]} />
+    </section>
+  );
+}
+
+/** "Weight this week" on the child's Today (owner, 2026-10-02): a gentle reminder
+    with one box, gone for the rest of the week once a weight is in. */
+function WeightReminder() {
+  const add = usePersonAddWeight();
+  const { show: toast } = useToast();
+  const [kg, setKg] = useState("");
+  const value = Number(kg.replace(",", "."));
+  const ok = kg.trim() !== "" && Number.isFinite(value) && value > 0 && value <= 500;
+  const save = () => {
+    if (!ok || add.isPending) return;
+    add.mutate({ weightKg: Math.round(value * 10) / 10 }, {
+      onSuccess: () => toast({ message: "Weight saved" }),
+      onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+    });
+  };
+  return (
+    <section className="pk-glass rounded-card px-4 py-4" aria-label="Weight this week">
+      <div className="flex items-start gap-3">
+        <Scale className="mt-0.5 h-5 w-5 shrink-0 pk-fg-soft" strokeWidth={2} aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="pk-fg text-sm font-semibold">Weight this week</p>
+          <p className="pk-fg-soft mt-0.5 text-sm">Add your current weight.</p>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              value={kg}
+              onChange={(e) => setKg(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+              inputMode="decimal"
+              placeholder="kg"
+              aria-label="Your weight in kg"
+              className={cn(inputCls, "h-11 min-w-0 flex-1")}
+            />
+            <button type="button" onClick={save} disabled={!ok || add.isPending} className="press h-11 shrink-0 rounded-card bg-primary px-4 text-sm font-semibold text-on-primary disabled:opacity-40">
+              {add.isPending ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
