@@ -17,7 +17,7 @@ import { useDepartments } from "@/lib/hooks/use-departments";
 import { useProjectMutations, useProjects } from "@/lib/hooks/use-projects";
 import { useMe, useUsers } from "@/lib/hooks/use-users";
 import { useRaiseWork } from "@/lib/hooks/use-work";
-import { canAdministerAccountsRole, canSeeUserListRole, isExecutiveRole, isHodRole } from "@/lib/roles";
+import { canAdministerAccountsRole, canSeeUserListRole, isExecutiveRole, isHodRole, isManagerRole } from "@/lib/roles";
 import {
   PROJECT_PRIORITY_CHOICES,
   PROJECT_PRIORITY_LABEL,
@@ -72,6 +72,9 @@ function toggled(set: Set<string>, id: string): Set<string> {
  * rest: a task asks for its department, project, people and dates; Project
  * turns the same page into a new project.
  */
+/** The Project list's "+ New project…" choice (never a real id). */
+const NEW_PROJECT = "__new_project__";
+
 export function NewWorkRecord() {
   const router = useRouter();
   const params = useSearchParams();
@@ -89,6 +92,10 @@ export function NewWorkRecord() {
   const [kind, setKind] = useState<Kind>("GENERAL");
   const [departmentId, setDepartmentId] = useState(presetDepartment);
   const [projectId, setProjectId] = useState(presetProject);
+  // A new project made right here, inside the task (owner, 2026-10-02): the name box,
+  // and the one just made, shown until the projects list has fetched it.
+  const [newProjectName, setNewProjectName] = useState<string | null>(null);
+  const [madeProject, setMadeProject] = useState<{ id: string; name: string; departmentId: string } | null>(null);
   const [title, setTitle] = useState("");
   const [describe, setDescribe] = useState("");
   const [priority, setPriority] = useState<WorkPriority>("MEDIUM");
@@ -247,6 +254,26 @@ export function NewWorkRecord() {
       // The people already invited keep their links, so none is lost.
       if (links.length) setDone({ links, go: "/work?mine=requested", label: "Open the tasks" });
     }
+  };
+
+  // "+ New project…" inside the task (owner, 2026-10-02): made in the picked
+  // department, then picked for this task. The server decides who may start one;
+  // the option shows only to the roles it allows (managers and up).
+  const makeProject = () => {
+    const name = (newProjectName ?? "").trim();
+    if (!name || !departmentId || createProject.isPending) return;
+    createProject.mutate(
+      { name, departmentId },
+      {
+        onSuccess: (project) => {
+          setMadeProject({ id: project.id, name: project.name, departmentId });
+          setProjectId(project.id);
+          setNewProjectName(null);
+          toast({ message: `Project “${project.name}” created` });
+        },
+        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+      },
+    );
   };
 
   const submitProject = () => {
@@ -450,14 +477,53 @@ export function NewWorkRecord() {
                   </select>
                 </FormRow>
                 <FormRow label="Project">
-                  <select value={projectId} onChange={(e) => setProjectId(e.target.value)} disabled={!departmentId} className={snInput} aria-label="Project">
-                    <option value="">{departmentId ? "No project" : "Pick a department first"}</option>
-                    {departmentProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  {newProjectName !== null ? (
+                    /* A new project in the picked department, made without leaving the task
+                       (owner, 2026-10-02); it is then picked for this task. */
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={newProjectName}
+                        onChange={(e) => setNewProjectName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); makeProject(); }
+                          if (e.key === "Escape") setNewProjectName(null);
+                        }}
+                        placeholder="New project name"
+                        aria-label="New project name"
+                        maxLength={120}
+                        className={cn(snInput, "min-w-0 flex-1")}
+                      />
+                      <button type="button" onClick={makeProject} disabled={!newProjectName.trim() || createProject.isPending} className="press h-8 shrink-0 rounded-[3px] bg-primary px-3 text-[13px] font-medium text-on-primary disabled:opacity-40">
+                        {createProject.isPending ? "Creating…" : "Create"}
+                      </button>
+                      <button type="button" onClick={() => setNewProjectName(null)} className="press h-8 shrink-0 rounded-[3px] px-2 text-[13px] text-muted hover:text-ink">
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={projectId}
+                      onChange={(e) => {
+                        if (e.target.value === NEW_PROJECT) return setNewProjectName("");
+                        setProjectId(e.target.value);
+                      }}
+                      disabled={!departmentId}
+                      className={snInput}
+                      aria-label="Project"
+                    >
+                      <option value="">{departmentId ? "No project" : "Pick a department first"}</option>
+                      {departmentProjects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                      {madeProject && madeProject.departmentId === departmentId && !departmentProjects.some((p) => p.id === madeProject.id) ? (
+                        <option value={madeProject.id}>{madeProject.name}</option>
+                      ) : null}
+                      {departmentId && isManagerRole(me?.role) ? <option value={NEW_PROJECT}>+ New project…</option> : null}
+                    </select>
+                  )}
                 </FormRow>
               </div>
               <div>
