@@ -9,6 +9,7 @@ import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
 import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
+import { useInOrbitApp } from "@/lib/orbit-app";
 import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
 import { SegmentGrid } from "./weekly-grid";
@@ -16,6 +17,7 @@ import { CalendarView, monthOf } from "./calendar-view";
 import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
 import { LocationMapLazy } from "./location-map-lazy";
+import { PhoneSharingCard } from "./phone-sharing-card";
 import { inputCls, prettyDate, weekdayInitial } from "./shared";
 
 /**
@@ -94,7 +96,10 @@ export function PersonScreen() {
   // An enrolled phone shares on its own (2026-09-29); until then the web app notes
   // where he is when it is opened. Never both.
   const phone = location.data?.device ?? null;
-  useAppPing(Boolean(location.data) && !phone);
+  // Inside the Orbit app the phone's own engine shares the location (2026-10-02), so
+  // the browser's while-open check stays off there.
+  const inApp = useInOrbitApp();
+  useAppPing(Boolean(location.data) && !phone && !inApp);
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
   // Shared time-of-day scene (person + manager Well Being use the same source).
@@ -246,20 +251,10 @@ export function PersonScreen() {
                     </div>
                   ) : null}
 
-                  {/* Location is the phone's job: one line while it shares, nothing otherwise.
-                      The "Where are you?" check-in card is gone (owner, 2026-10-01). */}
-                  {phone || location.data?.sharing.on ? (
-                    <div className="pk-glass mb-4 flex items-center gap-3 rounded-card px-4 py-3">
-                      <MapPin className="h-5 w-5 shrink-0 text-ok-ink" strokeWidth={2} aria-hidden />
-                      <p className="pk-fg min-w-0 text-sm">
-                        {phone ? (
-                          <>Your phone shares your location with your parents automatically. <span className="font-semibold">{phone.label}</span></>
-                        ) : (
-                          <>Sharing your location with your parents: <span className="font-semibold">on</span></>
-                        )}
-                      </p>
-                    </div>
-                  ) : null}
+                  {/* Location (owner, 2026-10-02): nothing about it on the child's screen — the
+                      phone shares by itself, about every hour. Inside the Orbit app only the
+                      one-time set-up shows, until sharing runs; then nothing. */}
+                  {inApp ? <PhoneSharingCard overNight={overNight} onConnected={() => void location.refetch()} /> : null}
 
                   {forYou.length > 0 ? (
                     <div>

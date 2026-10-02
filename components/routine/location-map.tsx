@@ -90,11 +90,13 @@ export default function LocationMap({
       return;
     }
 
-    // History: the route only where the data is continuous; gaps dashed and named.
+    // History (hourly positions, 2026-10-02): the dots are where the phone was; the thin
+    // dashed line only joins them in order — the route in between is not known.
+    // Missed hours are the grey dashed gaps, named.
     const byId = new Map(drawable.map((p) => [p.id, p]));
     for (const seg of track?.segments ?? []) {
       const line = seg.map((id) => byId.get(id)).filter((p): p is LocationPointDTO => Boolean(p)).map((p) => [p.lat, p.lng] as L.LatLngTuple);
-      if (line.length > 1) L.polyline(line, { color: ROUTE, weight: 4, opacity: 0.75 }).addTo(layer);
+      if (line.length > 1) L.polyline(line, { color: ROUTE, weight: 2, opacity: 0.6, dashArray: "2 6" }).bindTooltip("About an hour between positions — the route in between is not known", { sticky: true }).addTo(layer);
     }
     for (const g of track?.gaps ?? []) {
       const a = byId.get(g.fromId);

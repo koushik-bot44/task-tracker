@@ -20,6 +20,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useInstall } from "@/lib/hooks/use-install";
 import { useMe } from "@/lib/hooks/use-users";
 import { ORBIT_CHILD_APK, ORBIT_CHILD_FILENAME } from "@/lib/orbit-child-app";
+import { useInOrbitApp } from "@/lib/orbit-app";
 import { canSeeUserListRole, isAdminRole } from "@/lib/roles";
 
 /**
@@ -170,6 +171,8 @@ function UserMenu() {
   // An iPhone can't take the Android file: it gets the Home Screen steps instead (2026-10-02).
   const { platform } = useInstall();
   const [iosOpen, setIosOpen] = useState(false);
+  // Already inside the Orbit app: nothing to download (2026-10-02).
+  const inApp = useInOrbitApp();
   const reduce = useReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -235,7 +238,7 @@ function UserMenu() {
             </button>
             {/* Only the people around the child (owner, 2026-10-02): in the work app that is
                 the CEO; employees never see it. The family screens' menu offers it too. */}
-            {me?.hasFamily ? (
+            {me?.hasFamily && !inApp ? (
               platform === "ios" ? (
                 <button type="button" role="menuitem" onClick={() => { setOpen(false); setIosOpen(true); }} className="press flex h-11 w-full items-center gap-3 rounded-input px-3 text-left text-sm text-ink">
                   <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />

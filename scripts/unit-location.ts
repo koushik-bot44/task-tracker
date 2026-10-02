@@ -33,9 +33,12 @@ check("revoked phone -> UNKNOWN", () => assert.equal(st({ revokedAt: ago(1000) }
 check("never in touch -> UNKNOWN", () => assert.equal(st({ lastContactAt: null, lastLocationAt: null }), "UNKNOWN"));
 check("fresh position and contact -> ACTIVE", () => assert.equal(st({}), "ACTIVE"));
 check("position exactly at the fresh limit is still ACTIVE", () => assert.equal(st({ lastLocationAt: ago(FRESH_MS) }), "ACTIVE"));
-check("in touch but position 45 min old -> STALE (last known is not current)", () => assert.equal(st({ lastLocationAt: ago(45 * 60_000) }), "STALE"));
+// Hourly positions (2026-10-02): 45 min old is current; past 75 min it is not.
+check("in touch, position 45 min old -> ACTIVE (it sends about hourly)", () => assert.equal(st({ lastLocationAt: ago(45 * 60_000) }), "ACTIVE"));
+check("in touch but position 90 min old -> STALE (last known is not current)", () => assert.equal(st({ lastLocationAt: ago(90 * 60_000) }), "STALE"));
 check("in touch, never a position -> STALE", () => assert.equal(st({ lastLocationAt: null }), "STALE"));
-check("silent 2 h -> DEVICE_OFFLINE", () => assert.equal(st({ lastContactAt: ago(2 * 3600_000), lastLocationAt: ago(2 * 3600_000) }), "DEVICE_OFFLINE"));
+check("silent 3 h -> DEVICE_OFFLINE", () => assert.equal(st({ lastContactAt: ago(3 * 3600_000), lastLocationAt: ago(3 * 3600_000) }), "DEVICE_OFFLINE"));
+check("one hourly check-in a bit late (70 min) is still in touch", () => assert.notEqual(st({ lastContactAt: ago(70 * 60_000), lastLocationAt: ago(70 * 60_000) }), "DEVICE_OFFLINE"));
 check("silent just past the contact window -> DEVICE_OFFLINE", () => assert.equal(st({ lastContactAt: ago(CONTACT_MS + 1000) }), "DEVICE_OFFLINE"));
 check("silent over a day -> UNKNOWN", () => assert.equal(st({ lastContactAt: ago(SILENT_MS + 1000) }), "UNKNOWN"));
 check("permission denied -> PERMISSION_REVOKED", () => assert.equal(st({ permission: "DENIED" }), "PERMISSION_REVOKED"));
@@ -75,14 +78,19 @@ check("close points make one segment and no gap", () => {
   assert.deepEqual(tr.segments, [["a", "b", "c"]]);
   assert.equal(tr.gaps.length, 0);
 });
-check("a 45-minute hole is a gap, not a line", () => {
+check("hourly positions join up; a 3-hour hole (missed hours) is a gap, not a line", () => {
+  const hourly = buildTrack([
+    { id: "a", at: at(0), lat: 17.44, lng: 78.38, accuracy: 10 },
+    { id: "b", at: at(60), lat: 17.441, lng: 78.381, accuracy: 10 },
+  ]);
+  assert.deepEqual(hourly.segments, [["a", "b"]]);
   const tr = buildTrack([
     { id: "a", at: at(0), lat: 17.44, lng: 78.38, accuracy: 10 },
-    { id: "b", at: at(45), lat: 17.45, lng: 78.39, accuracy: 10 },
+    { id: "b", at: at(180), lat: 17.45, lng: 78.39, accuracy: 10 },
   ]);
   assert.deepEqual(tr.segments, [["a"], ["b"]]);
-  assert.equal(tr.gaps[0].minutes, 45);
-  assert.ok(GAP_MS < 45 * 60_000);
+  assert.equal(tr.gaps[0].minutes, 180);
+  assert.ok(GAP_MS > 60 * 60_000 && GAP_MS < 180 * 60_000); // an hourly step joins; a missed hour is a gap
 });
 check("an impossible jump (300 km in 5 min) is a gap", () => {
   const tr = buildTrack([

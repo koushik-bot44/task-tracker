@@ -1,11 +1,13 @@
 {
   "appId": "com.sgroup.orbit.child",
-  "appName": "Orbit Child",
+  "appName": "Orbit",
   "webDir": "www",
   "android": {
     "allowMixedContent": false
   },
   "server": {
-    "androidScheme": "https"
+    "url": "https://orbittasktracker.vercel.app",
+    "androidScheme": "https",
+    "errorPath": "offline.html"
   }
 }

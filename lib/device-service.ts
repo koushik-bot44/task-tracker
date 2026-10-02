@@ -15,11 +15,19 @@ import type { DeviceDTO, LatestLocationDTO, LocateRequestDTO, LocateStatus } fro
  */
 
 /** What the phone is told to do. The OS decides exact timing; these are targets. */
+// Owner, 2026-10-02: "not continuously — every hour the child's location should go",
+// to spare the battery. The phone asks Android for one low-power position about every
+// hour (GPS only briefly, about hourly, while moving) and checks in hourly. It KEEPS a
+// position only when ~an hour has passed since the last one it kept — or the phone
+// moved more than 5 km (the phone's maximum), so positions other apps happen to wake
+// up are dropped instead of sent every minute. Android may run it a little late to
+// save battery: "about every hour". Every check-in hands the phone this config, so
+// installed apps switch over by themselves.
 export const DEVICE_CONFIG = {
-  heartbeatSeconds: 900,
-  movingIntervalSeconds: 120,
-  stationaryIntervalSeconds: 900,
-  distanceFilterMeters: 50,
+  heartbeatSeconds: 3600,
+  movingIntervalSeconds: 3600,
+  stationaryIntervalSeconds: 3600,
+  distanceFilterMeters: 5000,
   locateTimeoutSeconds: 30,
   maxBatch: 200,
 } as const;

@@ -5,12 +5,12 @@
  * its own (scripts/unit-location.ts). "Last known location" is never presented
  * as "current location": ACTIVE needs a recent position AND recent contact.
  *
- *   ACTIVE             in touch, a position from the last 20 min
+ *   ACTIVE             in touch, a position from the last 75 min (it sends hourly)
  *   STALE              in touch, but no fresh position (indoors, GPS off)
  *   OFFLINE            the phone says sharing is stopped in the app
  *   PERMISSION_REVOKED location permission is not "all the time"
  *   LOCATION_DISABLED  the phone's location switch is off
- *   DEVICE_OFFLINE     no contact for 35 min–24 h (no signal, flight mode, off, force-stopped)
+ *   DEVICE_OFFLINE     no contact for 130 min–24 h (no signal, flight mode, off, force-stopped)
  *   POWERED_OFF        the last thing the phone said was "switching off"
  *   UNKNOWN            never in touch, or silent for over a day
  */
@@ -25,10 +25,11 @@ export type DeviceState =
   | "POWERED_OFF"
   | "UNKNOWN";
 
-/** A position younger than this can be called live. */
-export const FRESH_MS = 20 * 60_000;
-/** The phone checks in every ~15 min; two misses and it counts as out of touch. */
-export const CONTACT_MS = 35 * 60_000;
+/** A position younger than this is current. The phone sends one about every hour
+    (owner, 2026-10-02), so an hour and a bit of slack. */
+export const FRESH_MS = 75 * 60_000;
+/** The phone checks in about every hour; two misses and it counts as out of touch. */
+export const CONTACT_MS = 130 * 60_000;
 /** Past a day of silence, what the phone last reported no longer describes it. */
 export const SILENT_MS = 24 * 60 * 60_000;
 /** A shutdown notice counts as the last word if nothing came within a minute after. */
@@ -55,7 +56,7 @@ export type DeviceStatus = {
 };
 
 const LABEL: Record<DeviceState, string> = {
-  ACTIVE: "Live",
+  ACTIVE: "Sharing",
   STALE: "Stale",
   OFFLINE: "Sharing stopped",
   PERMISSION_REVOKED: "Permission off",
@@ -107,7 +108,7 @@ export function deviceStatus(d: DeviceFacts | null, now: Date): DeviceStatus {
     return status("DEVICE_OFFLINE", `The phone has not been in touch for ${span(contactAge)} — no signal, flight mode, switched off, or the app was force-stopped.`, d.lastContactAt);
   }
   if (d.lastLocationAt && now.getTime() - d.lastLocationAt.getTime() <= FRESH_MS) {
-    return status("ACTIVE", "Sharing live.", d.lastLocationAt);
+    return status("ACTIVE", "Sharing — a new position about every hour.", d.lastLocationAt);
   }
   const posAge = d.lastLocationAt ? now.getTime() - d.lastLocationAt.getTime() : null;
   return status(

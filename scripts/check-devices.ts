@@ -123,7 +123,7 @@ async function main() {
   let token: string = paired.json?.deviceToken ?? "";
   deviceId = paired.json?.deviceId ?? null;
   record("the phone pairs with the code as typed (any case, any spacing)", paired.status === 201 && token.startsWith("odt_") && Boolean(deviceId) && paired.json?.personName === person.name, `status ${paired.status}`);
-  record("…and is told how often to report", paired.json?.config?.heartbeatSeconds === 900 && paired.json?.config?.maxBatch === 200);
+  record("…and is told to report about every hour (owner, 2026-10-02)", paired.json?.config?.heartbeatSeconds === 3600 && paired.json?.config?.stationaryIntervalSeconds === 3600 && paired.json?.config?.maxBatch === 200);
   const again = await asPhone(null, "POST", "/api/device/pair", { code, platform: "ANDROID", appVersion: "1.0.0-rig" });
   record("the same code cannot pair a second phone", again.status === 404, `status ${again.status}`);
   const stored = await prisma.childDevice.findUnique({ where: { id: deviceId! }, select: { tokenHash: true } });
@@ -174,7 +174,9 @@ async function main() {
   const oldPoint = (day.json?.points ?? []).find((p: any) => p.source === "DEVICE" && Date.parse(p.receivedAt) - Date.parse(p.at) > 40 * 60_000);
   record("…and history shows it with its real time and when it arrived", Boolean(oldPoint), oldPoint ? `at ${oldPoint.at.slice(11, 16)}, arrived ${oldPoint.receivedAt.slice(11, 16)}` : "missing");
   const gaps = day.json?.track?.gaps ?? [];
-  if (walkSameDay) record("history splits the route where data is missing (a 30-minute hole is a gap)", gaps.some((g: any) => g.minutes >= 25), gaps.map((g: any) => `${g.minutes} min`).join(", ") || "none");
+  // Hourly positions (2026-10-02): a 30-minute hole is normal, not a gap; a missed hour
+  // or more is (scripts/unit-location.ts covers the 3-hour hole).
+  if (walkSameDay) record("history: positions under an hour apart are not cut into gaps", gaps.length === 0, gaps.map((g: any) => `${g.minutes} min`).join(", ") || "none");
 
   /* ── Locate Now ── */
   const ln = await asUser(ceo, "POST", "/api/routine/location/locate");
@@ -247,9 +249,9 @@ async function main() {
   await prisma.childDevice.update({ where: { id: deviceId! }, data: { lastShutdownAt: new Date(Date.now() - 5 * 60_000), lastContactAt: new Date(Date.now() - 5 * 60_000) } });
   latest = await asUser(ceo, "GET", "/api/routine/location/latest");
   record("the phone said it was switching off -> Switched off", latest.json?.status?.state === "POWERED_OFF", latest.json?.status?.message);
-  await prisma.childDevice.update({ where: { id: deviceId! }, data: { lastShutdownAt: null, lastContactAt: new Date(Date.now() - 2 * 3600_000) } });
+  await prisma.childDevice.update({ where: { id: deviceId! }, data: { lastShutdownAt: null, lastContactAt: new Date(Date.now() - 3 * 3600_000) } });
   latest = await asUser(ceo, "GET", "/api/routine/location/latest");
-  record("silent for 2 hours -> Unreachable, last known position kept", latest.json?.status?.state === "DEVICE_OFFLINE" && latest.json?.latest !== null, latest.json?.status?.message);
+  record("silent for 3 hours (it sends hourly) -> Unreachable, last known position kept", latest.json?.status?.state === "DEVICE_OFFLINE" && latest.json?.latest !== null, latest.json?.status?.message);
   await asPhone(token, "POST", "/api/device/heartbeat", status({ event: "BOOT", bootedAt: new Date().toISOString() }));
   await asPhone(token, "POST", "/api/device/locations", { points: [fix(0, 14)] });
   latest = await asUser(ceo, "GET", "/api/routine/location/latest");

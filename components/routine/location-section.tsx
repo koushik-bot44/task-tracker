@@ -56,8 +56,8 @@ export function LocationSection({ personId, personName, isOwner, canWrite, today
           </button>
         </div>
         <LocationMapLazy points={points} height={260} mode="history" track={history.data?.track} />
-        {history.data && history.data.track.gaps.length > 0 ? (
-          <p className="mt-2 text-micro pk-fg-soft">Solid line: the route the phone reported. Dashed: no data came in — the route there is not known.</p>
+        {history.data && points.length > 1 ? (
+          <p className="mt-2 text-micro pk-fg-soft">Dots: where the phone was, about every hour. The dotted line only joins them in order; grey dashes mark missed hours.</p>
         ) : null}
         <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">{atToday ? "Today’s log" : "That day’s log"}</h3>
         <LocationLog points={points} loading={history.isLoading && !history.data} emptyText={atToday ? "Nothing yet today." : "Nothing that day."} gaps={history.data?.track.gaps ?? []} />

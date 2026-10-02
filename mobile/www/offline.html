@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>Orbit</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Shown by the Orbit app when the site can't be reached (2026-10-02). It tries
+       again by itself as soon as the phone is back online. -->
+  <main id="app">
+    <h1>Orbit</h1>
+    <div class="card">
+      <p>No internet right now. Orbit opens as soon as the phone is back online.</p>
+      <button id="retry" class="full">Try again</button>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var SITE = "https://orbittasktracker.vercel.app/";
+      function go() { window.location.href = SITE; }
+      document.getElementById("retry").onclick = go;
+      window.addEventListener("online", go);
+      setInterval(function () { if (navigator.onLine) go(); }, 15000);
+    })();
+  </script>
+</body>
+</html>

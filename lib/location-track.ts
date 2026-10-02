@@ -12,7 +12,8 @@ export type TrackGap = { fromId: string; toId: string; fromAt: string; toAt: str
 export type Track = { segments: string[][]; gaps: TrackGap[] };
 
 /** Longer than this between two fixes is a gap. */
-export const GAP_MS = 20 * 60_000;
+// Positions come about every hour (2026-10-02): a gap is a missed hour or more.
+export const GAP_MS = 130 * 60_000;
 /** Faster than this (m/s, ~250 km/h) between two fixes is not a route. */
 export const MAX_SPEED_MPS = 70;
 /** Coarser than this is shown as a dot, never joined into a line. */

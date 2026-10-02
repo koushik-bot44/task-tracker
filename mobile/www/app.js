@@ -213,7 +213,6 @@
       '<div class="row"><span>Last sent</span><span>' + esc(ago(s.lastUploadAt)) + "</span></div>" +
       '<div class="row"><span>Waiting to send</span><span>' + esc(s.queueSize || 0) + "</span></div>" +
       (s.lastUploadError ? '<p class="error">Last problem: ' + esc(s.lastUploadError) + "</p>" : "") +
-      '<button class="full" data-act="now"' + dis + ">" + (busy ? "Sending…" : "Send my location now") + "</button>" +
       (lastError ? '<p class="error">' + esc(lastError) + "</p>" : "") +
       "</div>" +
       '<p class="muted">Connected to ' + esc(s.serverUrl || "") + ". Only your parent can remove this phone.</p>"
