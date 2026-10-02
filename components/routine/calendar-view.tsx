@@ -270,7 +270,7 @@ function DayPanel({
 
           {day!.rules.length > 0 ? (
             <div>
-              <p className="mb-1 text-micro font-medium pk-fg-soft">Rules</p>
+              <p className="mb-1 text-micro font-medium pk-fg-soft">Non-negotiables</p>
               <ul className="space-y-1.5">
                 {day!.rules.map((r) => (
                   <li key={r.id} className="flex items-center justify-between gap-3 rounded-card pk-cell px-3 py-2.5">

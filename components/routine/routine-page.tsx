@@ -603,7 +603,7 @@ function PersonBar({ person, weekParam, personId, isOwner }: { person: NonNullab
     });
   };
   const remove = () => {
-    if (!window.confirm(`Remove ${person.name}? This deletes their login and ALL Well Being history — habits, marks, rules, weight and tasks. This can't be undone.`)) return;
+    if (!window.confirm(`Remove ${person.name}? This deletes their login and ALL Well Being history — habits, marks, non-negotiables, weight and tasks. This can't be undone.`)) return;
     deletePerson.mutate(undefined, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) });
   };
 

@@ -32,7 +32,7 @@ export const POST = route(async (req: Request, { params }: Params) => {
     inviterName: actor.name,
     createdById: actor.id,
     send: parsed.data.sendEmail !== false,
-    roleLabel: row.kind === "FAMILY" ? "Co-parent" : "Tutor or coach",
+    roleLabel: row.kind === "FAMILY" ? "Parent" : "Tutor or coach",
   });
   return NextResponse.json({ inviteUrl: invite.url, emailSent: invite.sent });
 });

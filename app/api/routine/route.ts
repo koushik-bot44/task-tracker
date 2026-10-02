@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { HttpError, requireManager, route } from "@/lib/session";
 import { parseBody, routinePersonCreateSchema } from "@/lib/validation";
-import { DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listCircle, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
+import { DEFAULT_NON_NEGOTIABLES, DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listCircle, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
 import type { RoutineOverviewDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -106,6 +106,13 @@ export const POST = route(async (req: Request) => {
           habitKey = generateKeyBetween(habitKey, null);
         }
         segKey = generateKeyBetween(segKey, null);
+      }
+      // And the agreement's non-negotiables (owner, 2026-10-02: a new child must not
+      // start with an empty list). Defined since 2026-09-25 but never seeded until now.
+      let ruleKey = generateKeyBetween(null, null);
+      for (const name of DEFAULT_NON_NEGOTIABLES) {
+        await tx.nonNegotiable.create({ data: { personId: created.id, name, orderKey: ruleKey } });
+        ruleKey = generateKeyBetween(ruleKey, null);
       }
       return created;
     },

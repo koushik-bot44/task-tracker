@@ -85,7 +85,7 @@ export function CircleSection({ circle, weekParam, personId, personName }: { cir
     removeCircle.mutate(m.id, { onError: err });
   };
 
-  const kindLabel = (m: CircleMemberDTO) => (m.kind === "FAMILY" ? "Co-parent" : m.subject ? `Tutor or coach · ${m.subject}` : "Tutor or coach");
+  const kindLabel = (m: CircleMemberDTO) => (m.kind === "FAMILY" ? "Parent" : m.subject ? `Tutor or coach · ${m.subject}` : "Tutor or coach");
 
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
@@ -98,7 +98,7 @@ export function CircleSection({ circle, weekParam, personId, personName }: { cir
           {inviting ? "Close" : "Invite"}
         </button>
       </div>
-      <p className="mb-4 text-sm pk-fg-soft">A co-parent sees this Well Being. A tutor or coach only sends day reports.</p>
+      <p className="mb-4 text-sm pk-fg-soft">A parent sees this Well Being. A tutor or coach only sends day reports.</p>
 
       {inviting ? (
         <div className="mb-4 space-y-3 rounded-card pk-cell p-3">
@@ -113,7 +113,7 @@ export function CircleSection({ circle, weekParam, personId, personName }: { cir
             <div className="pk-glass inline-flex h-11 max-w-full items-center rounded-card" role="group" aria-label="Who are they">
               {(["FAMILY", "MENTOR"] as const).map((k) => (
                 <button key={k} type="button" onClick={() => setKind(k)} aria-pressed={kind === k} className={cn("pk-press h-11 rounded-card px-3 text-sm font-medium", kind === k ? "pk-tab-active" : "pk-tab pk-tab-hover")}>
-                  {k === "FAMILY" ? "Co-parent" : "Tutor or coach"}
+                  {k === "FAMILY" ? "Parent" : "Tutor or coach"}
                 </button>
               ))}
             </div>
@@ -166,7 +166,7 @@ export function CircleSection({ circle, weekParam, personId, personName }: { cir
       ) : null}
 
       {circle.length === 0 ? (
-        <p className="py-3 text-center text-sm pk-fg-soft">Nobody yet. Invite a co-parent, or a tutor or coach.</p>
+        <p className="py-3 text-center text-sm pk-fg-soft">Nobody yet. Invite a parent, or a tutor or coach.</p>
       ) : (
         <ul className="space-y-2">
           {circle.map((m) => (

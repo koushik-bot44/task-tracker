@@ -336,7 +336,7 @@ export function PersonScreen() {
                   <p className="pk-fg-soft mb-4 text-sm">These hold every day. A day is marked only if a line was crossed. Add a line of your own below.</p>
                   <div className="space-y-5">
                     {rules.map((r) => (
-                      <RuleRow key={r.id} rule={r} week={data.week} today={data.today} onRemove={r.addedBy === "PERSON" ? () => { if (window.confirm(`Remove your rule “${r.name}”?`)) deleteRule.mutate(r.id, { onError: err }); } : undefined} />
+                      <RuleRow key={r.id} rule={r} week={data.week} today={data.today} onRemove={r.addedBy === "PERSON" ? () => { if (window.confirm(`Remove your non-negotiable “${r.name}”?`)) deleteRule.mutate(r.id, { onError: err }); } : undefined} />
                     ))}
                   </div>
                   <div className="mt-4 flex items-center gap-2">
@@ -344,8 +344,8 @@ export function PersonScreen() {
                       value={ruleName}
                       onChange={(e) => setRuleName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") addOwnRule(); }}
-                      placeholder="A rule of your own…"
-                      aria-label="A rule of your own"
+                      placeholder="A non-negotiable of your own…"
+                      aria-label="A non-negotiable of your own"
                       maxLength={160}
                       className={cn(inputCls, "min-w-0 flex-1")}
                     />

@@ -394,11 +394,8 @@ async function main() {
   record("his Map draws today", await mapReady(ceoPage));
   const ceoPhoneRows = await logRows(ceoPage).filter({ hasText: /phone/ }).count();
   record(`…says where ${ARJUN.name} was last seen, shows today's log with the phone's points in it`, (await seen(ceoPage, lastSeenWords)) && (await seen(ceoPage, nowFreshRe)) && (await seen(ceoPage, /Today.s log/)) && ceoPhoneRows >= 1, `wanted "${lastSeenWords}" + Updated/Last known; ${await logRows(ceoPage).count()} log rows, ${ceoPhoneRows} from the phone`);
-  // The older OwnTracks link is folded away now; the owner opens "Older way…" to reach the switch and copy the link.
-  await ceoPage.getByRole("button", { name: /Older way/ }).first().click().catch(() => {});
-  const sw = ceoPage.getByRole("switch").first();
-  const swOn = (await sw.count()) ? await sw.getAttribute("aria-checked") : null;
-  record("…and, for the owner, the older location-app link can still be turned on and copied", (await seen(ceoPage, /Older way/)) && swOn === "true" && (await ceoPage.locator("code").count()) === 1 && (await seen(ceoPage, "Copy")) && (await seen(ceoPage, /OwnTracks/)), `switch aria-checked ${swOn}`);
+  // The older OwnTracks link section is gone (owner, 2026-10-02): no switch, no link.
+  record("…and the old location-app link section is gone", (await ceoPage.getByText(/Older way/).count()) === 0 && (await ceoPage.getByRole("switch").count()) === 0);
   await photograph(ceoPage, "ceo-3-map.png", "the CEO's Map", SCOPE, true);
 
   await openTab(ceoPage, "Tutors");

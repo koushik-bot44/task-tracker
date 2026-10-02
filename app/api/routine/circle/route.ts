@@ -52,7 +52,7 @@ export const POST = route(async (req: Request) => {
       inviterName: actor.name,
       createdById: actor.id,
       send: sendEmail !== false,
-      roleLabel: kind === "FAMILY" ? "Co-parent" : "Tutor or coach",
+      roleLabel: kind === "FAMILY" ? "Parent" : "Tutor or coach",
     });
     inviteUrl = invite.url;
     emailSent = invite.sent;
