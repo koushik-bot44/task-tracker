@@ -323,11 +323,11 @@ async function main() {
   await ceoPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const ceoTabs = await ceoPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`the CEO's tabs: ${ceoTabs.join(" · ")}`);
-  record("the CEO is offered Summary, Tracker, Calendar, Location, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors|Circle", ceoTabs.join(", "));
+  record("the CEO is offered Summary, Tracker, Calendar, Location, Tutors and Invite", ceoTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors|Invite", ceoTabs.join(", "));
   record("his Summary shows today's list and only today's tutor report", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, "From tutors today")) && (await seen(ceoPage, "Word problems on quadratics")));
   const SCOPE = "[role=tablist], section, .rounded-sheet";
   await photograph(ceoPage, "ceo-1-summary.png", "the CEO's Summary", SCOPE, true);
-  await openTab(ceoPage, "Circle");
+  await openTab(ceoPage, "Invite");
   record(`his Circle names the people around ${ARJUN.name}`, (await seen(ceoPage, `People around ${ARJUN.name}`)) && (await seen(ceoPage, PRIYA.name)) && (await seen(ceoPage, `Tutor or coach · Maths`)));
   await photograph(ceoPage, "ceo-2-circle.png", "the CEO's Circle", SCOPE, true);
   await openTab(ceoPage, "Tracker");

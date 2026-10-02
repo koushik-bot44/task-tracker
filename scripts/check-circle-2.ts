@@ -378,7 +378,7 @@ async function main() {
   await ceoPage.getByRole("tab", { name: "Summary", exact: true }).waitFor({ state: "visible" });
   const ceoTabs = await ceoPage.getByRole("tablist", { name: "Well Being view" }).getByRole("tab").allInnerTexts();
   info(`the CEO's tabs: ${ceoTabs.join(" · ")}`);
-  record("the CEO is offered Summary, Tracker, Calendar, Location, Tutors and Circle", ceoTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors|Circle", ceoTabs.join(", "));
+  record("the CEO is offered Summary, Tracker, Calendar, Location, Tutors and Invite", ceoTabs.join("|") === "Summary|Tracker|Calendar|Location|Tutors|Invite", ceoTabs.join(", "));
   record("his Summary shows today's list and where Arjun was last seen", (await seen(ceoPage, "Physics assignment")) && (await seen(ceoPage, lastSeenRe)), `wanted "Last seen: ${lastSeenWords} · …"`);
   await photograph(ceoPage, "ceo-1-summary.png", "the CEO's Summary", SCOPE, true);
 
@@ -404,7 +404,7 @@ async function main() {
   const tutorsText = (await ceoPage.locator("section").allInnerTexts()).join(" ").replace(/\s+/g, " ");
   record("his Tutors tab lists the tutors’ reports by day, today's first, Maths among them", /Tutors['’] reports/.test(tutorsText) && /\bToday\b/.test(tutorsText) && /\bMaths\b/.test(tutorsText), `"${tutorsText.slice(tutorsText.search(/Tutors['’]/), tutorsText.search(/Tutors['’]/) + 80)}"`);
   await photograph(ceoPage, "ceo-4-tutors.png", "the CEO's Tutors", SCOPE, true);
-  await openTab(ceoPage, "Circle");
+  await openTab(ceoPage, "Invite");
   record(`his Circle names the people around ${ARJUN.name}`, (await seen(ceoPage, `People around ${ARJUN.name}`)) && (await seen(ceoPage, PRIYA.name)));
   await photograph(ceoPage, "ceo-5-circle.png", "the CEO's Circle", SCOPE, true);
   await openTab(ceoPage, "Tracker");

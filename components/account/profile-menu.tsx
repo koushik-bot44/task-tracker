@@ -6,8 +6,10 @@ import { Download, KeyRound, LogOut, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChangePasswordSheet } from "@/components/account/change-password-sheet";
+import { IosInstallSheet } from "@/components/account/ios-install-sheet";
 import { Face } from "@/components/ui/face";
 import { apiDelete } from "@/lib/api";
+import { useInstall } from "@/lib/hooks/use-install";
 import { useMyProfile } from "@/lib/hooks/use-my-account";
 import { ORBIT_CHILD_APK, ORBIT_CHILD_FILENAME } from "@/lib/orbit-child-app";
 
@@ -21,6 +23,9 @@ export function ProfileMenu() {
   const { data: me } = useMyProfile();
   const [open, setOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // An iPhone can't take the Android file: it gets the Home Screen steps instead (2026-10-02).
+  const { platform } = useInstall();
+  const [iosOpen, setIosOpen] = useState(false);
   const reduce = useReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -91,10 +96,17 @@ export function ProfileMenu() {
               <KeyRound className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
               Change password
             </button>
-            <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} role="menuitem" onClick={() => setOpen(false)} className="press flex h-11 items-center gap-3 rounded-input px-3 text-sm text-ink">
-              <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
-              Download Orbit app
-            </a>
+            {platform === "ios" ? (
+              <button type="button" role="menuitem" onClick={() => { setOpen(false); setIosOpen(true); }} className="press flex h-11 w-full items-center gap-3 rounded-input px-3 text-left text-sm text-ink">
+                <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
+                Download Orbit app
+              </button>
+            ) : (
+              <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} role="menuitem" onClick={() => setOpen(false)} className="press flex h-11 items-center gap-3 rounded-input px-3 text-sm text-ink">
+                <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
+                Download Orbit app
+              </a>
+            )}
             <div className="my-1 h-px bg-line" role="separator" />
             <button type="button" role="menuitem" onClick={signOut} className="press flex h-11 w-full items-center gap-3 rounded-input px-3 text-left text-sm text-ink">
               <LogOut className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
@@ -104,6 +116,7 @@ export function ProfileMenu() {
         ) : null}
       </AnimatePresence>
       <ChangePasswordSheet open={passwordOpen} onClose={() => setPasswordOpen(false)} />
+      <IosInstallSheet open={iosOpen} onClose={() => setIosOpen(false)} />
     </div>
   );
 }

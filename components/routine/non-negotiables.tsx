@@ -151,7 +151,6 @@ function NonNegotiableEditor({ items, weekParam, personId }: { items: NonNegotia
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") add(); }}
-          placeholder="A line that holds every day"
           aria-label="New non-negotiable"
           className={cn(inputCls, "h-10 flex-1")}
         />

@@ -29,7 +29,7 @@ import { addDays, inputCls, Labeled, weekLabel } from "./shared";
 
 /** The six views (2026-09-25: Calendar and Map join). Circle is the owner's alone. */
 type View = "summary" | "tracker" | "calendar" | "map" | "tutors" | "circle";
-const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Location", tutors: "Tutors", circle: "Circle" };
+const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Location", tutors: "Tutors", circle: "Invite" };
 
 /**
  * The Well Being tab (was "Routine", phase 35) — MANAGER only. A calm family corner
