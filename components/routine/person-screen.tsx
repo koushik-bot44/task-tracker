@@ -9,7 +9,6 @@ import { ProfileMenu } from "@/components/account/profile-menu";
 import { useToast } from "@/components/toast";
 import { usePerson, usePersonAddTask, usePersonCalendar, usePersonDeleteTask, usePersonHabitMark, usePersonAddRule, usePersonDeleteRule, usePersonLocationDay, usePersonTaskToggle, useWho } from "@/lib/hooks/use-routine";
 import { useTimeScene } from "@/lib/hooks/use-time-scene";
-import { useInOrbitApp } from "@/lib/orbit-app";
 import type { LocationPointDTO, MentorReportDTO, PersonViewDTO, RoutineTaskDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
 import { SegmentGrid } from "./weekly-grid";
@@ -17,7 +16,6 @@ import { CalendarView, monthOf } from "./calendar-view";
 import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
 import { LocationMapLazy } from "./location-map-lazy";
-import { PhoneSetupGate, PhoneSharingCard, usePhoneSetup } from "./phone-sharing-card";
 import { inputCls, prettyDate, weekdayInitial } from "./shared";
 
 /**
@@ -93,18 +91,11 @@ export function PersonScreen() {
   // Today's positions: the "Where are you?" card's last check-in and the Map tab.
   const location = usePersonLocationDay(null);
   const lastSeen: LocationPointDTO | null = location.data?.lastSeen ?? null;
-  // An enrolled phone shares on its own (2026-09-29); until then the web app notes
-  // where he is when it is opened. Never both.
-  const phone = location.data?.device ?? null;
-  // Inside the Orbit app the phone's own engine shares the location (2026-10-02), so
-  // the browser's while-open check stays off there.
-  const inApp = useInOrbitApp();
-  // First open in the app (owner, 2026-10-02): location first, then the day. "Later"
-  // shows the day for now; the set-up screen comes back on the next open.
-  const setup = usePhoneSetup(inApp, () => void location.refetch());
-  const [setupLater, setSetupLater] = useState(false);
-  const setupFirst = setup.available && !setup.sharing && !setupLater;
-  useAppPing(Boolean(location.data) && !phone && !inApp);
+  // Owner, 2026-10-02: "when the app is opened only we track location — like before,
+  // shows in the history". A position is noted each time this screen opens or comes
+  // back to the front, in the Orbit app and in a browser alike; nothing runs in the
+  // background, so no phone set-up screen either.
+  useAppPing(Boolean(location.data));
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
   // Shared time-of-day scene (person + manager Well Being use the same source).
@@ -215,8 +206,6 @@ export function PersonScreen() {
 
         {isLoading ? (
           <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "text-muted")}>Loading…</div>
-        ) : setupFirst ? (
-          <PhoneSetupGate setup={setup} onLater={() => setSetupLater(true)} overNight={overNight} />
         ) : (
           // One frosted-glass working panel holds the tabs + the active section.
           <div className={cn("pk-glass rounded-sheet p-2.5 sm:p-3", scene)}>
@@ -258,10 +247,6 @@ export function PersonScreen() {
                     </div>
                   ) : null}
 
-                  {/* Location (owner, 2026-10-02): nothing about it on the child's screen — the
-                      phone shares by itself, about every hour. Inside the Orbit app only the
-                      one-time set-up shows, until sharing runs; then nothing. */}
-                  {inApp ? <PhoneSharingCard setup={setup} overNight={overNight} /> : null}
 
                   {forYou.length > 0 ? (
                     <div>
@@ -363,7 +348,7 @@ export function PersonScreen() {
               ) : null}
 
               {active === "map" && data ? (
-                <PersonMap points={location.data?.points ?? []} gaps={location.data?.track.gaps ?? []} lastSeen={lastSeen} phone={phone} sharingOn={location.data?.sharing.on ?? false} loading={location.isLoading && !location.data} />
+                <PersonMap points={location.data?.points ?? []} lastSeen={lastSeen} loading={location.isLoading && !location.data} />
               ) : null}
             </main>
           </div>
@@ -389,21 +374,9 @@ function PersonCalendar({ today, month, selected, onMonth, onSelect }: { today: 
 /** The Map tab — his own view of today: the map, the day's check-ins, and
     whether his phone is sharing its position with his parents. Nothing here is
     hidden from him: if sharing is on, this line says so. */
-function PersonMap({
-  points,
-  gaps,
-  lastSeen,
-  phone,
-  sharingOn,
-  loading,
-}: {
-  points: LocationPointDTO[];
-  gaps: { fromId: string; toId: string; minutes: number; km: number }[];
-  lastSeen: LocationPointDTO | null;
-  phone: { name: string | null; label: string } | null;
-  sharingOn: boolean;
-  loading: boolean;
-}) {
+/** The child's own map: where they are and today's log (2026-10-02: positions are
+    noted when Orbit is opened; no sharing notices on the child's screen). */
+function PersonMap({ points, lastSeen, loading }: { points: LocationPointDTO[]; lastSeen: LocationPointDTO | null; loading: boolean }) {
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -416,16 +389,7 @@ function PersonMap({
       <LocationMapLazy points={lastSeen ? [lastSeen] : []} height={280} />
 
       <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">Today&rsquo;s log</h3>
-      <LocationLog points={points} loading={loading} emptyText="Nothing yet today." gaps={gaps} />
-
-      <p className="mt-4 text-sm pk-fg">
-        Sharing with your parents: <span className="font-semibold">{loading ? "…" : phone ? `on, automatically — ${phone.label}` : sharingOn ? "on" : "off"}</span>
-      </p>
-      <p className="mt-1 text-micro pk-fg-soft">
-        {phone
-          ? `${phone.name ?? "Your phone"} sends where it is by itself, also when the app is closed. Your parents see the same log you see here.`
-          : "The app notes where you are when you open it. Your parents see the same log you see here."}
-      </p>
+      <LocationLog points={points} loading={loading} emptyText="Nothing yet today." gaps={[]} />
     </section>
   );
 }

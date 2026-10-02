@@ -7,7 +7,6 @@ import type { LocationPointDTO } from "@/lib/types";
 import { LocationMapLazy } from "./location-map-lazy";
 import { LocationLog } from "./location-log";
 import { LocationNow } from "./location-now";
-import { DevicePanel } from "./device-panel";
 import { addDays, prettyDate, weekdayShort } from "./shared";
 
 /**
@@ -17,14 +16,17 @@ import { addDays, prettyDate, weekdayShort } from "./shared";
  * gaps; and the phone itself (pairing, state, retention, who looked). The older
  * OwnTracks link section is gone (owner, 2026-10-02).
  */
-export function LocationSection({ personId, personName, isOwner, canWrite, today }: { personId: string | null; personName: string; isOwner: boolean; canWrite: boolean; today: string }) {
+// Since 2026-10-02 (owner: "when the app is opened only we track location — like
+// before, shows in the history") positions are noted when the child opens Orbit;
+// nothing runs in the background, so no Locate Now and no phone set-up panel.
+// isOwner/canWrite stay in the signature so callers need not change.
+export function LocationSection({ personId, personName, today }: { personId: string | null; personName: string; isOwner: boolean; canWrite: boolean; today: string }) {
   // null = today (the server picks); "YYYY-MM-DD" = a specific day.
   const [day, setDay] = useState<string | null>(null);
   const shown = day ?? today;
   const atToday = shown >= today;
   const history = useLocationDay(day, personId);
   const latest = useLatestLocation(personId, false);
-  const [openPairing, setOpenPairing] = useState(false);
 
   const go = (n: number) => {
     const next = addDays(shown, n);
@@ -35,7 +37,7 @@ export function LocationSection({ personId, personName, isOwner, canWrite, today
 
   return (
     <div className="space-y-4">
-      <LocationNow personId={personId} personName={personName} onAddPhone={() => setOpenPairing(true)} />
+      <LocationNow personId={personId} personName={personName} />
 
       <section className="rounded-sheet pk-glass p-3 sm:p-4" aria-label="Map of the latest position">
         <LocationMapLazy points={current ? [current] : []} height={280} mode="current" />
@@ -55,23 +57,15 @@ export function LocationSection({ personId, personName, isOwner, canWrite, today
             <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
         </div>
-        <LocationMapLazy points={points} height={260} mode="history" track={history.data?.track} />
+        {/* Points only: each is a moment the app was opened, so no route is drawn between them. */}
+        <LocationMapLazy points={points} height={260} mode="history" />
         {history.data && points.length > 1 ? (
-          <p className="mt-2 text-micro pk-fg-soft">Dots: where the phone was, about every hour. The dotted line only joins them in order; grey dashes mark missed hours.</p>
+          <p className="mt-2 text-micro pk-fg-soft">Each dot is where {personName} was when Orbit was opened.</p>
         ) : null}
         <h3 className="mb-2 mt-4 text-sm font-semibold pk-fg">{atToday ? "Today’s log" : "That day’s log"}</h3>
-        <LocationLog points={points} loading={history.isLoading && !history.data} emptyText={atToday ? "Nothing yet today." : "Nothing that day."} gaps={history.data?.track.gaps ?? []} />
+        <LocationLog points={points} loading={history.isLoading && !history.data} emptyText={atToday ? "Nothing yet today." : "Nothing that day."} gaps={[]} />
       </section>
 
-      <DevicePanel
-        personId={personId}
-        personName={personName}
-        canWrite={canWrite}
-        isOwner={isOwner}
-        retentionDays={latest.data?.retentionDays ?? 90}
-        openPairing={openPairing}
-        onPairingShown={() => setOpenPairing(false)}
-      />
     </div>
   );
 }

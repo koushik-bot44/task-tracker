@@ -1,11 +1,8 @@
 "use client";
 
-import { AlertTriangle, BatteryCharging, BatteryFull, BatteryLow, BatteryMedium, Crosshair, Loader2, Smartphone, Wifi } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/cn";
-import { useLatestLocation, useLocateRequest, useLocationMutations } from "@/lib/hooks/use-routine";
-import { useToast } from "@/components/toast";
+import { useLatestLocation } from "@/lib/hooks/use-routine";
 import type { DeviceStateName, LatestLocationDTO } from "@/lib/types";
 import { clockTime, whereLabel } from "./location-log";
 
@@ -43,56 +40,24 @@ export function StatePill({ state, label }: { state: DeviceStateName; label: str
   );
 }
 
-function Battery({ level, charging }: { level: number; charging: boolean | null }) {
-  const Icon = charging ? BatteryCharging : level <= 15 ? BatteryLow : level <= 60 ? BatteryMedium : BatteryFull;
-  return (
-    <span className={cn("inline-flex items-center gap-1 text-sm tabular-nums", level <= 15 && !charging ? "text-danger-ink" : "pk-fg")}>
-      <Icon className="h-4 w-4" aria-hidden /> {level}%{charging ? " charging" : ""}
-    </span>
-  );
-}
-
-const FINAL = ["FULFILLED", "FAILED", "EXPIRED"];
 
 /**
- * The top of the parent's Location tab (2026-09-29): what the phone says right
- * now, how fresh that is by the phone's own clock, how precise, the battery,
- * which phone — and Locate Now, whose progress is shown step by step and never
- * faked. The card's `data` comes from GET /api/routine/location/latest.
+ * The top of the parent's Location tab. Since 2026-10-02 (owner: "when the app is
+ * opened only we track location — keep it like before, shows in the history") the
+ * child's position is noted each time the child opens Orbit, nothing in the
+ * background, so this card is just where and when: no phone status, no battery,
+ * no Locate Now, no phone set-up.
  */
-export function LocationNow({ personId, personName, onAddPhone }: { personId: string | null; personName: string; onAddPhone: () => void }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const latest = useLatestLocation(personId, Boolean(activeId));
+export function LocationNow({ personId, personName }: { personId: string | null; personName: string }) {
+  const latest = useLatestLocation(personId, false);
   const data: LatestLocationDTO | undefined = latest.data;
-  const locate = useLocateRequest(activeId, personId);
-  const { locateNow } = useLocationMutations(personId);
-  const { show: toast } = useToast();
-  const qc = useQueryClient();
-
-  // A request made earlier (another tab, a reload) is picked up and followed.
-  useEffect(() => {
-    const p = data?.pendingLocate;
-    if (!activeId && p && !FINAL.includes(p.status)) setActiveId(p.id);
-  }, [data?.pendingLocate, activeId]);
-
-  const req = locate.data?.request ?? (activeId && data?.pendingLocate?.id === activeId ? data.pendingLocate : null);
-  const settled = req ? FINAL.includes(req.status) : true;
-  useEffect(() => {
-    if (req && FINAL.includes(req.status)) void qc.invalidateQueries({ queryKey: ["routine-latest"] });
-  }, [req, qc]);
 
   // The "4 min ago" words keep themselves fresh.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), activeId ? 1000 : 15_000);
+    const t = window.setInterval(() => setNow(Date.now()), 15_000);
     return () => window.clearInterval(t);
-  }, [activeId]);
-
-  const press = () =>
-    locateNow.mutate(undefined, {
-      onSuccess: (r) => setActiveId(r.request.id),
-      onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
-    });
+  }, []);
 
   if (latest.isLoading && !data) {
     return (
@@ -110,92 +75,23 @@ export function LocationNow({ personId, personName, onAddPhone }: { personId: st
     );
   }
 
-  const { status, device, latest: point, freshness, issues } = data;
-  const pointAge = freshness ? ago(freshness.recordedAt, now) : null;
-
+  const point = data.latest;
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5" aria-labelledby="loc-now">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="loc-now" className="font-display text-lg font-semibold pk-fg">Where {personName} is</h2>
-          <p className="mt-0.5 truncate text-micro pk-fg-soft">
-            {device ? (
-              <>
-                <Smartphone className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />
-                {device.name ?? device.model ?? (device.platform === "IOS" ? "iPhone" : "Android phone")}
-                {device.lastContactAt ? ` · in touch ${ago(device.lastContactAt, now)}` : ""}
-              </>
-            ) : (
-              "No phone set up yet"
-            )}
-          </p>
-        </div>
-        <StatePill state={status.state} label={status.label} />
-      </div>
-
+      <h2 id="loc-now" className="font-display text-lg font-semibold pk-fg">Where {personName} is</h2>
       {point ? (
         <div className="mt-3">
           <p className="font-display text-xl font-semibold leading-snug pk-fg">{whereLabel(point)}</p>
           <p className="mt-1 text-sm pk-fg">
-            <span className="font-semibold">{status.state === "ACTIVE" ? "Updated" : "Last known"} {pointAge}</span>
+            <span className="font-semibold">Last seen {ago(point.at, now)}</span>
             <span className="pk-fg-soft"> · {clockTime(point.at)}</span>
             {point.accuracy ? <span className="pk-fg-soft"> · ±{Math.round(point.accuracy)} m</span> : null}
           </p>
-          {freshness?.delayedUpload && freshness.receivedAt ? (
-            <p className="mt-0.5 text-micro text-warn-ink">Reached Orbit at {clockTime(freshness.receivedAt)} — the phone was offline when it took this.</p>
-          ) : null}
         </div>
       ) : (
-        <p className="mt-3 text-sm pk-fg-soft">No position has arrived yet.</p>
+        <p className="mt-3 text-sm pk-fg-soft">No position yet.</p>
       )}
-
-      <p className={cn("mt-2 text-sm", status.state === "ACTIVE" ? "pk-fg-soft" : "pk-fg")}>{status.message}</p>
-
-      {device ? (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          {device.batteryLevel !== null ? <Battery level={device.batteryLevel} charging={device.isCharging} /> : null}
-          {device.networkType ? (
-            <span className="inline-flex items-center gap-1 text-sm pk-fg">
-              <Wifi className="h-4 w-4" aria-hidden /> {device.networkType === "WIFI" ? "Wi-Fi" : device.networkType === "CELLULAR" ? "Mobile data" : device.networkType === "NONE" ? "No network" : "Network unknown"}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="mt-4">
-        {device ? (
-          <button
-            type="button"
-            onClick={press}
-            disabled={!data.canLocate || locateNow.isPending || !settled}
-            className="press inline-flex h-11 w-full items-center justify-center gap-2 rounded-card bg-primary px-4 text-sm font-semibold text-on-primary disabled:opacity-50 sm:w-auto"
-          >
-            {locateNow.isPending || !settled ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Crosshair className="h-4 w-4" aria-hidden />}
-            Locate Now
-          </button>
-        ) : (
-          <button type="button" onClick={onAddPhone} className="press inline-flex h-11 w-full items-center justify-center gap-2 rounded-card bg-primary px-4 text-sm font-semibold text-on-primary sm:w-auto">
-            <Smartphone className="h-4 w-4" aria-hidden /> Set up {personName}&apos;s phone
-          </button>
-        )}
-        {device && !data.canLocate ? <p className="mt-1.5 text-micro pk-fg-soft">You can look; asking the phone for a fresh position is for the parents who can edit.</p> : null}
-        {req ? (
-          <p className={cn("mt-2 text-sm", req.status === "FAILED" || req.status === "EXPIRED" ? "text-warn-ink" : req.status === "FULFILLED" ? "text-ok-ink" : "pk-fg")} role="status" aria-live="polite">
-            {req.status === "FULFILLED" && req.point ? `Fresh position received — updated ${ago(req.point.at, now)}.` : req.message}
-          </p>
-        ) : null}
-      </div>
-
-      {issues.length > 0 ? (
-        <ul className="mt-4 space-y-1.5" aria-label="Things to fix on the phone">
-          {issues.map((i) => (
-            <li key={i.code} className="flex items-start gap-2 rounded-card pk-cell px-3 py-2">
-              <AlertTriangle className={cn("mt-0.5 h-4 w-4 shrink-0", i.severity === "high" ? "text-danger-ink" : i.severity === "medium" ? "text-warn-ink" : "pk-fg-soft")} aria-hidden />
-              <span className="min-w-0 text-sm pk-fg">{i.message}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <p className="mt-2 text-micro pk-fg-soft">Noted each time {personName} opens Orbit.</p>
     </section>
   );
 }
