@@ -8,19 +8,37 @@ import { childTracker, type TrackerState } from "@/lib/orbit-app";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+type Step = { title: string; hint: string; act: () => Promise<TrackerState> };
+
+export type PhoneSetup = {
+  /** True inside the Orbit app on a phone (the location engine is there). */
+  available: boolean;
+  /** Connected, allowed all the time, location on, running. */
+  sharing: boolean;
+  /** Still connecting (no state from the phone yet, or not paired). */
+  connecting: boolean;
+  next: Step | null;
+  stepNumber: number;
+  working: boolean;
+  error: string | null;
+  run: () => Promise<void>;
+};
+
 /**
  * The child's phone, inside the Orbit app (owner, 2026-10-02): no buttons for the
- * child, no codes. Signed in on this phone, the screen connects the phone by itself
- * and starts sharing its position about every hour. The only taps are the phone's
- * own permission prompts, which Android makes a person answer once — a parent can do
- * it while setting the phone up. Once running it shows nothing at all.
+ * child, no codes. Signed in on this phone, it connects the phone by itself
+ * (POST /api/routine/kid/device/pairing) and starts sharing a position about every
+ * hour as soon as Android allows it. The only taps are Android's own one-time
+ * permission prompts, which a person must answer — a parent can do it.
  */
-export function PhoneSharingCard({ onConnected, overNight }: { onConnected?: () => void; overNight: boolean }) {
-  const tracker = childTracker();
+export function usePhoneSetup(enabled: boolean, onConnected?: () => void): PhoneSetup {
+  const tracker = enabled ? childTracker() : null;
   const [state, setState] = useState<TrackerState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const connecting = useRef(false);
+  const connectedRef = useRef(onConnected);
+  connectedRef.current = onConnected;
 
   const refresh = useCallback(async () => {
     if (!tracker) return;
@@ -43,7 +61,7 @@ export function PhoneSharingCard({ onConnected, overNight }: { onConnected?: () 
         try {
           const r = await apiPost<{ code: string }>("/api/routine/kid/device/pairing", {});
           s = await tracker.pair({ serverUrl: window.location.origin, code: r.code });
-          onConnected?.();
+          connectedRef.current?.();
         } catch (e) {
           if (!cancelled) setError(message(e));
         } finally {
@@ -65,7 +83,7 @@ export function PhoneSharingCard({ onConnected, overNight }: { onConnected?: () 
       document.removeEventListener("visibilitychange", onVisible);
       sub?.remove();
     };
-  }, [tracker, refresh, onConnected]);
+  }, [tracker, refresh]);
 
   // Sharing starts by itself as soon as everything it needs is allowed.
   useEffect(() => {
@@ -75,30 +93,30 @@ export function PhoneSharingCard({ onConnected, overNight }: { onConnected?: () 
     }
   }, [tracker, state]);
 
-  if (!tracker) return null;
-
   const android = (state?.platform ?? "android") === "android";
-  const next: { title: string; hint: string; act: () => Promise<TrackerState> } | null = !state || !state.paired
-    ? null
-    : state.permission !== "WHILE_IN_USE" && state.permission !== "ALWAYS"
-      ? { title: "Allow location", hint: "Tap Allow when the phone asks.", act: () => tracker.requestForegroundPermission() }
-      : state.permission !== "ALWAYS"
-        ? {
-            title: android ? "Allow location all the time" : "Always allow location",
-            hint: android ? "On the next screen: Permissions → Location → Allow all the time." : "Choose Change to Always Allow.",
-            act: () => tracker.requestBackgroundPermission(),
-          }
-        : state.locationEnabled === false
+  const steps: (Step | null)[] = !tracker || !state || !state.paired
+    ? []
+    : [
+        state.permission !== "WHILE_IN_USE" && state.permission !== "ALWAYS"
+          ? { title: "Allow location", hint: "Tap Allow when the phone asks.", act: () => tracker.requestForegroundPermission() }
+          : null,
+        state.permission !== "ALWAYS"
+          ? {
+              title: android ? "Allow location all the time" : "Always allow location",
+              hint: android ? "On the next screen: Permissions → Location → Allow all the time." : "Choose Change to Always Allow.",
+              act: () => tracker.requestBackgroundPermission(),
+            }
+          : null,
+        state.locationEnabled === false
           ? { title: "Turn on location", hint: "The phone's location switch is off.", act: () => tracker.openLocationSettings() }
-          : android && state.batteryOptimized === true
-            ? { title: "Let it run in the background", hint: "So the phone doesn't stop it to save battery.", act: () => tracker.requestBatteryExemption() }
-            : null;
-
+          : null,
+        android && state.batteryOptimized === true
+          ? { title: "Let it run in the background", hint: "So the phone doesn't stop it to save battery.", act: () => tracker.requestBatteryExemption() }
+          : null,
+      ];
+  const nextIndex = steps.findIndex(Boolean);
+  const next = nextIndex >= 0 ? steps[nextIndex] : null;
   const sharing = Boolean(state?.paired && !state.revoked && state.permission === "ALWAYS" && state.locationEnabled !== false && state.trackingState === "RUNNING");
-
-  // Running: nothing on the child's screen (owner, 2026-10-02). The phone's own
-  // "Sharing location with your family" notice, which Android requires, stays.
-  if (sharing && !next) return null;
 
   const run = async () => {
     if (!next) return;
@@ -113,24 +131,69 @@ export function PhoneSharingCard({ onConnected, overNight }: { onConnected?: () 
     }
   };
 
+  return {
+    available: Boolean(tracker),
+    sharing: sharing && !next,
+    connecting: Boolean(tracker) && (!state || !state.paired),
+    next,
+    stepNumber: nextIndex + 1,
+    working,
+    error,
+    run,
+  };
+}
+
+/** First open in the app (owner, 2026-10-02: "first it takes location, later the
+    daily habits dashboard"): one full screen, one big button per step. "Later"
+    shows the dashboard for now; this screen comes back on the next open. */
+export function PhoneSetupGate({ setup, onLater, overNight }: { setup: PhoneSetup; onLater: () => void; overNight: boolean }) {
   return (
-    <section className="pk-glass mb-4 rounded-card px-4 py-4" aria-label="Location sharing set-up">
+    <section className="pk-glass rounded-sheet px-5 py-8 text-center" aria-label="Location sharing set-up">
+      <MapPin className="mx-auto h-10 w-10 pk-fg" strokeWidth={1.75} aria-hidden />
+      <h2 className="mt-3 font-display text-xl font-semibold pk-fg">Set up location sharing</h2>
+      <p className={cn("mx-auto mt-2 max-w-xs text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>
+        One time only — a parent can do it. Then it works by itself, about every hour.
+      </p>
+      {setup.connecting && !setup.error ? (
+        <div className="mt-6 flex items-center justify-center gap-2 text-sm pk-fg">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Connecting this phone…
+        </div>
+      ) : setup.next ? (
+        <div className="mt-6">
+          <p className="text-sm pk-fg">{setup.next.hint}</p>
+          <button type="button" onClick={() => void setup.run()} disabled={setup.working} className="press mt-4 inline-flex h-14 w-full items-center justify-center gap-2 rounded-card bg-primary px-4 text-lg font-semibold text-on-primary disabled:opacity-50">
+            {setup.working ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : null}
+            {setup.next.title}
+          </button>
+        </div>
+      ) : (
+        <p className="mt-6 text-sm pk-fg">Starting…</p>
+      )}
+      {setup.error ? <p className="mt-3 text-sm text-danger-ink">{setup.error}</p> : null}
+      <button type="button" onClick={onLater} className="press mt-6 h-11 rounded-card px-4 text-sm pk-fg-soft">
+        Later
+      </button>
+    </section>
+  );
+}
+
+/** After "Later": the same next step as a small box above the day, until sharing runs. */
+export function PhoneSharingCard({ setup, overNight }: { setup: PhoneSetup; overNight: boolean }) {
+  if (!setup.available || setup.sharing) return null;
+  return (
+    <section className="pk-glass mb-4 rounded-card px-4 py-4" aria-label="Location sharing set-up (later)">
       <div className="flex items-start gap-3">
         <MapPin className="mt-0.5 h-5 w-5 shrink-0 pk-fg-soft" strokeWidth={2} aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="pk-fg text-sm font-semibold">{!state || !state.paired ? "Connecting this phone…" : "One-time set-up (a parent can do this)"}</p>
-          {next ? <p className={cn("mt-1 text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>{next.hint}</p> : null}
-          {next ? (
-            <button type="button" onClick={run} disabled={working} className="press mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-card bg-primary px-4 text-base font-semibold text-on-primary disabled:opacity-50">
-              {working ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {next.title}
+          <p className="pk-fg text-sm font-semibold">{setup.connecting ? "Connecting this phone…" : "Finish setting up location sharing"}</p>
+          {setup.next ? <p className={cn("mt-1 text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>{setup.next.hint}</p> : null}
+          {setup.next ? (
+            <button type="button" onClick={() => void setup.run()} disabled={setup.working} className="press mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-card bg-primary px-4 text-base font-semibold text-on-primary disabled:opacity-50">
+              {setup.working ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {setup.next.title}
             </button>
-          ) : !state || !state.paired ? (
-            <Loader2 className="mt-2 h-4 w-4 animate-spin pk-fg-soft" aria-hidden />
-          ) : (
-            <p className="mt-1 text-sm pk-fg-soft">Starting…</p>
-          )}
-          {error ? <p className="mt-2 text-sm text-danger-ink">{error}</p> : null}
+          ) : null}
+          {setup.error ? <p className="mt-2 text-sm text-danger-ink">{setup.error}</p> : null}
         </div>
       </div>
     </section>

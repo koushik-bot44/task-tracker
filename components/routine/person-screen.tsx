@@ -17,7 +17,7 @@ import { CalendarView, monthOf } from "./calendar-view";
 import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
 import { LocationMapLazy } from "./location-map-lazy";
-import { PhoneSharingCard } from "./phone-sharing-card";
+import { PhoneSetupGate, PhoneSharingCard, usePhoneSetup } from "./phone-sharing-card";
 import { inputCls, prettyDate, weekdayInitial } from "./shared";
 
 /**
@@ -99,6 +99,11 @@ export function PersonScreen() {
   // Inside the Orbit app the phone's own engine shares the location (2026-10-02), so
   // the browser's while-open check stays off there.
   const inApp = useInOrbitApp();
+  // First open in the app (owner, 2026-10-02): location first, then the day. "Later"
+  // shows the day for now; the set-up screen comes back on the next open.
+  const setup = usePhoneSetup(inApp, () => void location.refetch());
+  const [setupLater, setSetupLater] = useState(false);
+  const setupFirst = setup.available && !setup.sharing && !setupLater;
   useAppPing(Boolean(location.data) && !phone && !inApp);
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
 
@@ -210,6 +215,8 @@ export function PersonScreen() {
 
         {isLoading ? (
           <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "text-muted")}>Loading…</div>
+        ) : setupFirst ? (
+          <PhoneSetupGate setup={setup} onLater={() => setSetupLater(true)} overNight={overNight} />
         ) : (
           // One frosted-glass working panel holds the tabs + the active section.
           <div className={cn("pk-glass rounded-sheet p-2.5 sm:p-3", scene)}>
@@ -254,7 +261,7 @@ export function PersonScreen() {
                   {/* Location (owner, 2026-10-02): nothing about it on the child's screen — the
                       phone shares by itself, about every hour. Inside the Orbit app only the
                       one-time set-up shows, until sharing runs; then nothing. */}
-                  {inApp ? <PhoneSharingCard overNight={overNight} onConnected={() => void location.refetch()} /> : null}
+                  {inApp ? <PhoneSharingCard setup={setup} overNight={overNight} /> : null}
 
                   {forYou.length > 0 ? (
                     <div>
