@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { RoutinePage } from "@/components/routine/routine-page";
+import { useRetryWhenBack } from "@/components/routine/use-retry-when-back";
 import { ApiError } from "@/lib/api";
 import { useWho } from "@/lib/hooks/use-routine";
 
@@ -23,6 +24,8 @@ export default function Page() {
   const kind = who.data?.kind;
   const status = who.error instanceof ApiError ? who.error.status : null;
   const bounce = who.isError && (status === 401 || status === 403);
+  // "Couldn't load your page" tries again by itself when the phone is back (2026-10-02).
+  useRetryWhenBack(who.isError && !bounce && !who.data, who.refetch);
 
   useEffect(() => {
     if (bounce) router.replace("/login");

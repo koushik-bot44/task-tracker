@@ -13,6 +13,7 @@ import type { MentorReportDTO, MentorViewDTO } from "@/lib/types";
 import { WellBeingScene } from "./well-being-scene";
 
 import { Labeled, inputCls, prettyDate, weekdayShort } from "./shared";
+import { useRetryWhenBack } from "./use-retry-when-back";
 
 /**
  * The tutor's / coach's whole app (2026-09-25 — the circle). A MENTOR is a walled
@@ -32,6 +33,8 @@ export function MentorGate() {
   // Only a real refusal (401/403) means "signed out"; a dropped request is not (review, 2026-09-25).
   const whoStatus = who.error instanceof ApiError ? who.error.status : null;
   const bounce = who.isError && (whoStatus === 401 || whoStatus === 403);
+  // "Couldn't load your page" tries again by itself when the phone is back (2026-10-02).
+  useRetryWhenBack(who.isError && !bounce && !who.data, who.refetch);
   useEffect(() => {
     if (bounce) router.replace("/login");
     else if (kind === "SON") router.replace("/person");
@@ -57,15 +60,33 @@ export function MentorGate() {
 
 export function MentorScreen({ name }: { name?: string }) {
   const router = useRouter();
-  const { data, isLoading, error, refetch } = useMentor();
+  const { data, error, refetch } = useMentor();
+  // Nothing loaded yet because the fetch failed: try again by itself when the phone is back (2026-10-02).
+  useRetryWhenBack(Boolean(error) && !data, refetch);
   useEffect(() => {
     if (error instanceof ApiError && error.status === 403) router.replace("/login");
   }, [error, router]);
 
+  // What was loaded stays: a failed refresh never takes the report forms (and what is
+  // typed in them) or the past reports off the screen. The error shows only while
+  // there is nothing to show yet (2026-10-02).
   return (
     <Shell name={data?.name ?? name}>
-      {isLoading ? (
-        <p className="pk-fg py-16 text-center text-sm">Loading…</p>
+      {data ? (
+        data.students.length === 0 ? (
+          <section className="rounded-sheet pk-glass p-6 text-center">
+            <p className="text-4xl" aria-hidden>
+              🌱
+            </p>
+            <p className="pk-fg mt-3 text-base">Nobody to report on yet — ask the parent to add you.</p>
+          </section>
+        ) : (
+          <div className="space-y-4">
+            {data.students.map((s) => (
+              <StudentPanel key={s.collaboratorId} student={s} today={data.today} />
+            ))}
+          </div>
+        )
       ) : error ? (
         <section className="rounded-sheet pk-glass p-6 text-center">
           <p className="pk-fg text-base font-semibold">Could not load your reports.</p>
@@ -73,20 +94,9 @@ export function MentorScreen({ name }: { name?: string }) {
             Try again
           </button>
         </section>
-      ) : data && data.students.length === 0 ? (
-        <section className="rounded-sheet pk-glass p-6 text-center">
-          <p className="text-4xl" aria-hidden>
-            🌱
-          </p>
-          <p className="pk-fg mt-3 text-base">Nobody to report on yet — ask the parent to add you.</p>
-        </section>
-      ) : data ? (
-        <div className="space-y-4">
-          {data.students.map((s) => (
-            <StudentPanel key={s.collaboratorId} student={s} today={data.today} />
-          ))}
-        </div>
-      ) : null}
+      ) : (
+        <p className="pk-fg py-16 text-center text-sm">Loading…</p>
+      )}
     </Shell>
   );
 }

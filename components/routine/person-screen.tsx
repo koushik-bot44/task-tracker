@@ -17,6 +17,8 @@ import { LocationLog } from "./location-log";
 import { useAppPing } from "./use-app-ping";
 import { LocationMapLazy } from "./location-map-lazy";
 import { inputCls, prettyDate, weekdayInitial } from "./shared";
+import { useRetryWhenBack } from "./use-retry-when-back";
+import { oneOf, useTabMemory } from "./use-tab-memory";
 
 /**
  * The PERSON's whole app — one calm, friendly screen in TABS (Today / Habits /
@@ -37,6 +39,7 @@ import { inputCls, prettyDate, weekdayInitial } from "./shared";
  * and the active pill scrolls itself into view.
  */
 type TabId = "today" | "habits" | "rules" | "calendar" | "map";
+const isTabId = oneOf<TabId>(["today", "habits", "rules", "calendar", "map"]);
 
 
 /**
@@ -51,6 +54,8 @@ export function PersonGate() {
   const kind = who.data?.kind;
   const status = who.error instanceof ApiError ? who.error.status : null;
   const bounce = who.isError && (status === 401 || status === 403);
+  // "Couldn't load your page" tries again by itself when the phone is back (2026-10-02).
+  useRetryWhenBack(who.isError && !bounce && !who.data, who.refetch);
 
   useEffect(() => {
     if (bounce) router.replace("/login");
@@ -77,15 +82,22 @@ export function PersonGate() {
 }
 
 export function PersonScreen() {
-  const { data, isLoading } = usePerson();
-  const toggle = usePersonTaskToggle();
-  const mark = usePersonHabitMark();
+  const { data, isError, refetch } = usePerson();
+  // No day yet because the fetch failed: try again by itself when the phone is back (2026-10-02).
+  useRetryWhenBack(isError && !data, refetch);
+  const { show: toast } = useToast();
+  // A tick or mark that could not be saved goes back — and says so (2026-10-02).
+  const tickFailed = () => toast({ message: "Couldn't save that — try again.", tone: "danger", durationMs: 4000 });
+  const toggle = usePersonTaskToggle(tickFailed);
+  const mark = usePersonHabitMark(tickFailed);
   const addTask = usePersonAddTask();
   const deleteTask = usePersonDeleteTask();
-  const { show: toast } = useToast();
-  const [tab, setTab] = useState<TabId>("today");
+  // The open tab, the calendar's month ("YYYY-MM", null = this month) and picked day
+  // (null = today) are kept for this browser tab, so a reload or a tab restored from
+  // Recents opens where he left it (2026-10-02).
+  const [tab, setTab] = useTabMemory<TabId>("orbit:wb:person:tab", "today", isTabId);
   const [title, setTitle] = useState("");
-  // The calendar's month ("YYYY-MM", null = this month) and picked day (null = today).
+  // Only the open tab is remembered (review, 2026-10-02): a remembered day went stale.
   const [month, setMonth] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   // Today's positions: the "Where are you?" card's last check-in and the Map tab.
@@ -133,12 +145,14 @@ export function PersonScreen() {
   ];
   const active = available.some((t) => t.id === tab) ? tab : "today";
 
-  // The pill row slides sideways; the active pill brings itself into view.
+  // The pill row slides sideways; the active pill brings itself into view — also when
+  // the row first appears with a remembered tab already open (2026-10-02).
   const tabBar = useRef<HTMLDivElement>(null);
+  const shown = Boolean(data);
   useEffect(() => {
     const el = tabBar.current?.querySelector<HTMLElement>('[aria-selected="true"]');
     if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ inline: "nearest", block: "nearest" });
-  }, [active]);
+  }, [active, shown]);
 
   // Moving to another month picks its first day; back on this month, today.
   const pickMonth = (m: string) => {
@@ -204,8 +218,21 @@ export function PersonScreen() {
           </div>
         ) : null}
 
-        {isLoading ? (
-          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "text-muted")}>Loading…</div>
+        {!data ? (
+          // No day yet — still loading, or the fetch failed. Never an empty day that
+          // looks real; a failure offers Try again (2026-10-02).
+          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "text-muted")}>
+            {isError ? (
+              <>
+                <p>Couldn’t load your page.</p>
+                <button type="button" onClick={() => void refetch()} className="press mt-3 inline-flex h-11 items-center rounded-card bg-primary px-4 font-medium text-on-primary">
+                  Try again
+                </button>
+              </>
+            ) : (
+              "Loading…"
+            )}
+          </div>
         ) : (
           // One frosted-glass working panel holds the tabs + the active section.
           <div className={cn("pk-glass rounded-sheet p-2.5 sm:p-3", scene)}>
@@ -368,6 +395,7 @@ function SubHeading({ children }: { children: ReactNode }) {
     rollup on the person's side — the server sends habits as null anyway. */
 function PersonCalendar({ today, month, selected, onMonth, onSelect }: { today: string; month: string; selected: string; onMonth: (m: string) => void; onSelect: (d: string) => void }) {
   const { data, isError, refetch } = usePersonCalendar(month);
+  useRetryWhenBack(isError && !data, refetch);
   return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits={false} failed={isError} onRetry={() => void refetch()} />;
 }
 

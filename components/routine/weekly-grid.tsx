@@ -191,6 +191,13 @@ function SegmentEditor({ segments, weekParam, personId }: { segments: HabitSegme
   const { show: toast } = useToast();
   const [newSegment, setNewSegment] = useState("");
   const err = (e: unknown) => toast({ message: (e as Error).message, tone: "danger" });
+  // What was typed stays until the save succeeds — a failed add no longer wipes it, and
+  // a success clears only the name it saved (2026-10-02).
+  const addNewSegment = () => {
+    const name = newSegment.trim();
+    if (!name || addSegment.isPending) return;
+    addSegment.mutate({ name }, { onSuccess: () => setNewSegment((cur) => (cur.trim() === name ? "" : cur)), onError: err });
+  };
 
   return (
     <div className="space-y-5">
@@ -226,7 +233,7 @@ function SegmentEditor({ segments, weekParam, personId }: { segments: HabitSegme
                 </button>
               </div>
             ))}
-            <AddHabit segmentId={seg.id} onAdd={(name) => addHabit.mutate({ segmentId: seg.id, name }, { onError: err })} />
+            <AddHabit segmentId={seg.id} busy={addHabit.isPending && addHabit.variables?.segmentId === seg.id} onAdd={(name, saved) => addHabit.mutate({ segmentId: seg.id, name }, { onSuccess: saved, onError: err })} />
           </div>
         </div>
       ))}
@@ -235,12 +242,12 @@ function SegmentEditor({ segments, weekParam, personId }: { segments: HabitSegme
         <input
           value={newSegment}
           onChange={(e) => setNewSegment(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && newSegment.trim()) { addSegment.mutate({ name: newSegment.trim() }, { onError: err }); setNewSegment(""); } }}
+          onKeyDown={(e) => { if (e.key === "Enter") addNewSegment(); }}
           placeholder="New segment"
           aria-label="New segment name"
           className={cn(inputCls, "h-10 flex-1")}
         />
-        <button type="button" onClick={() => { if (newSegment.trim()) { addSegment.mutate({ name: newSegment.trim() }, { onError: err }); setNewSegment(""); } }} aria-label="Add segment" className="press grid h-10 w-10 shrink-0 place-items-center rounded-card bg-primary text-on-primary">
+        <button type="button" onClick={addNewSegment} aria-label="Add segment" className="press grid h-10 w-10 shrink-0 place-items-center rounded-card bg-primary text-on-primary">
           <Plus className="h-4 w-4" aria-hidden />
         </button>
       </div>
@@ -262,9 +269,14 @@ function TargetStepper({ value, onChange }: { value: number; onChange: (v: numbe
   );
 }
 
-function AddHabit({ segmentId, onAdd }: { segmentId: string; onAdd: (name: string) => void }) {
+function AddHabit({ segmentId, busy, onAdd }: { segmentId: string; busy: boolean; onAdd: (name: string, saved: () => void) => void }) {
   const [name, setName] = useState("");
-  const add = () => { if (name.trim()) { onAdd(name.trim()); setName(""); } };
+  // Cleared only once the habit is saved, and only if it still holds that name — a
+  // failed add keeps the text (2026-10-02).
+  const add = () => {
+    const sent = name.trim();
+    if (sent && !busy) onAdd(sent, () => setName((cur) => (cur.trim() === sent ? "" : cur)));
+  };
   return (
     <div className="flex items-center gap-2 pt-1">
       <input

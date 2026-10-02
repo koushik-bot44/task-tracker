@@ -75,7 +75,8 @@ export function CalendarView({
   selected: string;
   onSelect: (d: string) => void;
   showHabits: boolean;
-  /** The month could not be fetched: say so and offer another go (review, 2026-09-25). */
+  /** The month could not be fetched: say so and offer another go (review, 2026-09-25) —
+      only while nothing of it is on screen (2026-10-02). */
   failed?: boolean;
   onRetry?: () => void;
 }) {
@@ -89,6 +90,9 @@ export function CalendarView({
   const days = data?.days;
   const selectedInMonth = monthOf(selected) === month;
   const picked = selectedInMonth ? days?.[selected] : undefined;
+  // A failed refresh keeps the month already on screen; only a month that never
+  // loaded says so (2026-10-02).
+  const missing = data === undefined;
 
   return (
     <section className="rounded-sheet pk-glass p-4 sm:p-5">
@@ -177,7 +181,7 @@ export function CalendarView({
         {!selectedInMonth ? (
           <p className="py-2 text-center text-sm pk-fg-soft">Pick a day.</p>
         ) : (
-          <DayPanel dayKey={selected} day={picked} today={today} loading={data === undefined && !failed} failed={failed} onRetry={onRetry} showHabits={showHabits} />
+          <DayPanel dayKey={selected} day={picked} today={today} loading={missing && !failed} failed={missing && failed} onRetry={onRetry} showHabits={showHabits} />
         )}
       </div>
     </section>

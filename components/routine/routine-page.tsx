@@ -3,6 +3,7 @@
 import { Bell, ChevronLeft, ChevronRight, Eye, Loader2, Maximize2, Minimize2, Pencil, Plus, ShieldCheck, Sparkles, Sun, Trash2, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { isFounderRole } from "@/lib/roles";
 import { useMe } from "@/lib/hooks/use-users";
@@ -26,10 +27,15 @@ import { CircleSection } from "./circle-section";
 import { CalendarView, monthOf } from "./calendar-view";
 import { LocationSection } from "./location-section";
 import { addDays, inputCls, Labeled, weekLabel } from "./shared";
+import { useRetryWhenBack } from "./use-retry-when-back";
+import { oneOf, useTabMemory } from "./use-tab-memory";
 
 /** The six views (2026-09-25: Calendar and Map join). Circle is the owner's alone. */
 type View = "summary" | "tracker" | "calendar" | "map" | "tutors" | "circle";
 const VIEW_LABEL: Record<View, string> = { summary: "Summary", tracker: "Tracker", calendar: "Calendar", map: "Location", tutors: "Tutors", circle: "Invite" };
+const isView = oneOf<View>(["summary", "tracker", "calendar", "map", "tutors", "circle"]);
+/** Which page keeps its choices: the CEO's tab in the app, or the co-parent's /family. */
+type Scope = "ceo" | "family";
 
 /**
  * The Well Being tab (was "Routine", phase 35) — MANAGER only. A calm family corner
@@ -46,26 +52,35 @@ export function RoutinePage({ standalone = false }: { standalone?: boolean }) {
   return standalone ? <StandaloneRoutinePage /> : <AppRoutinePage />;
 }
 
-/** The three choices held ABOVE the dashboard, shared by both wrappers. */
-function useViewState() {
+/** The three choices held ABOVE the dashboard, shared by both wrappers. The week and
+    the view are kept for this browser tab, so a reload or a tab restored from Recents
+    opens where the person left it (2026-10-02). */
+function useViewState(scope: Scope) {
   // null = the current week (server picks); a Monday key = a specific week.
+  // Only the open tab is remembered (review, 2026-10-02): a remembered week went stale.
   const [week, setWeek] = useState<string | null>(null);
   // null = the caller's default routine (own person, else first collaboration).
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   // Summary (the calm overview) first, Tracker one tap away. Held here beside the
   // week: the dashboard gives way to "Loading…" while another week loads, so held
   // inside it the choice snapped back to Summary on every arrow (review, 2026-09-10).
-  const [view, setView] = useState<View>("summary");
+  const [view, setView] = useTabMemory<View>(`orbit:wb:${scope}:view`, "summary", isView);
   return { week, setWeek, selectedPerson, setSelectedPerson, view, setView };
 }
 
 /** The CEO's Well Being tab inside the app (sidebar + header around it). */
 function AppRoutinePage() {
   const router = useRouter();
-  const { data: me } = useMe();
-  const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState();
+  const meQuery = useMe();
+  const me = meQuery.data;
+  const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState("ceo");
   // Well Being is the CEO's alone (owner, 2026-09-04).
-  const { data, isLoading } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
+  const { data, isError, refetch } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
+  // Nothing loaded yet because a fetch failed (who is signed in, or the Well Being
+  // itself): Try again, and it tries again by itself when the phone is back (2026-10-02).
+  const meFailed = meQuery.isError && !me;
+  useRetryWhenBack(meFailed, meQuery.refetch);
+  useRetryWhenBack(isError && !data, refetch);
   // Shared scene (same source as the person screen). The scene class (pk-day / pk-night)
   // on this page root supplies the glass CSS vars to every .pk-* descendant.
   const { mounted, night, overNight, floatText } = useTimeScene();
@@ -100,6 +115,8 @@ function AppRoutinePage() {
     if (me && !isFounderRole(me.role)) router.replace("/");
   }, [me, router]);
 
+  // /api/users/me failed before it ever answered: no longer a blank page (2026-10-02).
+  if (meFailed) return <LoadFailed onRetry={() => void meQuery.refetch()} className="px-4 text-muted" />;
   if (!me || !isFounderRole(me.role)) return null;
 
   return (
@@ -134,14 +151,32 @@ function AppRoutinePage() {
           </button>
         </header>
 
-        {isLoading || !data ? (
-          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>Loading…</div>
-        ) : data.person ? (
-          <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
+        {data ? (
+          data.person ? (
+            <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
+          ) : (
+            <AddPerson />
+          )
+        ) : isError ? (
+          // A failed first load said "Loading…" for ever (2026-10-02).
+          <LoadFailed onRetry={() => void refetch()} className={overNight ? "text-on-primary" : "pk-fg-soft"} />
         ) : (
-          <AddPerson />
+          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>Loading…</div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Nothing to show yet because the fetch failed (2026-10-02): one line and Try again.
+    What was loaded before never gives way to this — a failed refresh keeps it. */
+function LoadFailed({ onRetry, className }: { onRetry: () => void; className: string }) {
+  return (
+    <div className={cn("py-16 text-center text-sm", className)}>
+      <p>Couldn’t load Well Being.</p>
+      <button type="button" onClick={onRetry} className="press mt-3 inline-flex h-11 items-center rounded-card bg-primary px-4 font-medium text-on-primary">
+        Try again
+      </button>
     </div>
   );
 }
@@ -153,8 +188,14 @@ function AppRoutinePage() {
  * see (its role is EDITABLE or READ_ONLY, never OWNER, so Circle never shows).
  */
 function StandaloneRoutinePage() {
-  const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState();
-  const { data, isLoading, isError } = useRoutine(week, selectedPerson, true);
+  const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState("family");
+  const { data, error, isError, refetch } = useRoutine(week, selectedPerson, true);
+  // "Nothing shared" only when the server says so — no person in the answer, or a
+  // refusal (403/404). A dropped refresh keeps what was loaded, typed text and all;
+  // with nothing loaded yet it offers Try again and tries again by itself when the
+  // phone is back (2026-10-02).
+  const refused = error instanceof ApiError && (error.status === 403 || error.status === 404);
+  useRetryWhenBack(isError && !refused && !data, refetch);
   const { mounted, night, overNight, floatText } = useTimeScene();
   const sceneClass = overNight ? "pk-night" : "pk-day";
 
@@ -187,20 +228,17 @@ function StandaloneRoutinePage() {
           </div>
         </header>
 
-        {isError ? (
-          <div className="rounded-sheet pk-glass p-6 text-center">
-            <p className="font-display text-lg pk-fg">Nothing shared with you yet</p>
-            <p className="mt-1 text-sm pk-fg-soft">Ask the parent who invited you to check the invite.</p>
-          </div>
-        ) : isLoading || !data ? (
-          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>Loading…</div>
-        ) : data.person ? (
+        {!refused && data?.person ? (
           <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
-        ) : (
+        ) : refused || data ? (
           <div className="rounded-sheet pk-glass p-6 text-center">
             <p className="font-display text-lg pk-fg">Nothing shared with you yet</p>
             <p className="mt-1 text-sm pk-fg-soft">Ask the parent who invited you to check the invite.</p>
           </div>
+        ) : isError ? (
+          <LoadFailed onRetry={() => void refetch()} className={overNight ? "text-on-primary" : "pk-fg-soft"} />
+        ) : (
+          <div className={cn("py-16 text-center text-sm", overNight ? "text-on-primary" : "pk-fg-soft")}>Loading…</div>
         )}
       </div>
     </div>
@@ -314,7 +352,8 @@ function RoutineDashboard({
   // The week selector belongs to Summary and Tracker; Calendar and Map keep their own days.
   const withWeek = active === "summary" || active === "tracker";
 
-  // The calendar's month ("YYYY-MM", null = this month) and picked day (null = today).
+  // The calendar's month ("YYYY-MM", null = this month) and picked day (null = today),
+  // kept for this browser tab like the view and the week (2026-10-02).
   const [calMonth, setCalMonth] = useState<string | null>(null);
   const [calSelected, setCalSelected] = useState<string | null>(null);
   const pickMonth = (m: string) => {
@@ -427,6 +466,7 @@ function ParentTutors({ personId, today }: { personId: string | null; today: str
 
 function ParentCalendar({ personId, today, month, selected, onMonth, onSelect }: { personId: string | null; today: string; month: string; selected: string; onMonth: (m: string) => void; onSelect: (d: string) => void }) {
   const { data, isError, refetch } = useCalendar(month, personId);
+  useRetryWhenBack(isError && !data, refetch);
   return <CalendarView data={data} month={month} onMonth={onMonth} today={today} selected={selected} onSelect={onSelect} showHabits failed={isError} onRetry={() => void refetch()} />;
 }
 

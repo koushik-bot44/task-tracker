@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   CalendarMonthDTO,
   CircleKind,
@@ -307,8 +307,10 @@ export function usePerson() {
 
 /** The person marks THEIR OWN habit cell — optimistic so the tap feels instant,
     then reconciled. Writes the SAME HabitMark row the manager writes (last-write-
-    wins); the manager's Routine view reflects it on refresh. */
-export function usePersonHabitMark() {
+    wins); the manager's Routine view reflects it on refresh. A mark that cannot be
+    saved goes back and `onFailed` tells the screen — for every tap, not only the
+    last one (2026-10-02). */
+export function usePersonHabitMark(onFailed?: () => void) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: { habitId: string; date: string; value: HabitMarkValue | null }) => apiPost("/api/routine/kid/habit-mark", input),
@@ -338,12 +340,15 @@ export function usePersonHabitMark() {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(kidKey, ctx.prev);
+      onFailed?.();
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
   });
 }
 
-export function usePersonTaskToggle() {
+/** The person ticks a task. A tick that cannot be saved goes back and `onFailed`
+    tells the screen, instead of vanishing without a word (2026-10-02). */
+export function usePersonTaskToggle(onFailed?: () => void) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, done }: { id: string; done: boolean }) => apiPatch<RoutineTaskDTO>(`/api/routine/kid/tasks/${id}`, { done }),
@@ -358,6 +363,7 @@ export function usePersonTaskToggle() {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(kidKey, ctx.prev);
+      onFailed?.();
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: kidKey }),
   });
@@ -433,7 +439,9 @@ export function usePersonCheckIn() {
 
 /* ---- Which walled login is this? (the person, a co-parent, a tutor) ---- */
 export function useWho() {
-  return useQuery({ queryKey: whoKey, queryFn: () => apiGet<WhoDTO>("/api/routine/who"), retry: false });
+  // A refusal (401/403) answers at once; a dropped request is asked once more
+  // before the gate offers "Try again" (2026-10-02).
+  return useQuery({ queryKey: whoKey, queryFn: () => apiGet<WhoDTO>("/api/routine/who"), retry: (failures, e) => failures < 1 && !(e instanceof ApiError && e.status < 500) });
 }
 
 /* ---- The tutor's / coach's screen ---- */
