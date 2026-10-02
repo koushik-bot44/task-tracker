@@ -93,7 +93,7 @@ export function ProfileMenu() {
             </button>
             <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} role="menuitem" onClick={() => setOpen(false)} className="press flex h-11 items-center gap-3 rounded-input px-3 text-sm text-ink">
               <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
-              Download Orbit Child app
+              Download Orbit app
             </a>
             <div className="my-1 h-px bg-line" role="separator" />
             <button type="button" role="menuitem" onClick={signOut} className="press flex h-11 w-full items-center gap-3 rounded-input px-3 text-left text-sm text-ink">

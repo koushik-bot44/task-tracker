@@ -228,10 +228,14 @@ function UserMenu() {
               <KeyRound className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
               Change password
             </button>
-            <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} role="menuitem" onClick={() => setOpen(false)} className="press flex h-11 items-center gap-3 rounded-input px-3 text-sm text-ink">
-              <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
-              Download Orbit Child app
-            </a>
+            {/* Only the people around the child (owner, 2026-10-02): in the work app that is
+                the CEO; employees never see it. The family screens' menu offers it too. */}
+            {me?.hasFamily ? (
+              <a href={ORBIT_CHILD_APK} download={ORBIT_CHILD_FILENAME} role="menuitem" onClick={() => setOpen(false)} className="press flex h-11 items-center gap-3 rounded-input px-3 text-sm text-ink">
+                <Download className="h-4 w-4 text-muted" strokeWidth={1.75} aria-hidden />
+                Download Orbit app
+              </a>
+            ) : null}
             <button
               type="button"
               role="menuitem"
