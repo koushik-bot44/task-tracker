@@ -19,6 +19,26 @@
   var state = null;
   var busy = false;
   var lastError = "";
+  // Which screen is up. The pairing screen is drawn ONCE and its boxes are never
+  // redrawn (owner, 2026-10-02: typing vanished every 10 s and on coming back from
+  // Recents, because each refresh rebuilt the boxes empty).
+  var screen = null;
+  // What the child has typed, kept on the phone as it is typed, so switching apps
+  // (or Android closing this one in Recents) loses nothing.
+  var DRAFT_KEY = "orbit-child-draft";
+  var draft = loadDraft();
+
+  function loadDraft() {
+    try {
+      var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+      return { code: String(d.code || ""), server: String(d.server || ""), showServer: Boolean(d.showServer) };
+    } catch (e) {
+      return { code: "", server: "", showServer: false };
+    }
+  }
+  function saveDraft() {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* storage off: the boxes still keep it */ }
+  }
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -72,25 +92,79 @@
     render();
   }
 
-  function pairScreen() {
+  function defaultServer() {
     var cfg = window.ORBIT_CONFIG || {};
-    var server = (state && state.serverUrl) || cfg.serverUrl || "";
-    var removed = state && state.revoked
-      ? '<div class="banner bad">This phone was removed from your family\'s Orbit. Ask your parent for a new code.</div>'
-      : "";
+    return (state && state.serverUrl) || cfg.serverUrl || "";
+  }
+
+  // The pairing screen: the code only, since the app already knows its Orbit
+  // address (owner, 2026-10-02: "code is enough"). The address box shows only when
+  // no address is built in, or when a developer taps "Use a different address".
+  function pairScreen() {
+    var showServer = draft.showServer || !defaultServer();
     return (
       "<h1>Orbit Child</h1>" +
       '<p class="muted">This app shares where this phone is with your family, all the time, after you connect it with a code from your parent\'s Orbit.</p>' +
-      removed +
+      '<div id="removed"></div>' +
       '<div class="card">' +
-      '<label for="server">Your family\'s Orbit address</label>' +
-      '<input id="server" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…" value="' + esc(server) + '" />' +
+      (showServer
+        ? '<label for="server">Your family\'s Orbit address</label>' +
+          '<input id="server" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…" value="' + esc(draft.server || defaultServer()) + '" />'
+        : "") +
       '<label for="code">Code from your parent\'s screen</label>' +
-      '<input id="code" class="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="ABCD-EFGH" />' +
-      '<button id="pair" class="full"' + (busy ? " disabled" : "") + ">" + (busy ? "Connecting…" : "Connect this phone") + "</button>" +
-      (lastError ? '<p class="error">' + esc(lastError) + "</p>" : "") +
+      '<input id="code" class="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="ABCD-EFGH" value="' + esc(draft.code) + '" />' +
+      '<button id="pair" class="full">Connect this phone</button>' +
+      '<p id="pair-error" class="error" hidden></p>' +
+      (showServer ? "" : '<button id="other-server" class="link" type="button">Use a different Orbit address</button>') +
       "</div>"
     );
+  }
+
+  // Wire the pairing screen once, right after it is drawn.
+  function wirePair() {
+    var code = document.getElementById("code");
+    var server = document.getElementById("server");
+    code.addEventListener("input", function () { draft.code = code.value; saveDraft(); });
+    if (server) server.addEventListener("input", function () { draft.server = server.value; saveDraft(); });
+    var other = document.getElementById("other-server");
+    if (other) {
+      other.onclick = function () {
+        draft.showServer = true;
+        saveDraft();
+        screen = null; // a tap, not a refresh: redraw once with the address box
+        render();
+        var box = document.getElementById("server");
+        if (box) box.focus();
+      };
+    }
+    document.getElementById("pair").onclick = function () {
+      var box = document.getElementById("server");
+      var serverUrl = (box ? box.value : defaultServer()).trim().replace(/\/+$/, "");
+      var typed = code.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if (!serverUrl) { lastError = "Enter your family's Orbit address."; updatePair(); return; }
+      if (typed.length !== 8) { lastError = "Enter the 8-letter code from your parent's screen."; updatePair(); return; }
+      run(function () { return Tracker.pair({ serverUrl: serverUrl, code: typed }); });
+    };
+  }
+
+  // Refresh the pairing screen's moving parts only; the boxes are never touched.
+  function updatePair() {
+    var removed = document.getElementById("removed");
+    if (removed) {
+      removed.innerHTML = state && state.revoked
+        ? '<div class="banner bad">This phone was removed from your family\'s Orbit. Ask your parent for a new code.</div>'
+        : "";
+    }
+    var pair = document.getElementById("pair");
+    if (pair) {
+      pair.disabled = busy;
+      pair.textContent = busy ? "Connecting…" : "Connect this phone";
+    }
+    var error = document.getElementById("pair-error");
+    if (error) {
+      error.textContent = lastError;
+      error.hidden = !lastError;
+    }
   }
 
   function step(done, title, body, button) {
@@ -148,16 +222,24 @@
 
   function render() {
     if (!state) return;
-    app.innerHTML = !state.paired || state.revoked ? pairScreen() : statusScreen();
-    var pair = document.getElementById("pair");
-    if (pair) {
-      pair.onclick = function () {
-        var serverUrl = document.getElementById("server").value.trim().replace(/\/+$/, "");
-        var code = document.getElementById("code").value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-        if (!serverUrl || code.length !== 8) { lastError = "Enter the address and the 8-letter code."; render(); return; }
-        run(function () { return Tracker.pair({ serverUrl: serverUrl, code: code }); });
-      };
+    if (!state.paired || state.revoked) {
+      // Draw the pairing screen once; every later refresh only updates its button
+      // and messages, so what the child is typing stays put.
+      if (screen !== "pair") {
+        app.innerHTML = pairScreen();
+        wirePair();
+        screen = "pair";
+      }
+      updatePair();
+      return;
     }
+    if (screen === "pair" && draft.code) {
+      // Paired: the typed code has done its job.
+      draft.code = "";
+      saveDraft();
+    }
+    screen = "status";
+    app.innerHTML = statusScreen();
     var acts = {
       fg: function () { return Tracker.requestForegroundPermission(); },
       bg: function () { return Tracker.requestBackgroundPermission(); },

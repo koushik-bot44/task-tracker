@@ -121,9 +121,10 @@ Edit `mobile/www/config.js`:
 window.ORBIT_CONFIG = { serverUrl: "https://orbit.example.com" };
 ```
 
-Then run `npx cap sync android` and rebuild. The address is pre-filled on the
-pairing screen, and the child can still edit it. If no scheme is typed, the
-app adds `https://`.
+Then run `npx cap sync android` and rebuild. With an address built in, the
+pairing screen asks for the 8-letter code only (2026-10-02); "Use a different
+Orbit address" shows the address box for development. If no scheme is typed,
+the app adds `https://`. The live site's address is built in now.
 
 ## FCM (instant Locate Now) — optional
 
