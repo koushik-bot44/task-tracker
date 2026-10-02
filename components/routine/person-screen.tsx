@@ -349,7 +349,7 @@ export function PersonScreen() {
                       maxLength={160}
                       className={cn(inputCls, "min-w-0 flex-1")}
                     />
-                    <button type="button" onClick={addOwnRule} disabled={!ruleName.trim() || addRule.isPending} aria-label="Add rule" className="press grid h-11 w-11 shrink-0 place-items-center rounded-card bg-primary text-on-primary disabled:opacity-40">
+                    <button type="button" onClick={addOwnRule} disabled={!ruleName.trim() || addRule.isPending} aria-label="Add non-negotiable" className="press grid h-11 w-11 shrink-0 place-items-center rounded-card bg-primary text-on-primary disabled:opacity-40">
                       <Plus className="h-5 w-5" aria-hidden />
                     </button>
                   </div>
@@ -494,7 +494,7 @@ function RuleRow({
         <span className="flex shrink-0 items-center gap-1">
           <span className={cn("text-micro", crossed > 0 ? "font-semibold text-warn-ink" : "pk-fg-soft")}>{crossed === 0 ? "held all week" : `${crossed} crossed`}</span>
           {onRemove ? (
-            <button type="button" onClick={onRemove} aria-label={`Remove your rule ${rule.name}`} className="press grid h-11 w-11 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink">
+            <button type="button" onClick={onRemove} aria-label={`Remove your non-negotiable ${rule.name}`} className="press grid h-11 w-11 place-items-center rounded-card pk-fg-soft hover:bg-[color:var(--pk-cell)] hover:text-danger-ink">
               <X className="h-4 w-4" aria-hidden />
             </button>
           ) : null}
