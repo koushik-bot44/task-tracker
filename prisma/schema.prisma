@@ -230,10 +230,10 @@ model User {
   sessionVersion     Int                    @default(0)
   personalDepartments PersonalDepartment[]  @relation("PersonalDepartmentOwner")
   personalProjects    PersonalProject[]     @relation("PersonalProjectOwner")
-  /// Phase 35: the Routine feature. A MANAGER may own ONE person (managedPerson);
-  /// a PERSON login account backs exactly one Person (personAccount). Both are
-  /// nullable one-to-ones (see @unique on Person.managerId / Person.userId).
-  managedPerson      Person?                @relation("PersonManager")
+  /// Phase 35: the Routine feature. A PERSON login account backs exactly one Person
+  /// (personAccount, @unique on Person.userId). Since 2026-10-02 a parent may run
+  /// SEVERAL children (managedPersons) — the owner has more than one kid.
+  managedPersons     Person[]               @relation("PersonManager")
   personAccount      Person?                @relation("PersonAccount")
   /// Phase 39: routines this manager was invited to monitor (as a collaborator),
   /// and the invites they have sent as an owner.
@@ -802,7 +802,7 @@ model Notification {
 /// scoped to the owning manager (and, for the person's login, to their own tasks).
 model Person {
   id                    String                @id @default(cuid())
-  managerId             String                @unique
+  managerId             String
   manager               User                  @relation("PersonManager", fields: [managerId], references: [id], onDelete: Cascade)
   userId                String                @unique
   user                  User                  @relation("PersonAccount", fields: [userId], references: [id], onDelete: Cascade)
@@ -828,6 +828,8 @@ model Person {
   locateRequests        LocateRequest[]
   locationAudit         LocationAuditEvent[]
   locationRetentionDays Int                   @default(90)
+
+  @@index([managerId])
 }
 
 /// Phase 39: another MANAGER invited to monitor a person's routine, mirroring the

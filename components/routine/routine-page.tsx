@@ -74,6 +74,8 @@ function AppRoutinePage() {
   const meQuery = useMe();
   const me = meQuery.data;
   const { week, setWeek, selectedPerson, setSelectedPerson, view, setView } = useViewState("ceo");
+  // Any number of children (owner, 2026-10-06): "+ Add child" opens the add form.
+  const [addingChild, setAddingChild] = useState(false);
   // Well Being is the CEO's alone (owner, 2026-09-04).
   const { data, isError, refetch } = useRoutine(week, selectedPerson, isFounderRole(me?.role));
   // Nothing loaded yet because a fetch failed (who is signed in, or the Well Being
@@ -152,8 +154,18 @@ function AppRoutinePage() {
         </header>
 
         {data ? (
-          data.person ? (
-            <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} />
+          data.person && addingChild ? (
+            <AddPerson
+              title="Add another child"
+              onCancel={() => setAddingChild(false)}
+              onCreated={(id) => {
+                setAddingChild(false);
+                setSelectedPerson(id);
+                setView("summary");
+              }}
+            />
+          ) : data.person ? (
+            <RoutineDashboard data={data} week={week} setWeek={setWeek} view={view} setView={setView} selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} onAddChild={() => setAddingChild(true)} />
           ) : (
             <AddPerson />
           )
@@ -246,7 +258,7 @@ function StandaloneRoutinePage() {
 }
 
 
-function AddPerson() {
+function AddPerson({ title = "Add a person", onCreated, onCancel }: { title?: string; onCreated?: (id: string) => void; onCancel?: () => void } = {}) {
   const { createPerson } = useRoutineMutations(null, null);
   const { show: toast } = useToast();
   const [name, setName] = useState("");
@@ -256,7 +268,16 @@ function AddPerson() {
 
   const submit = () => {
     if (!ready) return;
-    createPerson.mutate({ name: name.trim(), email: email.trim(), password }, { onError: (e) => toast({ message: (e as Error).message, tone: "danger" }) });
+    createPerson.mutate(
+      { name: name.trim(), email: email.trim(), password },
+      {
+        onSuccess: (p) => {
+          toast({ message: `${p.name} added` });
+          onCreated?.(p.id);
+        },
+        onError: (e) => toast({ message: (e as Error).message, tone: "danger" }),
+      },
+    );
   };
 
   return (
@@ -265,7 +286,7 @@ function AddPerson() {
         <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-primary-soft text-primary-ink">
           <Sparkles className="h-7 w-7" strokeWidth={1.75} aria-hidden />
         </span>
-        <p className="font-display text-xl pk-fg">Add a person</p>
+        <p className="font-display text-xl pk-fg">{title}</p>
         <p className="mx-auto mt-1.5 max-w-sm text-sm pk-fg-soft">
           Create a gentle login just for them. You&apos;ll set up the weekly grid and tasks; they simply tick off what they&apos;ve done.
         </p>
@@ -284,6 +305,11 @@ function AddPerson() {
           {createPerson.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
           Add person
         </button>
+        {onCancel ? (
+          <button type="button" onClick={onCancel} className="press h-11 w-full rounded-card text-sm pk-fg-soft">
+            Cancel
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -297,6 +323,7 @@ function RoutineDashboard({
   setView,
   selectedPerson,
   setSelectedPerson,
+  onAddChild,
 }: {
   data: RoutineOverviewDTO;
   week: string | null;
@@ -305,6 +332,8 @@ function RoutineDashboard({
   setView: (v: View) => void;
   selectedPerson: string | null;
   setSelectedPerson: (id: string | null) => void;
+  /** The CEO's page only: open the add-a-child form (2026-10-06). */
+  onAddChild?: () => void;
 }) {
   const { today, person, week: weekMeta, segments, nonNegotiables, tasks, weights, monthlyWeights, summary, role, routines, collaborators, reports, circle, todayTasks } = data;
   // The RESOLVED id — for the switcher highlight only.
@@ -364,6 +393,11 @@ function RoutineDashboard({
           </div>
         </div>
         {routines.length > 1 ? <RoutineSwitcher routines={routines} selectedId={personId} onSelect={setSelectedPerson} /> : null}
+        {onAddChild ? (
+          <button type="button" onClick={onAddChild} className="pk-press pk-glass pk-fg inline-flex h-9 shrink-0 items-center gap-1.5 rounded-card px-3 text-sm font-medium">
+            <Plus className="h-4 w-4" aria-hidden /> Add child
+          </button>
+        ) : null}
         {readOnly ? (
           <span className="pk-glass pk-fg inline-flex items-center gap-1.5 rounded-card px-2.5 py-1 text-micro font-medium">
             <Eye className="h-3.5 w-3.5" aria-hidden /> Read-only
@@ -452,7 +486,7 @@ function RoutineSwitcher({ routines, selectedId, onSelect }: { routines: Routine
       <select
         value={selectedId}
         onChange={(e) => onSelect(e.target.value)}
-        aria-label="Choose a Well Being"
+        aria-label="Choose a child"
         className="h-9 rounded-card pk-glass px-2 text-sm pk-fg outline-none focus:border-primary"
       >
         {routines.map((r) => (

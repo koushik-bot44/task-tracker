@@ -87,7 +87,7 @@ async function cleanUp() {
 
 async function main() {
   const ceo = await prisma.user.findFirst({ where: { role: "FOUNDER" }, select: { id: true, email: true } });
-  const person = ceo ? await prisma.person.findUnique({ where: { managerId: ceo.id }, select: { id: true, name: true, user: { select: { email: true } } } }) : null;
+  const person = ceo ? await prisma.person.findFirst({ where: { managerId: ceo.id }, select: { id: true, name: true, user: { select: { email: true } } } }) : null;
   record("the CEO's Well Being has a person", Boolean(person), person?.name ?? "none");
   if (!ceo || !person) return;
 

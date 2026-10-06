@@ -124,7 +124,7 @@ async function main() {
   if (!ceo) throw new Error("there is no CEO account");
 
   /* 1. The CEO's person: his own, or the one person nobody can open any more. */
-  let person = await prisma.person.findUnique({ where: { managerId: ceo.id }, select: { id: true, name: true, userId: true } });
+  let person = await prisma.person.findFirst({ where: { managerId: ceo.id }, select: { id: true, name: true, userId: true } });
   let adoptedFrom: string | null = null;
   if (!person) {
     const orphans = await prisma.person.findMany({ where: { manager: { role: { not: "FOUNDER" } } }, select: { id: true, name: true, userId: true, managerId: true } });

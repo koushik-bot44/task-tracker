@@ -55,7 +55,7 @@ async function create() {
   if (!ceo) throw new Error("no CEO on the clone");
   const there = await prisma.user.findMany({ where: { email: { in: allEmails() } }, select: { email: true } });
   if (there.length) throw new Error(`already on the clone, not touching them: ${there.map((u) => u.email).join(", ")}`);
-  if (await prisma.person.findUnique({ where: { managerId: ceo.id } })) throw new Error("the CEO already has a Well Being person — not replacing it");
+  if (await prisma.person.findFirst({ where: { managerId: ceo.id } })) throw new Error("the CEO already has a Well Being person — not replacing it");
   if (await prisma.project.findFirst({ where: { OR: [{ name: RIG_PROJECT.name }, { slug: RIG_PROJECT.slug }] } })) throw new Error(`a project called ${RIG_PROJECT.name} is already there — not touching it`);
   const departments = await prisma.department.findMany({ select: { id: true, name: true, hodId: true } });
   const departmentId = (name: string) => {

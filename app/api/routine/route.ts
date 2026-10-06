@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { HttpError, requireManager, route } from "@/lib/session";
 import { parseBody, routinePersonCreateSchema } from "@/lib/validation";
-import { DEFAULT_NON_NEGOTIABLES, DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, getOwnedPersons, listCircle, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
+import { DEFAULT_NON_NEGOTIABLES, DEFAULT_SEGMENTS, buildOverview, getAccessibleRoutines, listCircle, listRoutineCollaborators, personParam, todayKey, weekStartKey } from "@/lib/routine";
 import type { RoutineOverviewDTO } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -71,11 +71,7 @@ export const POST = route(async (req: Request) => {
   // stray person (with a login) that they then own (review, 2026-09-25).
   if (actor.role !== "FOUNDER") throw new HttpError(403, "Only the CEO can add a person.");
 
-  // One person per owner, counting one the CEO runs because nobody else can (2026-09-10).
-  const existing = await getOwnedPersons(actor.id);
-  if (existing.length > 0) {
-    return NextResponse.json({ error: "You already have a person. Only one is allowed." }, { status: 409 });
-  }
+  // Any number of children per parent (owner, 2026-10-06: "multiple children").
 
   const parsed = await parseBody(req, routinePersonCreateSchema);
   if (!parsed.ok) return parsed.response;

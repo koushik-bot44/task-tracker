@@ -244,20 +244,21 @@ export async function requireOwnWeight(personId: string, id: string) {
 export type PersonRef = { id: string; name: string; userId: string; user: { email: string } };
 const PERSON_SELECT = { id: true, name: true, userId: true, user: { select: { email: true } } } as const;
 
-/** The persons the caller runs as OWNER: their own (Person.managerId). A CEO-role
-    account with none of its own runs every person (2026-09-10: the persons whose
-    manager was not a CEO; 2026-10-01: every one — the developers' CEO-role account
-    sees all of Well Being, as the CEO does). The CEO, who has his own person,
-    sees exactly that, as before. Worked out on every read: nobody is reassigned.
-    Oldest first. */
+/** The persons the caller runs as OWNER, oldest first. A CEO-role account runs every
+    child in the family — the CEO and the developers' account alike, whichever of them
+    added it (2026-10-06: any number of children); anyone else, the children they
+    manage (Person.managerId). Worked out on every read: nobody is reassigned. */
 export async function getOwnedPersons(callerId: string): Promise<PersonRef[]> {
   const caller = await prisma.user.findUnique({
     where: { id: callerId },
-    select: { role: true, managedPerson: { select: PERSON_SELECT } },
+    // Every child this parent runs, oldest first (2026-10-06: any number of children).
+    select: { role: true, managedPersons: { select: PERSON_SELECT, orderBy: [{ createdAt: "asc" }, { id: "asc" }] } },
   });
   if (!caller) return [];
-  if (caller.managedPerson) return [caller.managedPerson];
-  if (caller.role !== "FOUNDER") return [];
+  // A CEO-role account runs EVERY child in the family, whichever CEO-role account
+  // added it (2026-10-06): the CEO and the developers' account see the same
+  // children. Anyone else runs only the children they manage.
+  if (caller.role !== "FOUNDER") return caller.managedPersons;
   return prisma.person.findMany({
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: PERSON_SELECT,
